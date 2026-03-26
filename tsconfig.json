@@ -1,0 +1,3 @@
+{
+  "extends": "@UMBRAL/config/tsconfig.base.json"
+}
