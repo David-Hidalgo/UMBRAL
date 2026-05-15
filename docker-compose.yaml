@@ -1,0 +1,108 @@
+services:
+  web:
+    container_name: web
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+    env_file:
+      - ./apps/web/.env
+    restart: always
+    ports:
+      - 3000:3000
+    networks:
+      - app_network
+  server:
+    container_name: server
+    build:
+      context: .
+      dockerfile: ./apps/server/api/Dockerfile
+    restart: always
+    depends_on:
+      - rabbitmq
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
+    ports:
+      - 5018:5018
+    networks:
+      - app_network
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management
+    restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
+    networks:
+      - app_network
+  postgres:
+    image: postgres:16.2
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-keycloak_db}
+      POSTGRES_USER: ${POSTGRES_USER:-keycloak_db_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-keycloak_db_user_password}
+    networks:
+      - keycloak_network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0.6
+    command: start
+    environment:
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_STRICT_BACKCHANNEL: false
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HEALTH_ENABLED: true
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres/${POSTGRES_DB:-keycloak_db}
+      KC_DB_USERNAME: ${POSTGRES_USER:-keycloak_db_user}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-keycloak_db_user_password}
+    ports:
+      - 8080:8080
+    restart: always
+    depends_on:
+      - postgres
+    networks:
+      - keycloak_network
+      - app_network
+
+volumes:
+  postgres_data:
+    driver: local
+  # native:
+  #   container_name: native
+  #   build:
+  #     context: .
+  #     dockerfile: ./apps/native/Dockerfile
+  #   env_file:
+  #   - ./apps/native/.env
+  #   restart: always
+  #   ports:
+  #     - 8081:8081
+  #     - 19000:19000
+  #     - 19001:19001
+  #     - 19002:19002
+  #   networks:
+  #     - app_network
+
+# Define a network, which allows containers to communicate
+# with each other, by using their container name as a hostname
+networks:
+  app_network:
+  keycloak_network:
+    driver: bridge

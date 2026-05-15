@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "scheme": "umbral",
+    "userInterfaceStyle": "automatic",
+    "orientation": "default",
+    "web": {
+      "bundler": "metro"
+    },
+    "name": "umbral",
+    "slug": "umbral",
+    "plugins": [
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "android": {
+      "package": "com.anonymous.umbral"
+    }
+  }
+}

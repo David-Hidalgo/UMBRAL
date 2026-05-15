@@ -1,0 +1,9 @@
+{
+  "name": "server",
+  "private": true,
+  "scripts": {
+    "dev": "dotnet watch --project ./api/api.csproj",
+    "build": "dotnet build ./api/api.csproj",
+    "start": "dotnet run --project ./api/api.csproj"
+  }
+}
