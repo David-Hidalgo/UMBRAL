@@ -26,6 +26,7 @@
         "@gorhom/bottom-sheet": "^5.2.10",
         "@react-navigation/drawer": "^7.9.4",
         "@react-navigation/elements": "^2.9.14",
+        "@umbral/auth": "workspace:*",
         "@umbral/env": "workspace:*",
         "dotenv": "catalog:",
         "expo": "^55.0.17",
@@ -70,6 +71,7 @@
       "name": "web",
       "version": "0.1.0",
       "dependencies": {
+        "@umbral/auth": "workspace:*",
         "@umbral/env": "workspace:*",
         "@umbral/ui": "workspace:*",
         "babel-plugin-react-compiler": "^1.0.0",
@@ -89,6 +91,17 @@
         "@types/react-dom": "catalog:",
         "@umbral/config": "workspace:*",
         "tailwindcss": "^4.1.18",
+        "typescript": "catalog:",
+      },
+    },
+    "packages/auth": {
+      "name": "@umbral/auth",
+      "version": "0.0.0",
+      "dependencies": {
+        "keycloak-js": "^26.2.1",
+      },
+      "devDependencies": {
+        "@umbral/config": "workspace:*",
         "typescript": "catalog:",
       },
     },
@@ -751,6 +764,8 @@
 
     "@types/yargs-parser": ["@types/yargs-parser@21.0.3", "", {}, "sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ=="],
 
+    "@umbral/auth": ["@umbral/auth@workspace:packages/auth"],
+
     "@umbral/config": ["@umbral/config@workspace:packages/config"],
 
     "@umbral/env": ["@umbral/env@workspace:packages/env"],
@@ -1300,6 +1315,8 @@
     "json5": ["json5@2.2.3", "", { "bin": { "json5": "lib/cli.js" } }, "sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg=="],
 
     "jsonfile": ["jsonfile@6.2.1", "", { "dependencies": { "universalify": "^2.0.0" }, "optionalDependencies": { "graceful-fs": "^4.1.6" } }, "sha512-zwOTdL3rFQ/lRdBnntKVOX6k5cKJwEc1HdilT71BWEu7J41gXIB2MRp+vxduPSwZJPWBxEzv4yH1wYLJGUHX4Q=="],
+
+    "keycloak-js": ["keycloak-js@26.2.4", "", {}, "sha512-PnXpR3ubETGOt0B/Qt2lxmPbkZr5bc3vlQsOqDoTPPQsZRp7JjhTKxlJ187uWh8qJhvBab6Gsjb06a8ayOPfuw=="],
 
     "kleur": ["kleur@4.1.5", "", {}, "sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ=="],
 
