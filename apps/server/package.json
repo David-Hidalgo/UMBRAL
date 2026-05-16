@@ -1,9 +1,13 @@
 {
-  "name": "server",
-  "private": true,
-  "scripts": {
-    "dev": "dotnet watch --project ./api/api.csproj",
-    "build": "dotnet build ./api/api.csproj",
-    "start": "dotnet run --project ./api/api.csproj"
-  }
+	"name": "server",
+	"private": true,
+	"scripts": {
+		"dev:api": "dotnet watch --project ./api/api.csproj",
+		"dev:userService": "dotnet watch --project ./userService/userService.csproj",
+		"dev": "bun x concurrently -k -n api,userService \"bun run dev:api\" \"bun run dev:userService\"",
+		"build": "dotnet build ./server.slnx",
+		"start": "dotnet run --project ./api/api.csproj",
+		"start:api": "dotnet run --project ./api/api.csproj",
+		"start:userService": "dotnet run --project ./userService/userService.csproj"
+	}
 }
