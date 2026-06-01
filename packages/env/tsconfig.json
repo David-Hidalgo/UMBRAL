@@ -1,3 +1,6 @@
 {
-  "extends": "@umbral/config/tsconfig.base.json"
+	"extends": "@umbral/config/tsconfig.base.json",
+	"compilerOptions": {
+		"strictNullChecks": true
+	}
 }

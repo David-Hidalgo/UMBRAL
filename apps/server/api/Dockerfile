@@ -1,6 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
+COPY apps/server/shared/ apps/server/shared/
 COPY apps/server/api/api.csproj apps/server/api/
 RUN dotnet restore apps/server/api/api.csproj
 
