@@ -1,7 +1,15 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
+using UserService.Application.DTOs;
 using UserService.Application.Interfaces;
 using shared.Authentication;
 
@@ -177,10 +185,156 @@ namespace UserService.Infrastructure.Authentication
             return baseUrl.TrimEnd('/');
         }
 
+        public async Task<IEnumerable<UserDto>> GetUsersAsync(string? searchTerm = null, string? role = null, CancellationToken cancellationToken = default)
+        {
+            EnsureConfigured();
+
+            var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
+            var baseUrl = NormalizeBaseUrl(_options.EffectiveInternalBaseUrl);
+
+            // 1. Fetch all users — this endpoint works with the current service-account permissions.
+            //    The /roles/{name}/users endpoint requires additional Keycloak privileges (manage-realm)
+            //    that are not granted to the service account, so we avoid it entirely.
+            var allUsersUri = $"{baseUrl}/admin/realms/{_options.Realm}/users?max=1000&enabled=true";
+            var keycloakUsers = await GetUsersFromUriAsync(allUsersUri, accessToken, cancellationToken);
+
+            // 2. Resolve roles for each user with bounded concurrency via /users/{id}/role-mappings/realm.
+            //    This endpoint only requires view-users / manage-users, which are already granted.
+            const int maxConcurrency = 10;
+            using var throttler = new SemaphoreSlim(maxConcurrency);
+
+            var roleTasks = keycloakUsers.Select(async ku =>
+            {
+                await throttler.WaitAsync(cancellationToken);
+                try
+                {
+                    var roleMappingsUri = $"{baseUrl}/admin/realms/{_options.Realm}/users/{ku.Id}/role-mappings/realm";
+                    var roles = await GetUserRolesAsync(roleMappingsUri, accessToken, cancellationToken);
+
+                    var resolvedRole = roles.Any(r => string.Equals(r.Name, "admin", StringComparison.OrdinalIgnoreCase))
+                        ? "admin"
+                        : roles.Any(r => string.Equals(r.Name, "operator", StringComparison.OrdinalIgnoreCase))
+                            ? "operator"
+                            : "player";
+
+                    return (User: ku, Role: resolvedRole);
+                }
+                finally
+                {
+                    throttler.Release();
+                }
+            }).ToList();
+
+            var resolved = await Task.WhenAll(roleTasks);
+
+            // 3. Apply role filter (done here because fetching by role requires manage-realm).
+            IEnumerable<(KeycloakUserRepresentation User, string Role)> filtered = resolved;
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                var normRole = role.Trim().ToLowerInvariant();
+                filtered = filtered.Where(x => string.Equals(x.Role, normRole, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // 4. Apply search filter.
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim();
+                filtered = filtered.Where(x =>
+                    (!string.IsNullOrEmpty(x.User.FirstName) && x.User.FirstName.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(x.User.Username) && x.User.Username.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(x.User.Email) && x.User.Email.Contains(term, StringComparison.OrdinalIgnoreCase))
+                );
+            }
+
+            // 5. Map to DTOs.
+            var result = filtered.Select(x =>
+            {
+                var ku = x.User;
+                var createdAt = DateTimeOffset.FromUnixTimeMilliseconds(ku.CreatedTimestamp).UtcDateTime;
+
+                if (!Guid.TryParse(ku.Id, out var userGuid))
+                {
+                    throw new InvalidOperationException($"Keycloak returned an invalid non-GUID user id: '{ku.Id}'.");
+                }
+
+                var name = !string.IsNullOrWhiteSpace(ku.FirstName) ? ku.FirstName : ku.Username;
+                if (string.IsNullOrWhiteSpace(name))
+                    name = ku.Email;
+
+                return new UserDto(userGuid, ku.Id, ku.Email, name, x.Role, createdAt);
+            });
+
+            return result.OrderByDescending(u => u.CreatedAt).ToList();
+        }
+
+        private async Task<List<KeycloakRoleRepresentation>> GetUserRolesAsync(string uri, string accessToken, CancellationToken cancellationToken)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                // If we cannot fetch roles for this user, treat them as a player rather than failing.
+                return new List<KeycloakRoleRepresentation>();
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<List<KeycloakRoleRepresentation>>(SerializerOptions, cancellationToken);
+            return result ?? new List<KeycloakRoleRepresentation>();
+        }
+
+        private async Task<List<KeycloakUserRepresentation>> GetUsersFromUriAsync(string uri, string accessToken, CancellationToken cancellationToken)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new InvalidOperationException($"Failed to fetch users from Keycloak: {(int)response.StatusCode}: {body}");
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<List<KeycloakUserRepresentation>>(SerializerOptions, cancellationToken);
+            return result ?? new List<KeycloakUserRepresentation>();
+        }
+
         private sealed class KeycloakTokenResponse
         {
             [JsonPropertyName("access_token")]
             public string AccessToken { get; set; } = string.Empty;
+        }
+
+        private sealed class KeycloakUserRepresentation
+        {
+            [JsonPropertyName("id")]
+            public string Id { get; set; } = string.Empty;
+
+            [JsonPropertyName("username")]
+            public string Username { get; set; } = string.Empty;
+
+            [JsonPropertyName("email")]
+            public string Email { get; set; } = string.Empty;
+
+            [JsonPropertyName("firstName")]
+            public string FirstName { get; set; } = string.Empty;
+
+            [JsonPropertyName("lastName")]
+            public string LastName { get; set; } = string.Empty;
+
+            [JsonPropertyName("enabled")]
+            public bool Enabled { get; set; }
+
+            [JsonPropertyName("createdTimestamp")]
+            public long CreatedTimestamp { get; set; }
+        }
+        private sealed class KeycloakRoleRepresentation
+        {
+            [JsonPropertyName("id")]
+            public string Id { get; set; } = string.Empty;
+
+            [JsonPropertyName("name")]
+            public string Name { get; set; } = string.Empty;
         }
     }
 }

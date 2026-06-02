@@ -2,31 +2,46 @@
 
 import { env } from "@umbral/env/web";
 import { Button } from "@umbral/ui/components/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@umbral/ui/components/card";
 import { Input } from "@umbral/ui/components/input";
-import { Label } from "@umbral/ui/components/label";
-import { CheckCircle2, Loader2, UserPlus, Users } from "lucide-react";
-import { useState } from "react";
+import {
+	AlertTriangle,
+	ChevronDown,
+	RefreshCw,
+	Search,
+	UserPlus,
+	Users,
+} from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth-provider";
 import { RoleGuard } from "@/components/role-guard";
+import {
+	type AppRole,
+	type UserDetailData,
+	UserDetailSheet,
+} from "@/components/users/user-detail-sheet";
+import { UserListSkeleton } from "@/components/users/user-list-skeleton";
 
-type AppRole = "admin" | "operator" | "player";
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-interface CreatedUser {
+interface ApiUser {
 	id: string;
-	name: string;
+	keycloakUserId: string;
 	email: string;
-	role: AppRole;
-	createdAt: Date;
+	name: string;
+	role: string;
+	createdAt: string;
 }
+
+type FetchState =
+	| { status: "loading" }
+	| { status: "error"; message: string }
+	| { status: "success"; users: ApiUser[] };
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 
 const ROLE_LABELS: Record<AppRole, string> = {
 	admin: "Administrador",
@@ -40,262 +55,335 @@ const ROLE_COLORS: Record<AppRole, string> = {
 	player: "bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/25",
 };
 
-function RoleBadge({ role }: { role: AppRole }) {
+const ALL_ROLES: { value: AppRole | ""; label: string }[] = [
+	{ value: "", label: "Todos los roles" },
+	{ value: "admin", label: "Administrador" },
+	{ value: "operator", label: "Operador" },
+	{ value: "player", label: "Jugador" },
+];
+
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+function RoleBadge({ role }: { role: string }) {
+	const r = role as AppRole;
 	return (
 		<span
-			className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-[11px] ${ROLE_COLORS[role]}`}
+			className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 font-medium text-[11px] ${ROLE_COLORS[r] ?? "bg-foreground/10 text-foreground/60"}`}
 		>
-			{ROLE_LABELS[role]}
+			{ROLE_LABELS[r] ?? role}
 		</span>
 	);
 }
 
-interface FormState {
-	name: string;
-	email: string;
-	password: string;
-	role: AppRole;
+function formatDateShort(iso: string): string {
+	try {
+		return new Intl.DateTimeFormat("es-VE", {
+			day: "numeric",
+			month: "short",
+			year: "numeric",
+		}).format(new Date(iso));
+	} catch {
+		return "";
+	}
 }
 
-const EMPTY_FORM: FormState = {
-	name: "",
-	email: "",
-	password: "",
-	role: "player",
-};
+// ─── Main page inner ─────────────────────────────────────────────────────────
 
-function UsersPageInner() {
+function UsersListPageInner() {
 	const { getAccessToken } = useAuth();
-	const [form, setForm] = useState<FormState>(EMPTY_FORM);
-	const [loading, setLoading] = useState(false);
-	const [createdUsers, setCreatedUsers] = useState<CreatedUser[]>([]);
 
-	const handleChange = (
-		e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-	) => {
-		setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+	const [search, setSearch] = useState("");
+	const [roleFilter, setRoleFilter] = useState<AppRole | "">("");
+	const [state, setState] = useState<FetchState>({ status: "loading" });
+	const [selectedUser, setSelectedUser] = useState<UserDetailData | null>(null);
+
+	// Debounce search input
+	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const [debouncedSearch, setDebouncedSearch] = useState("");
+
+	useEffect(() => {
+		return () => {
+			if (debounceRef.current) clearTimeout(debounceRef.current);
+		};
+	}, []);
+
+	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value;
+		setSearch(value);
+		if (debounceRef.current) clearTimeout(debounceRef.current);
+		debounceRef.current = setTimeout(() => setDebouncedSearch(value), 300);
 	};
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-
-		if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
-			toast.error("Completa todos los campos obligatorios.");
-			return;
-		}
-
-		setLoading(true);
-
+	const fetchUsers = useCallback(async () => {
+		setState({ status: "loading" });
 		try {
 			const accessToken = await getAccessToken(60);
-
 			if (!accessToken) {
-				toast.error("No hay sesión activa.");
+				setState({ status: "error", message: "No hay sesión activa." });
 				return;
 			}
 
-			const response = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/api/users`, {
-				method: "POST",
+			const params = new URLSearchParams();
+			if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+			if (roleFilter) params.set("role", roleFilter);
+
+			const query = params.toString();
+			const url = `${env.NEXT_PUBLIC_SERVER_URL}/api/users${query ? `?${query}` : ""}`;
+
+			const response = await fetch(url, {
+				method: "GET",
 				credentials: "omit",
 				headers: {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${accessToken}`,
 				},
-				body: JSON.stringify({
-					name: form.name,
-					email: form.email,
-					password: form.password,
-					role: form.role,
-				}),
 			});
 
 			if (!response.ok) {
 				const errorText = await response.text().catch(() => "");
-				throw new Error(errorText || `Error del servidor (${response.status})`);
+				throw new Error(
+					errorText || `Error del servidor (${response.status})`,
+				);
 			}
 
-			const created = (await response.json()) as { id: string };
-
-			setCreatedUsers((prev) => [
-				{
-					id: created.id ?? crypto.randomUUID(),
-					name: form.name,
-					email: form.email,
-					role: form.role,
-					createdAt: new Date(),
-				},
-				...prev,
-			]);
-
-			toast.success(`Usuario "${form.name}" creado correctamente.`);
-			setForm(EMPTY_FORM);
+			const users = (await response.json()) as ApiUser[];
+			setState({ status: "success", users });
 		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : "No se pudo crear el usuario.",
-			);
-		} finally {
-			setLoading(false);
+			const message =
+				err instanceof Error ? err.message : "No se pudo cargar la lista.";
+			setState({ status: "error", message });
+			toast.error(message);
 		}
+	}, [getAccessToken, debouncedSearch, roleFilter]);
+
+	useEffect(() => {
+		void fetchUsers();
+	}, [fetchUsers]);
+
+	const handleViewDetail = (user: ApiUser) => {
+		const safeRole: AppRole =
+			user.role === "admin" || user.role === "operator" || user.role === "player"
+				? (user.role as AppRole)
+				: "player";
+
+		setSelectedUser({
+			id: user.id,
+			keycloakUserId: user.keycloakUserId,
+			name: user.name,
+			email: user.email,
+			role: safeRole,
+			createdAt: user.createdAt,
+		});
 	};
 
+	const users = state.status === "success" ? state.users : [];
+
 	return (
-		<div className="mx-auto max-w-4xl space-y-6">
-			{/* Header */}
-			<div>
-				<h1 className="font-semibold text-2xl text-foreground tracking-tight">
-					Administración de usuarios
-				</h1>
-				<p className="mt-1 text-muted-foreground text-sm">
-					Crea nuevos usuarios y asígnales un rol en el realm de Keycloak.
-				</p>
-			</div>
-
-			<div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
-				{/* Form */}
-				<Card className="border-foreground/10">
-					<CardHeader className="pb-4">
-						<CardTitle className="flex items-center gap-2 text-base">
-							<UserPlus className="size-4 text-primary" />
+		<>
+			<div className="mx-auto max-w-5xl space-y-6">
+				{/* Page header */}
+				<div className="flex items-start justify-between gap-4">
+					<div>
+						<h1 className="font-semibold text-2xl text-foreground tracking-tight">
+							Usuarios
+						</h1>
+						<p className="mt-1 text-muted-foreground text-sm">
+							Gestiona los usuarios registrados en el realm de Keycloak.
+						</p>
+					</div>
+					<Link href={"/dashboard/usuarios/nuevo" as Route}>
+						<Button className="gap-2 shrink-0">
+							<UserPlus className="size-4" />
 							Nuevo usuario
-						</CardTitle>
-						<CardDescription>
-							El usuario será provisionado en Keycloak con el rol seleccionado.
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
-							<div className="space-y-1.5">
-								<Label htmlFor="name">Nombre completo</Label>
-								<Input
-									id="name"
-									name="name"
-									placeholder="Ana García"
-									value={form.name}
-									onChange={handleChange}
-									disabled={loading}
-									autoComplete="off"
-								/>
-							</div>
+						</Button>
+					</Link>
+				</div>
 
-							<div className="space-y-1.5">
-								<Label htmlFor="email">Correo electrónico</Label>
-								<Input
-									id="email"
-									name="email"
-									type="email"
-									placeholder="ana@ejemplo.com"
-									value={form.email}
-									onChange={handleChange}
-									disabled={loading}
-									autoComplete="off"
-								/>
-							</div>
+				{/* Filters */}
+				<div className="flex flex-col gap-3 sm:flex-row">
+					<div className="relative flex-1">
+						<Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+						<Input
+							id="user-search"
+							placeholder="Buscar por nombre o correo…"
+							value={search}
+							onChange={handleSearchChange}
+							className="pl-9"
+							autoComplete="off"
+						/>
+					</div>
+					<div className="relative">
+						<select
+							id="role-filter"
+							value={roleFilter}
+							onChange={(e) => setRoleFilter(e.target.value as AppRole | "")}
+							className="flex h-9 w-full appearance-none rounded-md border border-input bg-background py-1 pl-3 pr-8 text-foreground text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-44"
+						>
+							{ALL_ROLES.map((r) => (
+								<option key={r.value} value={r.value}>
+									{r.label}
+								</option>
+							))}
+						</select>
+						<ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+					</div>
+				</div>
 
-							<div className="space-y-1.5">
-								<Label htmlFor="password">Contraseña temporal</Label>
-								<Input
-									id="password"
-									name="password"
-									type="password"
-									placeholder="••••••••"
-									value={form.password}
-									onChange={handleChange}
-									disabled={loading}
-								/>
-							</div>
-
-							<div className="space-y-1.5">
-								<Label htmlFor="role">Rol</Label>
-								<select
-									id="role"
-									name="role"
-									value={form.role}
-									onChange={handleChange}
-									disabled={loading}
-									className="flex h-9 w-full appearance-none rounded-md border border-input bg-background px-3 py-1 text-foreground text-sm shadow-sm ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-								>
-									<option value="admin">Administrador</option>
-									<option value="operator">Operador</option>
-									<option value="player">Jugador</option>
-								</select>
-							</div>
-
-							<Button type="submit" className="w-full" disabled={loading}>
-								{loading ? (
-									<>
-										<Loader2 className="size-4 animate-spin" />
-										Creando…
-									</>
-								) : (
-									<>
-										<UserPlus className="size-4" />
-										Crear usuario
-									</>
-								)}
-							</Button>
-						</form>
-					</CardContent>
-				</Card>
-
-				{/* Table */}
-				<Card className="border-foreground/10">
-					<CardHeader className="pb-4">
-						<CardTitle className="flex items-center gap-2 text-base">
+				{/* Users list card */}
+				<div className="rounded-xl border border-foreground/10 bg-card">
+					{/* Card header */}
+					<div className="flex items-center justify-between border-b border-foreground/8 px-5 py-3.5">
+						<div className="flex items-center gap-2">
 							<Users className="size-4 text-primary" />
-							Usuarios creados
-							{createdUsers.length > 0 && (
-								<span className="ml-auto rounded-full bg-primary/15 px-2 py-0.5 font-medium text-[10px] text-primary ring-1 ring-primary/25">
-									{createdUsers.length}
+							<span className="font-medium text-foreground text-sm">
+								Lista de usuarios
+							</span>
+							{state.status === "success" && users.length > 0 && (
+								<span className="rounded-full bg-primary/15 px-2 py-0.5 font-medium text-[10px] text-primary ring-1 ring-primary/25">
+									{users.length}
 								</span>
 							)}
-						</CardTitle>
-						<CardDescription>Historial de esta sesión.</CardDescription>
-					</CardHeader>
-					<CardContent>
-						{createdUsers.length === 0 ? (
-							<div className="flex flex-col items-center gap-3 py-10 text-center">
+						</div>
+						{state.status !== "loading" && (
+							<button
+								type="button"
+								onClick={() => void fetchUsers()}
+								className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground"
+								aria-label="Recargar usuarios"
+								title="Recargar"
+							>
+								<RefreshCw className="size-3.5" />
+							</button>
+						)}
+					</div>
+
+					<div className="px-5 py-2">
+						{/* Loading */}
+						{state.status === "loading" && <UserListSkeleton />}
+
+						{/* Error */}
+						{state.status === "error" && (
+							<div className="flex flex-col items-center gap-3 py-14 text-center">
+								<div className="flex size-12 items-center justify-center rounded-xl bg-destructive/10">
+									<AlertTriangle className="size-5 text-destructive" />
+								</div>
+								<div>
+									<p className="font-medium text-foreground text-sm">
+										Error al cargar usuarios
+									</p>
+									<p className="mt-0.5 text-muted-foreground text-xs">
+										{state.message}
+									</p>
+								</div>
+								<Button
+									size="sm"
+									variant="outline"
+									className="gap-2"
+									onClick={() => void fetchUsers()}
+								>
+									<RefreshCw className="size-3.5" />
+									Reintentar
+								</Button>
+							</div>
+						)}
+
+						{/* Empty state */}
+						{state.status === "success" && users.length === 0 && (
+							<div className="flex flex-col items-center gap-3 py-14 text-center">
 								<div className="flex size-12 items-center justify-center rounded-xl bg-foreground/5">
 									<Users className="size-5 text-muted-foreground" />
 								</div>
-								<p className="text-muted-foreground text-sm">
-									Aún no has creado ningún usuario.
-								</p>
-							</div>
-						) : (
-							<ul className="divide-y divide-foreground/6">
-								{createdUsers.map((u) => (
-									<li
-										key={u.id}
-										className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+								<div>
+									<p className="font-medium text-foreground text-sm">
+										{debouncedSearch || roleFilter
+											? "Sin resultados"
+											: "Sin usuarios"}
+									</p>
+									<p className="mt-0.5 text-muted-foreground text-xs">
+										{debouncedSearch || roleFilter
+											? "Prueba con otros filtros de búsqueda."
+											: "Crea el primer usuario con el botón de arriba."}
+									</p>
+								</div>
+								{(debouncedSearch || roleFilter) && (
+									<Button
+										size="sm"
+										variant="outline"
+										onClick={() => {
+											setSearch("");
+											setDebouncedSearch("");
+											setRoleFilter("");
+										}}
 									>
-										<div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground/10 font-semibold text-foreground text-xs">
-											{u.name.slice(0, 1).toUpperCase()}
+										Limpiar filtros
+									</Button>
+								)}
+							</div>
+						)}
+
+						{/* User rows */}
+						{state.status === "success" && users.length > 0 && (
+							<ul className="divide-y divide-foreground/6">
+								{users.map((u) => (
+									<li
+										key={u.keycloakUserId || u.id}
+										className="group flex items-center gap-3 py-3.5"
+									>
+										{/* Avatar */}
+										<div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground/10 font-semibold text-foreground text-xs">
+											{(u.name || u.email).slice(0, 1).toUpperCase()}
 										</div>
+
+										{/* Info */}
 										<div className="min-w-0 flex-1">
 											<p className="truncate font-medium text-foreground text-sm">
-												{u.name}
+												{u.name || "—"}
 											</p>
 											<p className="truncate text-[11px] text-muted-foreground">
 												{u.email}
 											</p>
 										</div>
+
+										{/* Role badge */}
 										<RoleBadge role={u.role} />
-										<CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+
+										{/* Date */}
+										<span className="hidden shrink-0 text-[11px] text-muted-foreground sm:block">
+											{formatDateShort(u.createdAt)}
+										</span>
+
+										{/* Detail action */}
+										<Button
+											size="sm"
+											variant="ghost"
+											className="shrink-0 text-xs opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+											onClick={() => handleViewDetail(u)}
+										>
+											Ver detalle
+										</Button>
 									</li>
 								))}
 							</ul>
 						)}
-					</CardContent>
-				</Card>
+					</div>
+				</div>
 			</div>
-		</div>
+
+			{/* User detail slide-over */}
+			<UserDetailSheet
+				user={selectedUser}
+				onClose={() => setSelectedUser(null)}
+			/>
+		</>
 	);
 }
+
+// ─── Export ──────────────────────────────────────────────────────────────────
 
 export default function UsuariosPage() {
 	return (
 		<RoleGuard requiredRoles={["admin"]}>
-			<UsersPageInner />
+			<UsersListPageInner />
 		</RoleGuard>
 	);
 }

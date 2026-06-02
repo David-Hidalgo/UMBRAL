@@ -67,6 +67,7 @@ builder.Services.AddMediatR(cfg =>
 
 // FluentValidation — registro manual para evitar dependencia adicional
 builder.Services.AddTransient<IValidator<UserService.Application.Commands.CreateUserCommand>, CreateUserCommandValidator>();
+builder.Services.AddTransient<IValidator<UserService.Application.Queries.GetUsersQuery>, GetUsersQueryValidator>();
 
 // Infrastructure bindings
 builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();

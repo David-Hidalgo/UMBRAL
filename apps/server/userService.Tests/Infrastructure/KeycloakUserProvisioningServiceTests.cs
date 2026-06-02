@@ -235,6 +235,97 @@ public class KeycloakUserProvisioningServiceTests
             .WithMessage("*assign*role*");
     }
 
+    // ─── GetUsersAsync tests ──────────────────────────────────────────────────
+
+    private static HttpResponseMessage UsersListOk(params (string id, string username, string email, string firstName, long timestamp)[] users)
+    {
+        var list = new List<object>();
+        foreach (var u in users)
+        {
+            list.Add(new
+            {
+                id = u.id,
+                username = u.username,
+                email = u.email,
+                firstName = u.firstName,
+                lastName = "Test",
+                enabled = true,
+                createdTimestamp = u.timestamp
+            });
+        }
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create(list)
+        };
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_WithValidConfig_ReturnsSortedUsers()
+    {
+        // Arrange
+        var user1Id = Guid.NewGuid().ToString();
+        var user2Id = Guid.NewGuid().ToString();
+        var usersResponse = UsersListOk(
+            (user1Id, "player1", "player1@umbral.io", "Player One", 1780361721000),
+            (user2Id, "admin1", "admin1@umbral.io", "Admin One", 1780361722000)
+        );
+        var role1Response = RoleOk("player");
+        var role2Response = RoleOk("admin");
+
+        var sut = BuildSut(new SequentialHandler(TokenOk(), usersResponse, role1Response, role2Response));
+
+        // Act
+        var result = await sut.GetUsersAsync();
+
+        // Assert
+        result.Should().HaveCount(2);
+        var list = new List<UserService.Application.DTOs.UserDto>(result);
+        
+        list[0].KeycloakUserId.Should().Be(user2Id);
+        list[0].Role.Should().Be("admin");
+        list[0].Name.Should().Be("Admin One");
+
+        list[1].KeycloakUserId.Should().Be(user1Id);
+        list[1].Role.Should().Be("player");
+        list[1].Name.Should().Be("Player One");
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_WhenUserHasNoValidGuidId_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var usersResponse = UsersListOk(
+            ("non-guid-id", "player1", "player1@umbral.io", "Player One", 1780361721000)
+        );
+        var roleResponse = RoleOk("player");
+        var sut = BuildSut(new SequentialHandler(TokenOk(), usersResponse, roleResponse));
+
+        // Act
+        var act = async () => await sut.GetUsersAsync();
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*invalid non-GUID*");
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_WhenKeycloakReturns404_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var notFoundResponse = new HttpResponseMessage(HttpStatusCode.NotFound)
+        {
+            Content = new StringContent("Realm not found")
+        };
+        var sut = BuildSut(new SequentialHandler(TokenOk(), notFoundResponse));
+
+        // Act
+        var act = async () => await sut.GetUsersAsync();
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Failed to fetch users*");
+    }
+
     // ─── SequentialHandler test double ────────────────────────────────────────
 
     private sealed class SequentialHandler : HttpMessageHandler
