@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -62,6 +64,47 @@ public sealed class UserServiceClient : IUserServiceClient
         }
 
         throw new UserServiceException("UserService returned an unexpected response payload.");
+    }
+
+    public async Task<IEnumerable<UserDto>> GetUsersAsync(string? search = null, string? role = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+            throw new InvalidOperationException("UserService:BaseUrl is not configured.");
+
+        var uriBuilder = new UriBuilder($"{_options.BaseUrl.TrimEnd('/')}/api/users");
+        var queryParams = new List<string>();
+        if (!string.IsNullOrWhiteSpace(search))
+            queryParams.Add($"search={Uri.EscapeDataString(search)}");
+        if (!string.IsNullOrWhiteSpace(role))
+            queryParams.Add($"role={Uri.EscapeDataString(role)}");
+        
+        if (queryParams.Count > 0)
+            uriBuilder.Query = string.Join("&", queryParams);
+
+        using var message = new HttpRequestMessage(HttpMethod.Get, uriBuilder.ToString());
+
+        var rawHeader = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(rawHeader) && AuthenticationHeaderValue.TryParse(rawHeader, out var parsedHeader))
+            message.Headers.Authorization = parsedHeader;
+
+        using var response = await _httpClient.SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new UserServiceException($"UserService returned {(int)response.StatusCode}: {body}");
+
+        if (string.IsNullOrWhiteSpace(body))
+            return Array.Empty<UserDto>();
+
+        try
+        {
+            var users = JsonSerializer.Deserialize<IEnumerable<UserDto>>(body, SerializerOptions);
+            return users ?? Array.Empty<UserDto>();
+        }
+        catch (JsonException ex)
+        {
+            throw new UserServiceException($"UserService returned a non-JSON response: {body}", ex);
+        }
     }
 
     private sealed record UserCreatedResponse(Guid Id);

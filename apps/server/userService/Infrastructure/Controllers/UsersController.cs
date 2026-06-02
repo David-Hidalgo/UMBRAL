@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using UserService.Application.Commands;
 using UserService.Application.DTOs;
+using UserService.Application.Queries;
 
 namespace UserService.Infrastructure.Controllers
 {
@@ -28,6 +29,14 @@ namespace UserService.Infrastructure.Controllers
         {
             var userId = await _mediator.Send(new CreateUserCommand(request.Email, request.Name, request.Password, request.Role ?? "player"), cancellationToken);
             return Created($"/api/users/{userId}", new { id = userId });
+        }
+
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> Get([FromQuery] string? search, [FromQuery] string? role, CancellationToken cancellationToken)
+        {
+            var users = await _mediator.Send(new GetUsersQuery(search, role), cancellationToken);
+            return Ok(users);
         }
     }
 }
