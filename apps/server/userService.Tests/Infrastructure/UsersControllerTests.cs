@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using UserService.Application.Commands;
 using UserService.Application.DTOs;
+using UserService.Application.Queries;
 using UserService.Infrastructure.Controllers;
 using Xunit;
 
@@ -68,6 +70,24 @@ public class UsersControllerTests
             .GetMethod(nameof(UsersController.Create))!
             .GetCustomAttributes<ProducesResponseTypeAttribute>()
             .Should().Contain(a => a.StatusCode == StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public void GetMethod_HasHttpGetAttribute()
+    {
+        typeof(UsersController)
+            .GetMethod(nameof(UsersController.Get))!
+            .GetCustomAttribute<HttpGetAttribute>()
+            .Should().NotBeNull();
+    }
+
+    [Fact]
+    public void GetMethod_Produces200OK()
+    {
+        typeof(UsersController)
+            .GetMethod(nameof(UsersController.Get))!
+            .GetCustomAttributes<ProducesResponseTypeAttribute>()
+            .Should().Contain(a => a.StatusCode == StatusCodes.Status200OK);
     }
 
     // ─── Happy path ───────────────────────────────────────────────────────────
@@ -168,6 +188,112 @@ public class UsersControllerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Get_WithValidParameters_Returns200OkResult()
+    {
+        // Arrange
+        var search = "test";
+        var role = "admin";
+        var expectedUsers = new List<UserDto>
+        {
+            new UserDto(Guid.NewGuid(), "keycloak-1", "user1@umbral.io", "User One", "admin", DateTime.UtcNow)
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetUsersQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedUsers);
+
+        // Act
+        var result = await _sut.Get(search, role, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+    }
+
+    [Fact]
+    public async Task Get_WithValidParameters_ReturnsExpectedUsers()
+    {
+        // Arrange
+        var search = "test";
+        var role = "admin";
+        var expectedUsers = new List<UserDto>
+        {
+            new UserDto(Guid.NewGuid(), "keycloak-1", "user1@umbral.io", "User One", "admin", DateTime.UtcNow)
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetUsersQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedUsers);
+
+        // Act
+        var result = (OkObjectResult)await _sut.Get(search, role, CancellationToken.None);
+
+        // Assert
+        result.Value.Should().BeEquivalentTo(expectedUsers);
+    }
+
+    [Fact]
+    public async Task Get_SendsQueryWithCorrectData()
+    {
+        // Arrange
+        var search = "test";
+        var role = "admin";
+        GetUsersQuery? captured = null;
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetUsersQuery>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<IEnumerable<UserDto>>, CancellationToken>((query, _) => captured = (GetUsersQuery)query)
+            .ReturnsAsync(Array.Empty<UserDto>());
+
+        // Act
+        await _sut.Get(search, role, CancellationToken.None);
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.SearchTerm.Should().Be(search);
+        captured.Role.Should().Be(role);
+    }
+
+    [Fact]
+    public async Task Get_CallsMediatorExactlyOnce()
+    {
+        // Arrange
+        var search = "test";
+        var role = "admin";
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetUsersQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserDto>());
+
+        // Act
+        await _sut.Get(search, role, CancellationToken.None);
+
+        // Assert
+        _mediatorMock.Verify(
+            m => m.Send(It.IsAny<GetUsersQuery>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Get_WithNullParameters_PassesNullToQuery()
+    {
+        // Arrange
+        GetUsersQuery? captured = null;
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetUsersQuery>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<IEnumerable<UserDto>>, CancellationToken>((query, _) => captured = (GetUsersQuery)query)
+            .ReturnsAsync(Array.Empty<UserDto>());
+
+        // Act
+        await _sut.Get(null, null, CancellationToken.None);
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.SearchTerm.Should().BeNull();
+        captured.Role.Should().BeNull();
+    }
+
     // ─── Sad paths ────────────────────────────────────────────────────────────
 
     [Fact]
@@ -231,5 +357,21 @@ public class UsersControllerTests
         // Assert
         captured.Should().NotBeNull();
         captured!.Role.Should().Be("player");
+    }
+
+    [Fact]
+    public async Task Get_WhenMediatorThrows_PropagatesException()
+    {
+        // Arrange
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetUsersQuery>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Upstream failure"));
+
+        // Act
+        var act = async () => await _sut.Get("search", "role", CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Upstream*");
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Json;
 using System.Threading;
@@ -50,5 +51,8 @@ public class IntegrationTests : IDisposable
     {
         public Task<Guid> CreateUserAsync(CreateUserRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(Guid.NewGuid());
+
+        public Task<IEnumerable<UserDto>> GetUsersAsync(string? search = null, string? role = null, CancellationToken cancellationToken = default)
+            => Task.FromResult<IEnumerable<UserDto>>(Array.Empty<UserDto>());
     }
 }
