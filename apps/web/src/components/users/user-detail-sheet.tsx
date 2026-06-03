@@ -1,8 +1,9 @@
 "use client";
 
+import { env } from "@umbral/env/web";
 import { Button } from "@umbral/ui/components/button";
-import { Copy, Pencil, Trash2, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Copy, Pencil, RefreshCw, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export type AppRole = "admin" | "operator" | "player";
@@ -31,6 +32,8 @@ const ROLE_COLORS: Record<AppRole, string> = {
 interface UserDetailSheetProps {
 	user: UserDetailData | null;
 	onClose: () => void;
+	onDeleteSuccess: () => void;
+	getAccessToken: (minValidity?: number) => Promise<string | null>;
 }
 
 function formatDate(iso: string): string {
@@ -57,9 +60,55 @@ async function copyToClipboard(text: string, label: string) {
 	}
 }
 
-export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
+export function UserDetailSheet({
+	user,
+	onClose,
+	onDeleteSuccess,
+	getAccessToken,
+}: UserDetailSheetProps) {
 	const panelRef = useRef<HTMLDivElement>(null);
 	const isOpen = user !== null;
+	const [isDeleting, setIsDeleting] = useState(false);
+	const [showConfirm, setShowConfirm] = useState(false);
+
+	async function handleDelete() {
+		if (!user) return;
+		setIsDeleting(true);
+		try {
+			const token = await getAccessToken(60);
+			if (!token) {
+				toast.error("No hay sesión activa.");
+				return;
+			}
+			const response = await fetch(
+				`${env.NEXT_PUBLIC_SERVER_URL}/api/users/${user.keycloakUserId}`,
+				{
+					method: "DELETE",
+					credentials: "omit",
+					headers: { Authorization: `Bearer ${token}` },
+				},
+			);
+			if (response.status === 204) {
+				toast.success(`${user.name} ha sido desactivado.`);
+				onDeleteSuccess();
+			} else if (response.status === 404) {
+				toast.error("El usuario no fue encontrado.");
+			} else if (response.status === 409) {
+				toast.error("El usuario ya estaba inactivo.");
+			} else {
+				toast.error(`Error inesperado (${response.status}).`);
+			}
+		} catch {
+			toast.error("No se pudo conectar con el servidor.");
+		} finally {
+			setIsDeleting(false);
+			setShowConfirm(false);
+		}
+	}
+
+	useEffect(() => {
+		setShowConfirm(false);
+	}, [user?.keycloakUserId]);
 
 	// Close on Escape key
 	useEffect(() => {
@@ -197,36 +246,67 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
 						{/* Divider */}
 						<div className="h-px bg-foreground/8" />
 
-						{/* Actions (disabled — future feature) */}
+						{/* Actions */}
 						<div className="space-y-2">
 							<p className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
 								Acciones
 							</p>
-							<div className="flex gap-2">
-								<Button
-									variant="outline"
-									size="sm"
-									className="flex-1 gap-2 opacity-50"
-									disabled
-									title="Próximamente"
-								>
-									<Pencil className="size-3.5" />
-									Editar
-								</Button>
-								<Button
-									variant="outline"
-									size="sm"
-									className="flex-1 gap-2 text-destructive opacity-50 hover:text-destructive"
-									disabled
-									title="Próximamente"
-								>
-									<Trash2 className="size-3.5" />
-									Eliminar
-								</Button>
-							</div>
-							<p className="text-center text-[11px] text-muted-foreground/60">
-								Estas acciones estarán disponibles próximamente.
-							</p>
+							{showConfirm ? (
+								<div className="space-y-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3">
+									<p className="text-foreground text-sm">
+										¿Desactivar a{" "}
+										<span className="font-medium">{user.name}</span>? El usuario
+										no podrá iniciar sesión.
+									</p>
+									<div className="flex gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											className="flex-1"
+											disabled={isDeleting}
+											onClick={() => setShowConfirm(false)}
+										>
+											Cancelar
+										</Button>
+										<Button
+											variant="destructive"
+											size="sm"
+											className="flex-1 gap-2"
+											disabled={isDeleting}
+											onClick={() => void handleDelete()}
+										>
+											{isDeleting ? (
+												<RefreshCw className="size-3.5 animate-spin" />
+											) : (
+												<Trash2 className="size-3.5" />
+											)}
+											Confirmar eliminación
+										</Button>
+									</div>
+								</div>
+							) : (
+								<div className="flex gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										className="flex-1 gap-2 opacity-50"
+										disabled
+										title="Próximamente"
+									>
+										<Pencil className="size-3.5" />
+										Editar
+									</Button>
+									<Button
+										variant="outline"
+										size="sm"
+										className="flex-1 gap-2 text-destructive hover:text-destructive"
+										onClick={() => setShowConfirm(true)}
+									>
+										<Trash2 className="size-3.5" />
+										Eliminar
+									</Button>
+								</div>
+							)}
 						</div>
 					</div>
 				)}

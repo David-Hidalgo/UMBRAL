@@ -131,4 +131,61 @@ public class UserTests
         // Assert
         user.Role.Should().Be("player");
     }
+
+    // ─── Deactivate ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Deactivate_WhenUserIsActive_SetsIsActiveToFalse()
+    {
+        // Arrange
+        var user = User.Create(Guid.NewGuid(), "kc-123", "admin@umbral.io", "Admin");
+
+        // Act
+        user.Deactivate();
+
+        // Assert
+        user.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Deactivate_WhenUserIsActive_SetsDeactivatedAtUtcToNow()
+    {
+        // Arrange
+        var user = User.Create(Guid.NewGuid(), "kc-123", "admin@umbral.io", "Admin");
+        var before = DateTime.UtcNow;
+
+        // Act
+        user.Deactivate();
+
+        // Assert
+        user.DeactivatedAtUtc.Should().NotBeNull();
+        user.DeactivatedAtUtc!.Value.Should().BeOnOrAfter(before);
+        user.DeactivatedAtUtc.Value.Should().BeOnOrBefore(DateTime.UtcNow);
+    }
+
+    [Fact]
+    public void Deactivate_WhenAlreadyInactive_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var user = User.Create(Guid.NewGuid(), "kc-123", "admin@umbral.io", "Admin");
+        user.Deactivate();
+
+        // Act
+        var act = () => user.Deactivate();
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*already inactive*");
+    }
+
+    [Fact]
+    public void Create_NewUser_IsActiveByDefault()
+    {
+        // Act
+        var user = User.Create(Guid.NewGuid(), "kc-123", "admin@umbral.io", "Admin");
+
+        // Assert
+        user.IsActive.Should().BeTrue();
+        user.DeactivatedAtUtc.Should().BeNull();
+    }
 }

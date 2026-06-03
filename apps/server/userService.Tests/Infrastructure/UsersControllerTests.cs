@@ -13,6 +13,7 @@ using UserService.Application.DTOs;
 using UserService.Application.Queries;
 using UserService.Infrastructure.Controllers;
 using Xunit;
+using Unit = MediatR.Unit;
 
 namespace UserService.Tests.Infrastructure;
 
@@ -373,5 +374,125 @@ public class UsersControllerTests
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Upstream*");
+    }
+
+    // ─── DELETE /api/users/{keycloakId} ──────────────────────────────────────
+
+    [Fact]
+    public void DeleteMethod_HasHttpDeleteAttribute()
+    {
+        typeof(UsersController)
+            .GetMethod(nameof(UsersController.Delete))!
+            .GetCustomAttribute<HttpDeleteAttribute>()
+            .Should().NotBeNull();
+    }
+
+    [Fact]
+    public void DeleteMethod_Produces204NoContent()
+    {
+        typeof(UsersController)
+            .GetMethod(nameof(UsersController.Delete))!
+            .GetCustomAttributes<ProducesResponseTypeAttribute>()
+            .Should().Contain(a => a.StatusCode == StatusCodes.Status204NoContent);
+    }
+
+    [Fact]
+    public void DeleteMethod_Produces404NotFound()
+    {
+        typeof(UsersController)
+            .GetMethod(nameof(UsersController.Delete))!
+            .GetCustomAttributes<ProducesResponseTypeAttribute>()
+            .Should().Contain(a => a.StatusCode == StatusCodes.Status404NotFound);
+    }
+
+    [Fact]
+    public void DeleteMethod_Produces409Conflict()
+    {
+        typeof(UsersController)
+            .GetMethod(nameof(UsersController.Delete))!
+            .GetCustomAttributes<ProducesResponseTypeAttribute>()
+            .Should().Contain(a => a.StatusCode == StatusCodes.Status409Conflict);
+    }
+
+    [Fact]
+    public async Task Delete_WithValidId_Returns204NoContent()
+    {
+        // Arrange
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<DeleteUserCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Unit.Value);
+
+        // Act
+        var result = await _sut.Delete("kc-user-123", CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<NoContentResult>();
+    }
+
+    [Fact]
+    public async Task Delete_WhenMediatorThrowsKeyNotFoundException_Returns404NotFound()
+    {
+        // Arrange
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<DeleteUserCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new KeyNotFoundException("User not found."));
+
+        // Act
+        var result = await _sut.Delete("kc-user-123", CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<NotFoundResult>();
+    }
+
+    [Fact]
+    public async Task Delete_WhenMediatorThrowsInvalidOperationException_Returns409Conflict()
+    {
+        // Arrange
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<DeleteUserCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("User is already inactive."));
+
+        // Act
+        var result = await _sut.Delete("kc-user-123", CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<ConflictResult>();
+    }
+
+    [Fact]
+    public async Task Delete_SendsCommandWithCorrectKeycloakId()
+    {
+        // Arrange
+        const string keycloakId = "kc-user-456";
+        DeleteUserCommand? captured = null;
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<DeleteUserCommand>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<Unit>, CancellationToken>((cmd, _) => captured = (DeleteUserCommand)cmd)
+            .ReturnsAsync(Unit.Value);
+
+        // Act
+        await _sut.Delete(keycloakId, CancellationToken.None);
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.KeycloakUserId.Should().Be(keycloakId);
+    }
+
+    [Fact]
+    public async Task Delete_CallsMediatorExactlyOnce()
+    {
+        // Arrange
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<DeleteUserCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Unit.Value);
+
+        // Act
+        await _sut.Delete("kc-user-123", CancellationToken.None);
+
+        // Assert
+        _mediatorMock.Verify(
+            m => m.Send(It.IsAny<DeleteUserCommand>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

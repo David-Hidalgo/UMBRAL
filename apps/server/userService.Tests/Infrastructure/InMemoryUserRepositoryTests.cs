@@ -104,4 +104,82 @@ public class InMemoryUserRepositoryTests
         found!.KeycloakUserId.Should().Be("kc-updated");
         found.Email.Value.Should().Be("updated@umbral.io");
     }
+
+    // ─── GetByKeycloakIdAsync ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetByKeycloakIdAsync_WhenUserExists_ReturnsUser()
+    {
+        // Arrange
+        const string kcId = "kc-specific-999";
+        var user = User.Create(Guid.NewGuid(), kcId, "test@umbral.io", "Test User");
+        await _sut.AddAsync(user);
+
+        // Act
+        var found = await _sut.GetByKeycloakIdAsync(kcId);
+
+        // Assert
+        found.Should().NotBeNull();
+        found!.KeycloakUserId.Should().Be(kcId);
+    }
+
+    [Fact]
+    public async Task GetByKeycloakIdAsync_WhenUserDoesNotExist_ReturnsNull()
+    {
+        // Act
+        var found = await _sut.GetByKeycloakIdAsync("kc-nonexistent");
+
+        // Assert
+        found.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetByKeycloakIdAsync_WithMultipleUsers_ReturnsCorrectOne()
+    {
+        // Arrange
+        var user1 = User.Create(Guid.NewGuid(), "kc-aaa", "a@umbral.io", "User A");
+        var user2 = User.Create(Guid.NewGuid(), "kc-bbb", "b@umbral.io", "User B");
+        await _sut.AddAsync(user1);
+        await _sut.AddAsync(user2);
+
+        // Act
+        var found = await _sut.GetByKeycloakIdAsync("kc-bbb");
+
+        // Assert
+        found!.Email.Value.Should().Be("b@umbral.io");
+    }
+
+    // ─── UpdateAsync ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task UpdateAsync_WhenUserExists_UpdatesUserInStore()
+    {
+        // Arrange
+        var user = MakeUser();
+        await _sut.AddAsync(user);
+        user.Deactivate();
+
+        // Act
+        await _sut.UpdateAsync(user);
+        var found = await _sut.GetByIdAsync(user.Id);
+
+        // Assert
+        found.Should().NotBeNull();
+        found!.IsActive.Should().BeFalse();
+        found.DeactivatedAtUtc.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task UpdateAsync_CompletesSuccessfully()
+    {
+        // Arrange
+        var user = MakeUser();
+        await _sut.AddAsync(user);
+
+        // Act
+        var act = async () => await _sut.UpdateAsync(user);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
 }

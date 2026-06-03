@@ -13,6 +13,9 @@ namespace UserService.Domain.Entities
 
         private User() { }
 
+        public bool IsActive { get; private set; } = true;
+        public DateTime? DeactivatedAtUtc { get; private set; }
+
         public static User Create(Guid id, string keycloakUserId, string email, string name, string role = "player")
         {
             if (id == Guid.Empty)
@@ -28,6 +31,14 @@ namespace UserService.Domain.Entities
                 Name = FullName.Create(name),
                 Role = role
             };
+        }
+
+        public void Deactivate()
+        {
+            if (!IsActive)
+                throw new InvalidOperationException("User is already inactive.");
+            IsActive = false;
+            DeactivatedAtUtc = DateTime.UtcNow;
         }
     }
 }

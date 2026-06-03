@@ -373,6 +373,11 @@ function UsersListPageInner() {
 			<UserDetailSheet
 				user={selectedUser}
 				onClose={() => setSelectedUser(null)}
+				getAccessToken={getAccessToken}
+				onDeleteSuccess={() => {
+					setSelectedUser(null);
+					void fetchUsers();
+				}}
 			/>
 		</>
 	);

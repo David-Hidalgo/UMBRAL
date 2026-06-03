@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -37,6 +38,27 @@ namespace UserService.Infrastructure.Controllers
         {
             var users = await _mediator.Send(new GetUsersQuery(search, role), cancellationToken);
             return Ok(users);
+        }
+
+        [HttpDelete("{keycloakId}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> Delete(string keycloakId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _mediator.Send(new DeleteUserCommand(keycloakId), cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (InvalidOperationException)
+            {
+                return Conflict();
+            }
         }
     }
 }

@@ -9,5 +9,6 @@ namespace UserService.Application.Interfaces
     {
         Task<string> CreateUserAsync(string email, string name, string password, string role, CancellationToken cancellationToken = default);
         Task<IEnumerable<UserDto>> GetUsersAsync(string? searchTerm = null, string? role = null, CancellationToken cancellationToken = default);
+        Task SetUserEnabledAsync(string keycloakUserId, bool enabled, CancellationToken cancellationToken = default);
     }
 }

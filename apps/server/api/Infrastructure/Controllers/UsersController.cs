@@ -47,4 +47,16 @@ public sealed class UsersController : ControllerBase
         var users = await _userService.GetUsersAsync(search, role, cancellationToken);
         return Ok(users);
     }
+
+    [HttpDelete("{keycloakId}")]
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> Delete(string keycloakId, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteUserCommand(keycloakId), cancellationToken);
+        return NoContent();
+    }
 }

@@ -336,5 +336,31 @@ namespace UserService.Infrastructure.Authentication
             [JsonPropertyName("name")]
             public string Name { get; set; } = string.Empty;
         }
+
+        public async Task SetUserEnabledAsync(string keycloakUserId, bool enabled, CancellationToken cancellationToken = default)
+        {
+            EnsureConfigured();
+
+            var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
+            var baseUrl = NormalizeBaseUrl(_options.EffectiveInternalBaseUrl);
+            var uri = $"{baseUrl}/admin/realms/{_options.Realm}/users/{keycloakUserId}";
+
+            var payload = new { enabled };
+            using var request = new HttpRequestMessage(HttpMethod.Put, uri)
+            {
+                Content = JsonContent.Create(payload, options: SerializerOptions)
+            };
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    throw new KeyNotFoundException($"User '{keycloakUserId}' was not found in Keycloak.");
+                throw new InvalidOperationException(
+                    $"Failed to set enabled={enabled} for Keycloak user '{keycloakUserId}': {(int)response.StatusCode}: {body}");
+            }
+        }
     }
 }
