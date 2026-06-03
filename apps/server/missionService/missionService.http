@@ -1,6 +1,6 @@
-@missionService_HostAddress = http://localhost:5089
+@missionService_HostAddress = http://localhost:5022
 
-GET {{missionService_HostAddress}}/weatherforecast/
+GET {{missionService_HostAddress}}/health
 Accept: application/json
 
 ###
