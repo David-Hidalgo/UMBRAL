@@ -57,5 +57,8 @@ public class IntegrationTests : IDisposable
 
         public Task DeleteUserAsync(string keycloakId, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
+
+        public Task UpdateUserAsync(Guid id, UpdateUserRequest request, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
     }
 }

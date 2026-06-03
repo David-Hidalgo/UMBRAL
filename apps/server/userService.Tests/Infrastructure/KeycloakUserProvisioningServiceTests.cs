@@ -326,6 +326,164 @@ public class KeycloakUserProvisioningServiceTests
             .WithMessage("*Failed to fetch users*");
     }
 
+    // ─── GetUserByIdAsync ─────────────────────────────────────────────────────
+
+    private static HttpResponseMessage UserByIdOk(string userId, string name = "Test User") =>
+        new(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create(new
+            {
+                id = userId,
+                username = "user@umbral.io",
+                email = "user@umbral.io",
+                firstName = name,
+                lastName = "",
+                enabled = true,
+                emailVerified = false,
+                createdTimestamp = 1780361721000L
+            })
+        };
+
+    [Fact]
+    public async Task GetUserByIdAsync_WhenUserExists_ReturnsMappedDto()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var sut = BuildSut(new SequentialHandler(TokenOk(), UserByIdOk(userId, "Test User"), RoleOk("admin")));
+
+        var result = await sut.GetUserByIdAsync(userId);
+
+        result.Should().NotBeNull();
+        result!.KeycloakUserId.Should().Be(userId);
+        result.Name.Should().Be("Test User");
+        result.Role.Should().Be("admin");
+    }
+
+    [Fact]
+    public async Task GetUserByIdAsync_WhenKeycloakReturns404_ReturnsNull()
+    {
+        var sut = BuildSut(new SequentialHandler(TokenOk(), new HttpResponseMessage(HttpStatusCode.NotFound)));
+
+        var result = await sut.GetUserByIdAsync("non-existent-id");
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetUserByIdAsync_WhenKeycloakReturnsError_ThrowsInvalidOperationException()
+    {
+        var errorResponse = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent("Server error")
+        };
+        var sut = BuildSut(new SequentialHandler(TokenOk(), errorResponse));
+
+        var act = async () => await sut.GetUserByIdAsync("some-id");
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*fetch*");
+    }
+
+    // ─── UpdateUserAsync ──────────────────────────────────────────────────────
+
+    private static HttpResponseMessage UserPutOk() => new(HttpStatusCode.NoContent);
+
+    [Fact]
+    public async Task UpdateUserAsync_WithValidData_MakesGetThenPutAndSucceeds()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var handler = new SequentialHandler(TokenOk(), UserByIdOk(userId, "Old Name"), UserPutOk());
+        var sut = BuildSut(handler);
+
+        await sut.UpdateUserAsync(userId, "New Name");
+
+        handler.CallCount.Should().Be(3); // token + GET + PUT
+    }
+
+    [Fact]
+    public async Task UpdateUserAsync_WhenGetExistingUserFails_ThrowsInvalidOperationException()
+    {
+        var getFailed = new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+        {
+            Content = new StringContent("Unavailable")
+        };
+        var sut = BuildSut(new SequentialHandler(TokenOk(), getFailed));
+
+        var act = async () => await sut.UpdateUserAsync("some-id", "New Name");
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*fetch*");
+    }
+
+    [Fact]
+    public async Task UpdateUserAsync_WhenPutFails_ThrowsInvalidOperationException()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var putFailed = new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent("Bad request")
+        };
+        var sut = BuildSut(new SequentialHandler(TokenOk(), UserByIdOk(userId), putFailed));
+
+        var act = async () => await sut.UpdateUserAsync(userId, "New Name");
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*update failed*");
+    }
+
+    // ─── UpdateUserRoleAsync ──────────────────────────────────────────────────
+
+    private static HttpResponseMessage AssignedRolesOk(string roleName = "player") =>
+        new(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create(new[] { new { id = "role-guid-old", name = roleName } })
+        };
+
+    private static HttpResponseMessage RolesDeleted() => new(HttpStatusCode.NoContent);
+
+    [Fact]
+    public async Task UpdateUserRoleAsync_WithValidData_RemovesOldRoleAndAssignsNew()
+    {
+        // Token → GET assigned roles → DELETE roles → GET available → POST assign
+        var handler = new SequentialHandler(
+            TokenOk(),
+            AssignedRolesOk("player"),
+            RolesDeleted(),
+            RoleOk("operator"),
+            RoleAssigned());
+        var sut = BuildSut(handler);
+
+        await sut.UpdateUserRoleAsync(Guid.NewGuid().ToString(), "operator");
+
+        handler.CallCount.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task UpdateUserRoleAsync_WhenUserHasNoCurrentRoles_SkipsDeleteAndAssigns()
+    {
+        // Token → GET assigned roles (empty) → GET available → POST assign
+        var emptyRoles = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create(Array.Empty<object>())
+        };
+        var handler = new SequentialHandler(TokenOk(), emptyRoles, RoleOk("admin"), RoleAssigned());
+        var sut = BuildSut(handler);
+
+        await sut.UpdateUserRoleAsync(Guid.NewGuid().ToString(), "admin");
+
+        handler.CallCount.Should().Be(4); // no DELETE call
+    }
+
+    [Fact]
+    public async Task UpdateUserRoleAsync_WhenDeleteFails_ThrowsInvalidOperationException()
+    {
+        var deleteFailed = new HttpResponseMessage(HttpStatusCode.Forbidden)
+        {
+            Content = new StringContent("Forbidden")
+        };
+        var sut = BuildSut(new SequentialHandler(TokenOk(), AssignedRolesOk("player"), deleteFailed));
+
+        var act = async () => await sut.UpdateUserRoleAsync(Guid.NewGuid().ToString(), "admin");
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*remove*");
+    }
+
     // ─── SequentialHandler test double ────────────────────────────────────────
 
     private sealed class SequentialHandler : HttpMessageHandler

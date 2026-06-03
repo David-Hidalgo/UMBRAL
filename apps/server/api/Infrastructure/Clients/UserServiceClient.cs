@@ -67,6 +67,28 @@ public sealed class UserServiceClient : IUserServiceClient
         throw new UserServiceException("UserService returned an unexpected response payload.");
     }
 
+    public async Task UpdateUserAsync(Guid id, UpdateUserRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+            throw new InvalidOperationException("UserService:BaseUrl is not configured.");
+
+        using var message = new HttpRequestMessage(HttpMethod.Put, $"{_options.BaseUrl.TrimEnd('/')}/api/users/{id}")
+        {
+            Content = JsonContent.Create(request)
+        };
+
+        var rawHeader = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(rawHeader) && AuthenticationHeaderValue.TryParse(rawHeader, out var parsedHeader))
+            message.Headers.Authorization = parsedHeader;
+
+        using var response = await _httpClient.SendAsync(message, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new UserServiceException($"UserService returned {(int)response.StatusCode}: {body}");
+        }
+    }
+
     public async Task<IEnumerable<UserDto>> GetUsersAsync(string? search = null, string? role = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(_options.BaseUrl))

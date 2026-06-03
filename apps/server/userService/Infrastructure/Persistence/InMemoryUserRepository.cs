@@ -18,6 +18,12 @@ namespace UserService.Infrastructure.Persistence
             return Task.CompletedTask;
         }
 
+        public Task UpdateAsync(User user, CancellationToken cancellationToken = default)
+        {
+            _store[user.Id] = user;
+            return Task.CompletedTask;
+        }
+
         public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             _store.TryGetValue(id, out var user);

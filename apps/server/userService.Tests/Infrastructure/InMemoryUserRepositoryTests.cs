@@ -84,6 +84,42 @@ public class InMemoryUserRepositoryTests
         found3!.Email.Value.Should().Be("user3@umbral.io");
     }
 
+    // ─── UpdateAsync ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task UpdateAsync_PersistsMutatedProfile()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var user = User.Create(id, "kc-test-123", "test@umbral.io", "Original Name", "player");
+        await _sut.AddAsync(user);
+
+        // Act
+        user.UpdateProfile("Updated Name", "operator");
+        await _sut.UpdateAsync(user);
+        var found = await _sut.GetByIdAsync(id);
+
+        // Assert
+        found.Should().NotBeNull();
+        found!.Name.Value.Should().Be("Updated Name");
+        found.Role.Should().Be("operator");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenNotPreviouslyAdded_StoresUser()
+    {
+        // Arrange
+        var user = MakeUser();
+
+        // Act
+        await _sut.UpdateAsync(user);
+        var found = await _sut.GetByIdAsync(user.Id);
+
+        // Assert
+        found.Should().NotBeNull();
+        found!.Id.Should().Be(user.Id);
+    }
+
     // ─── Overwrite same ID ────────────────────────────────────────────────────
 
     [Fact]

@@ -10,5 +10,8 @@ namespace UserService.Application.Interfaces
         Task<string> CreateUserAsync(string email, string name, string password, string role, CancellationToken cancellationToken = default);
         Task<IEnumerable<UserDto>> GetUsersAsync(string? searchTerm = null, string? role = null, CancellationToken cancellationToken = default);
         Task SetUserEnabledAsync(string keycloakUserId, bool enabled, CancellationToken cancellationToken = default);
+        Task<UserDto?> GetUserByIdAsync(string keycloakUserId, CancellationToken cancellationToken = default);
+        Task UpdateUserAsync(string keycloakUserId, string name, CancellationToken cancellationToken = default);
+        Task UpdateUserRoleAsync(string keycloakUserId, string newRole, CancellationToken cancellationToken = default);
     }
 }
