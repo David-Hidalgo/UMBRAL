@@ -103,7 +103,7 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
 				].join(" ")}
 			>
 				{/* Header */}
-				<div className="flex items-center justify-between border-b border-foreground/8 px-6 py-4">
+				<div className="flex items-center justify-between border-foreground/8 border-b px-6 py-4">
 					<h2 className="font-semibold text-base text-foreground">
 						Detalle del usuario
 					</h2>
@@ -121,7 +121,7 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
 					<div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-6">
 						{/* Avatar + name + email */}
 						<div className="flex flex-col items-center gap-3 text-center">
-							<div className="flex size-16 items-center justify-center rounded-full bg-primary/15 ring-2 ring-primary/25 font-bold text-2xl text-primary">
+							<div className="flex size-16 items-center justify-center rounded-full bg-primary/15 font-bold text-2xl text-primary ring-2 ring-primary/25">
 								{user.name.slice(0, 1).toUpperCase()}
 							</div>
 							<div>
@@ -174,7 +174,10 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
 									<button
 										type="button"
 										onClick={() =>
-											void copyToClipboard(user.keycloakUserId, "ID de Keycloak")
+											void copyToClipboard(
+												user.keycloakUserId,
+												"ID de Keycloak",
+											)
 										}
 										className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground"
 										aria-label="Copiar ID de Keycloak"

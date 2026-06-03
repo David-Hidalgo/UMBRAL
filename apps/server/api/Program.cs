@@ -16,6 +16,7 @@ builder.Services.AddControllers();
 builder.Services.AddSwaggerGenWithAuthSupport(builder.Configuration);
 builder.Services.Configure<KeycloakOptions>(builder.Configuration.GetSection("Keycloak"));
 builder.Services.Configure<UserServiceOptions>(builder.Configuration.GetSection("UserService"));
+builder.Services.Configure<MissionServiceOptions>(builder.Configuration.GetSection("MissionService"));
 
 var keycloakOptions = builder.Configuration.GetSection("Keycloak").Get<KeycloakOptions>() ?? new KeycloakOptions();
 
@@ -85,6 +86,13 @@ builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>((sp, clien
         client.BaseAddress = new Uri(opts.BaseUrl);
 });
 
+builder.Services.AddHttpClient<IMissionServiceClient, MissionServiceClient>((sp, client) =>
+{
+    var opts = sp.GetRequiredService<IOptions<MissionServiceOptions>>().Value;
+    if (!string.IsNullOrWhiteSpace(opts.BaseUrl))
+        client.BaseAddress = new Uri(opts.BaseUrl);
+});
+
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddHealthChecks();
 
@@ -96,7 +104,7 @@ app.UseExceptionHandler(exceptionApp =>
     exceptionApp.Run(async context =>
     {
         var feature = context.Features.Get<IExceptionHandlerFeature>();
-        if (feature?.Error is UserServiceException)
+        if (feature?.Error is UserServiceException || feature?.Error is MissionServiceException)
         {
             context.Response.StatusCode = StatusCodes.Status502BadGateway;
             context.Response.ContentType = "application/json";

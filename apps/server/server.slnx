@@ -4,4 +4,6 @@
   <Project Path="testUtils/TestUtils.csproj" />
   <Project Path="userService/userService.csproj" />
   <Project Path="userService.Tests/userService.Tests.csproj" />
+  <Project Path="missionService/missionService.csproj" />
+  <Project Path="missionService.Tests/missionService.Tests.csproj" />
 </Solution>

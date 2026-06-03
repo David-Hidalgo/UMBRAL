@@ -4,10 +4,12 @@
 	"scripts": {
 		"dev:api": "dotnet watch --project ./api/api.csproj",
 		"dev:userService": "dotnet watch --project ./userService/userService.csproj",
-		"dev": "bun x concurrently -k -n api,userService \"bun run dev:api\" \"bun run dev:userService\"",
+		"dev:missionService": "dotnet watch --project ./missionService/missionService.csproj",
+		"dev": "bun x concurrently -k -n api,userService,missionService \"bun run dev:api\" \"bun run dev:userService\" \"bun run dev:missionService\"",
 		"build": "dotnet build ./server.slnx",
 		"start": "dotnet run --project ./api/api.csproj",
 		"start:api": "dotnet run --project ./api/api.csproj",
-		"start:userService": "dotnet run --project ./userService/userService.csproj"
+		"start:userService": "dotnet run --project ./userService/userService.csproj",
+		"start:missionService": "dotnet run --project ./missionService/missionService.csproj"
 	}
 }
