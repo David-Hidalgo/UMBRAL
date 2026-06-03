@@ -12,14 +12,18 @@
 		"web": "expo start --web"
 	},
 	"dependencies": {
-		"@umbral/auth": "workspace:*",
 		"@expo/metro-runtime": "~55.0.10",
 		"@expo/vector-icons": "^15.1.1",
 		"@gorhom/bottom-sheet": "^5.2.10",
 		"@react-navigation/drawer": "^7.9.4",
 		"@react-navigation/elements": "^2.9.14",
+		"@umbral/auth": "workspace:*",
+		"@umbral/env": "workspace:*",
+		"dotenv": "catalog:",
 		"expo": "^55.0.17",
+		"expo-auth-session": "~55.0.16",
 		"expo-constants": "~55.0.15",
+		"expo-crypto": "~55.0.15",
 		"expo-font": "~55.0.6",
 		"expo-haptics": "~55.0.14",
 		"expo-linking": "~55.0.14",
@@ -44,12 +48,9 @@
 		"tailwind-variants": "^3.2.2",
 		"tailwindcss": "^4.2.4",
 		"uniwind": "^1.6.3",
-		"dotenv": "catalog:",
-		"zod": "catalog:",
-		"@umbral/env": "workspace:*"
+		"zod": "catalog:"
 	},
 	"devDependencies": {
-		"@types/node": "^24.10.0",
 		"@types/react": "~19.2.10",
 		"@umbral/config": "workspace:*",
 		"typescript": "catalog:"

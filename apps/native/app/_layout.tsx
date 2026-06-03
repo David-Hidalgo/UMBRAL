@@ -1,19 +1,31 @@
 import "@/global.css";
+import { AppThemeProvider } from "@/contexts/app-theme-context";
+import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { Stack } from "expo-router";
-import { HeroUINativeProvider } from "heroui-native";
+import { HeroUINativeProvider, Spinner } from "heroui-native";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
-import { AppThemeProvider } from "@/contexts/app-theme-context";
-
 export const unstable_settings = {
-	initialRouteName: "(drawer)",
+	initialRouteName: "(auth)",
 };
 
 function StackLayout() {
+	const { isLoading } = useAuth();
+
+	if (isLoading) {
+		return (
+			<View className="flex-1 items-center justify-center bg-background">
+				<Spinner size="lg" />
+			</View>
+		);
+	}
+
 	return (
-		<Stack screenOptions={{}}>
-			<Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+		<Stack screenOptions={{ headerShown: false }}>
+			<Stack.Screen name="(auth)" />
+			<Stack.Screen name="(drawer)" />
 			<Stack.Screen
 				name="modal"
 				options={{ title: "Modal", presentation: "modal" }}
@@ -28,7 +40,9 @@ export default function Layout() {
 			<KeyboardProvider>
 				<AppThemeProvider>
 					<HeroUINativeProvider>
-						<StackLayout />
+						<AuthProvider>
+							<StackLayout />
+						</AuthProvider>
 					</HeroUINativeProvider>
 				</AppThemeProvider>
 			</KeyboardProvider>
