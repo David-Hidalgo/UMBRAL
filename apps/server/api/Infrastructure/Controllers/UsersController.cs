@@ -1,4 +1,5 @@
 using System;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -46,5 +47,32 @@ public sealed class UsersController : ControllerBase
     {
         var users = await _userService.GetUsersAsync(search, role, cancellationToken);
         return Ok(users);
+    }
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserRequest request, CancellationToken cancellationToken)
+    {
+        if (!User.IsInRole("admin"))
+        {
+            var callerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+
+            // Un usuario no-admin solo puede editar su propio perfil.
+            if (string.IsNullOrEmpty(callerId) || !string.Equals(callerId, id.ToString(), StringComparison.OrdinalIgnoreCase))
+                return Forbid();
+
+            // Un usuario no-admin no puede cambiar su propio rol (integridad del rol).
+            var currentRole = User.IsInRole("operator") ? "operator" : "player";
+            if (!string.Equals(request.Role, currentRole, StringComparison.OrdinalIgnoreCase))
+                return Forbid();
+        }
+
+        await _mediator.Send(new UpdateUserCommand(id, request), cancellationToken);
+        return NoContent();
     }
 }

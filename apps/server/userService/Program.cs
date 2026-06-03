@@ -67,6 +67,7 @@ builder.Services.AddMediatR(cfg =>
 
 // FluentValidation — registro manual para evitar dependencia adicional
 builder.Services.AddTransient<IValidator<UserService.Application.Commands.CreateUserCommand>, CreateUserCommandValidator>();
+builder.Services.AddTransient<IValidator<UserService.Application.Commands.UpdateUserCommand>, UpdateUserCommandValidator>();
 builder.Services.AddTransient<IValidator<UserService.Application.Queries.GetUsersQuery>, GetUsersQueryValidator>();
 
 // Infrastructure bindings
@@ -89,6 +90,14 @@ app.UseExceptionHandler(exceptionApp =>
             context.Response.ContentType = "application/json";
             var errors = validationEx.Errors.Select(e => new { field = e.PropertyName, message = e.ErrorMessage });
             await context.Response.WriteAsync(JsonSerializer.Serialize(new { errors }));
+            return;
+        }
+
+        if (feature?.Error is KeyNotFoundException notFoundEx)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = notFoundEx.Message }));
             return;
         }
 

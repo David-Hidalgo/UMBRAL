@@ -6,6 +6,7 @@ import { Input } from "@umbral/ui/components/input";
 import {
 	AlertTriangle,
 	ChevronDown,
+	Pencil,
 	RefreshCw,
 	Search,
 	UserPlus,
@@ -24,6 +25,7 @@ import {
 	UserDetailSheet,
 } from "@/components/users/user-detail-sheet";
 import { UserListSkeleton } from "@/components/users/user-list-skeleton";
+import { updateUser } from "@/lib/api/users";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -87,10 +89,18 @@ function formatDateShort(iso: string): string {
 	}
 }
 
+function toSafeRole(role: string): AppRole {
+	return role === "admin" || role === "operator" || role === "player"
+		? (role as AppRole)
+		: "player";
+}
+
 // ─── Main page inner ─────────────────────────────────────────────────────────
 
 function UsersListPageInner() {
-	const { getAccessToken } = useAuth();
+	const { getAccessToken, hasRealmRole, getSubjectId } = useAuth();
+	const isAdmin = hasRealmRole("admin");
+	const subjectId = getSubjectId();
 
 	const [search, setSearch] = useState("");
 	const [roleFilter, setRoleFilter] = useState<AppRole | "">("");
@@ -160,23 +170,47 @@ function UsersListPageInner() {
 		void fetchUsers();
 	}, [fetchUsers]);
 
-	const handleViewDetail = (user: ApiUser) => {
-		const safeRole: AppRole =
-			user.role === "admin" || user.role === "operator" || user.role === "player"
-				? (user.role as AppRole)
-				: "player";
+	/** Devuelve true si el usuario autenticado puede editar la fila dada. */
+	const canEditUser = (user: ApiUser): boolean =>
+		isAdmin || user.keycloakUserId === subjectId;
 
+	const handleViewDetail = (user: ApiUser) => {
 		setSelectedUser({
 			id: user.id,
 			keycloakUserId: user.keycloakUserId,
 			name: user.name,
 			email: user.email,
-			role: safeRole,
+			role: toSafeRole(user.role),
 			createdAt: user.createdAt,
 		});
 	};
 
+	/**
+	 * Orquesta la llamada HTTP PUT y, en caso de éxito:
+	 * - Cierra el sheet.
+	 * - Refresca la lista para mostrar los datos actualizados.
+	 * Si lanza un error, el sheet lo captura y muestra el toast.
+	 */
+	const handleSaveEdit = async (
+		keycloakUserId: string,
+		name: string,
+		role: AppRole,
+	): Promise<void> => {
+		const token = await getAccessToken(60);
+		if (!token) throw new Error("No hay sesión activa.");
+
+		await updateUser(keycloakUserId, { name, role }, token);
+
+		toast.success("Usuario actualizado correctamente.");
+		setSelectedUser(null);
+		void fetchUsers();
+	};
+
 	const users = state.status === "success" ? state.users : [];
+
+	const canEditSelected = selectedUser
+		? isAdmin || selectedUser.keycloakUserId === subjectId
+		: false;
 
 	return (
 		<>
@@ -324,45 +358,65 @@ function UsersListPageInner() {
 						{/* User rows */}
 						{state.status === "success" && users.length > 0 && (
 							<ul className="divide-y divide-foreground/6">
-								{users.map((u) => (
-									<li
-										key={u.keycloakUserId || u.id}
-										className="group flex items-center gap-3 py-3.5"
-									>
-										{/* Avatar */}
-										<div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground/10 font-semibold text-foreground text-xs">
-											{(u.name || u.email).slice(0, 1).toUpperCase()}
-										</div>
-
-										{/* Info */}
-										<div className="min-w-0 flex-1">
-											<p className="truncate font-medium text-foreground text-sm">
-												{u.name || "—"}
-											</p>
-											<p className="truncate text-[11px] text-muted-foreground">
-												{u.email}
-											</p>
-										</div>
-
-										{/* Role badge */}
-										<RoleBadge role={u.role} />
-
-										{/* Date */}
-										<span className="hidden shrink-0 text-[11px] text-muted-foreground sm:block">
-											{formatDateShort(u.createdAt)}
-										</span>
-
-										{/* Detail action */}
-										<Button
-											size="sm"
-											variant="ghost"
-											className="shrink-0 text-xs opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-											onClick={() => handleViewDetail(u)}
+								{users.map((u) => {
+									const showEditButton = canEditUser(u);
+									return (
+										<li
+											key={u.keycloakUserId || u.id}
+											className="group flex items-center gap-3 py-3.5"
 										>
-											Ver detalle
-										</Button>
-									</li>
-								))}
+											{/* Avatar */}
+											<div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground/10 font-semibold text-foreground text-xs">
+												{(u.name || u.email).slice(0, 1).toUpperCase()}
+											</div>
+
+											{/* Info */}
+											<div className="min-w-0 flex-1">
+												<p className="truncate font-medium text-foreground text-sm">
+													{u.name || "—"}
+												</p>
+												<p className="truncate text-[11px] text-muted-foreground">
+													{u.email}
+												</p>
+											</div>
+
+											{/* Role badge */}
+											<RoleBadge role={u.role} />
+
+											{/* Date */}
+											<span className="hidden shrink-0 text-[11px] text-muted-foreground sm:block">
+												{formatDateShort(u.createdAt)}
+											</span>
+
+											{/* Editar — solo si admin o fila propia */}
+											{showEditButton && (
+												<Button
+													size="sm"
+													variant="ghost"
+													className="shrink-0 gap-1.5 text-xs opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+													onClick={() => {
+														handleViewDetail(u);
+														// La lógica de cambio a editMode está dentro del sheet
+													}}
+													aria-label={`Editar ${u.name}`}
+												>
+													<Pencil className="size-3" />
+													Editar
+												</Button>
+											)}
+
+											{/* Ver detalle */}
+											<Button
+												size="sm"
+												variant="ghost"
+												className="shrink-0 text-xs opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+												onClick={() => handleViewDetail(u)}
+											>
+												Ver detalle
+											</Button>
+										</li>
+									);
+								})}
 							</ul>
 						)}
 					</div>
@@ -372,7 +426,12 @@ function UsersListPageInner() {
 			{/* User detail slide-over */}
 			<UserDetailSheet
 				user={selectedUser}
+				canEdit={canEditSelected}
+				isAdmin={isAdmin}
 				onClose={() => setSelectedUser(null)}
+				onSaveEdit={(keycloakUserId, name, role) =>
+					handleSaveEdit(keycloakUserId, name, role)
+				}
 			/>
 		</>
 	);
@@ -382,7 +441,7 @@ function UsersListPageInner() {
 
 export default function UsuariosPage() {
 	return (
-		<RoleGuard requiredRoles={["admin"]}>
+		<RoleGuard requiredRoles={["admin", "operator", "player"]}>
 			<UsersListPageInner />
 		</RoleGuard>
 	);
