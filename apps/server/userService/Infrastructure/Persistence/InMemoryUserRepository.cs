@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using UserService.Domain.Entities;
@@ -26,6 +27,12 @@ namespace UserService.Infrastructure.Persistence
         public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             _store.TryGetValue(id, out var user);
+            return Task.FromResult(user);
+        }
+
+        public Task<User?> GetByKeycloakIdAsync(string keycloakUserId, CancellationToken cancellationToken = default)
+        {
+            var user = _store.Values.FirstOrDefault(u => u.KeycloakUserId == keycloakUserId);
             return Task.FromResult(user);
         }
     }

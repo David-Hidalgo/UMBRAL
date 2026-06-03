@@ -49,6 +49,18 @@ public sealed class UsersController : ControllerBase
         return Ok(users);
     }
 
+    [HttpDelete("{keycloakId}")]
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> Delete(string keycloakId, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteUserCommand(keycloakId), cancellationToken);
+        return NoContent();
+    }
+
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -62,11 +74,9 @@ public sealed class UsersController : ControllerBase
         {
             var callerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
 
-            // Un usuario no-admin solo puede editar su propio perfil.
             if (string.IsNullOrEmpty(callerId) || !string.Equals(callerId, id.ToString(), StringComparison.OrdinalIgnoreCase))
                 return Forbid();
 
-            // Un usuario no-admin no puede cambiar su propio rol (integridad del rol).
             var currentRole = User.IsInRole("operator") ? "operator" : "player";
             if (!string.Equals(request.Role, currentRole, StringComparison.OrdinalIgnoreCase))
                 return Forbid();

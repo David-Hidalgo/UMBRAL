@@ -15,6 +15,9 @@ namespace UserService.Domain.Entities
 
         private User() { }
 
+        public bool IsActive { get; private set; } = true;
+        public DateTime? DeactivatedAtUtc { get; private set; }
+
         public static User Create(Guid id, string keycloakUserId, string email, string name, string role = "player")
         {
             if (id == Guid.Empty)
@@ -32,12 +35,14 @@ namespace UserService.Domain.Entities
             };
         }
 
-        /// <summary>
-        /// Comportamiento de mutacion semantico para HU52. Protege los invariantes:
-        /// el nombre se reemplaza por un Value Object <see cref="FullName"/> recien validado
-        /// (los VO son inmutables) y el rol se valida contra la lista permitida.
-        /// No expone setters publicos.
-        /// </summary>
+        public void Deactivate()
+        {
+            if (!IsActive)
+                throw new InvalidOperationException("User is already inactive.");
+            IsActive = false;
+            DeactivatedAtUtc = DateTime.UtcNow;
+        }
+
         public void UpdateProfile(string name, string role)
         {
             var newName = FullName.Create(name);

@@ -96,9 +96,9 @@ app.UseExceptionHandler(exceptionApp =>
     exceptionApp.Run(async context =>
     {
         var feature = context.Features.Get<IExceptionHandlerFeature>();
-        if (feature?.Error is UserServiceException)
+        if (feature?.Error is UserServiceException usEx)
         {
-            context.Response.StatusCode = StatusCodes.Status502BadGateway;
+            context.Response.StatusCode = usEx.StatusCode;
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = "Upstream service error." }));
             return;

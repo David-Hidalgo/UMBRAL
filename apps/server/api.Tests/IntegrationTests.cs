@@ -55,6 +55,9 @@ public class IntegrationTests : IDisposable
         public Task<IEnumerable<UserDto>> GetUsersAsync(string? search = null, string? role = null, CancellationToken cancellationToken = default)
             => Task.FromResult<IEnumerable<UserDto>>(Array.Empty<UserDto>());
 
+        public Task DeleteUserAsync(string keycloakId, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
         public Task UpdateUserAsync(Guid id, UpdateUserRequest request, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
     }

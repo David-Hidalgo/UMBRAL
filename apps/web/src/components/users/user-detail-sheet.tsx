@@ -1,9 +1,10 @@
 "use client";
 
+import { env } from "@umbral/env/web";
 import { Button } from "@umbral/ui/components/button";
 import { Input } from "@umbral/ui/components/input";
 import { Label } from "@umbral/ui/components/label";
-import { Copy, Loader2, Pencil, Save, Trash2, X } from "lucide-react";
+import { Copy, Loader2, Pencil, RefreshCw, Save, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -37,11 +38,8 @@ interface UserDetailSheetProps {
 	/** Si el usuario autenticado es admin (puede cambiar el rol). */
 	isAdmin: boolean;
 	onClose: () => void;
-	/**
-	 * Llamado cuando el usuario guarda los cambios.
-	 * El componente padre ejecuta la petición HTTP y refresca la lista.
-	 * Si lanza un error, el sheet muestra el toast de error sin cerrarse.
-	 */
+	onDeleteSuccess: () => void;
+	getAccessToken: (minValidity?: number) => Promise<string | null>;
 	onSaveEdit: (
 		keycloakUserId: string,
 		name: string,
@@ -78,10 +76,53 @@ export function UserDetailSheet({
 	canEdit,
 	isAdmin,
 	onClose,
+	onDeleteSuccess,
+	getAccessToken,
 	onSaveEdit,
 }: UserDetailSheetProps) {
 	const panelRef = useRef<HTMLDivElement>(null);
 	const isOpen = user !== null;
+	const [isDeleting, setIsDeleting] = useState(false);
+	const [showConfirm, setShowConfirm] = useState(false);
+
+	async function handleDelete() {
+		if (!user) return;
+		setIsDeleting(true);
+		try {
+			const token = await getAccessToken(60);
+			if (!token) {
+				toast.error("No hay sesión activa.");
+				return;
+			}
+			const response = await fetch(
+				`${env.NEXT_PUBLIC_SERVER_URL}/api/users/${user.keycloakUserId}`,
+				{
+					method: "DELETE",
+					credentials: "omit",
+					headers: { Authorization: `Bearer ${token}` },
+				},
+			);
+			if (response.status === 204) {
+				toast.success(`${user.name} ha sido desactivado.`);
+				onDeleteSuccess();
+			} else if (response.status === 404) {
+				toast.error("El usuario no fue encontrado.");
+			} else if (response.status === 409) {
+				toast.error("El usuario ya estaba inactivo.");
+			} else {
+				toast.error(`Error inesperado (${response.status}).`);
+			}
+		} catch {
+			toast.error("No se pudo conectar con el servidor.");
+		} finally {
+			setIsDeleting(false);
+			setShowConfirm(false);
+		}
+	}
+
+	useEffect(() => {
+		setShowConfirm(false);
+	}, [user?.keycloakUserId]);
 
 	const [editMode, setEditMode] = useState(false);
 	const [editName, setEditName] = useState("");
@@ -280,30 +321,64 @@ export function UserDetailSheet({
 									<p className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
 										Acciones
 									</p>
-									<div className="flex gap-2">
-										<Button
-											variant="outline"
-											size="sm"
-											className="flex-1 gap-2"
-											disabled={!canEdit}
-											title={canEdit ? "Editar usuario" : "Sin permisos"}
-											onClick={() => setEditMode(true)}
-										>
-											<Pencil className="size-3.5" />
-											Editar
-										</Button>
-										<Button
-											variant="outline"
-											size="sm"
-											className="flex-1 gap-2 text-destructive opacity-50 hover:text-destructive"
-											disabled
-											title="Próximamente"
-										>
-											<Trash2 className="size-3.5" />
-											Eliminar
-										</Button>
-									</div>
-									{!canEdit && (
+									{showConfirm ? (
+										<div className="space-y-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3">
+											<p className="text-foreground text-sm">
+												¿Desactivar a{" "}
+												<span className="font-medium">{user.name}</span>? El usuario
+												no podrá iniciar sesión.
+											</p>
+											<div className="flex gap-2">
+												<Button
+													variant="outline"
+													size="sm"
+													className="flex-1"
+													disabled={isDeleting}
+													onClick={() => setShowConfirm(false)}
+												>
+													Cancelar
+												</Button>
+												<Button
+													variant="destructive"
+													size="sm"
+													className="flex-1 gap-2"
+													disabled={isDeleting}
+													onClick={() => void handleDelete()}
+												>
+													{isDeleting ? (
+														<RefreshCw className="size-3.5 animate-spin" />
+													) : (
+														<Trash2 className="size-3.5" />
+													)}
+													Confirmar eliminación
+												</Button>
+											</div>
+										</div>
+									) : (
+										<div className="flex gap-2">
+											<Button
+												variant="outline"
+												size="sm"
+												className="flex-1 gap-2"
+												disabled={!canEdit}
+												title={canEdit ? "Editar usuario" : "Sin permisos"}
+												onClick={() => setEditMode(true)}
+											>
+												<Pencil className="size-3.5" />
+												Editar
+											</Button>
+											<Button
+												variant="outline"
+												size="sm"
+												className="flex-1 gap-2 text-destructive hover:text-destructive"
+												onClick={() => setShowConfirm(true)}
+											>
+												<Trash2 className="size-3.5" />
+												Eliminar
+											</Button>
+										</div>
+									)}
+									{!canEdit && !showConfirm && (
 										<p className="text-center text-[11px] text-muted-foreground/60">
 											Solo puedes editar tu propio perfil.
 										</p>
