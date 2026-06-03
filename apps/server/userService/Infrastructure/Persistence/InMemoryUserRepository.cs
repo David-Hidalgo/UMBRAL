@@ -35,11 +35,5 @@ namespace UserService.Infrastructure.Persistence
             var user = _store.Values.FirstOrDefault(u => u.KeycloakUserId == keycloakUserId);
             return Task.FromResult(user);
         }
-
-        public Task UpdateAsync(User user, CancellationToken cancellationToken = default)
-        {
-            _store[user.Id] = user;
-            return Task.CompletedTask;
-        }
     }
 }
