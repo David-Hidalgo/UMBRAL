@@ -14,15 +14,15 @@ import { Input } from "@umbral/ui/components/input";
 import { Label } from "@umbral/ui/components/label";
 import {
 	ArrowLeft,
-	HelpCircle,
+	Check,
 	Compass,
+	HelpCircle,
+	Loader2,
 	Plus,
+	PlusCircle,
+	Save,
 	ScrollText,
 	Trash,
-	Loader2,
-	Save,
-	PlusCircle,
-	Check,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -136,7 +136,11 @@ function CreateMissionForm() {
 		});
 	};
 
-	const updateStageField = (stageId: string, field: keyof ClientStage, value: any) => {
+	const updateStageField = (
+		stageId: string,
+		field: keyof ClientStage,
+		value: any,
+	) => {
 		setMission((prev) => ({
 			...prev,
 			stages: prev.stages.map((s) =>
@@ -158,21 +162,40 @@ function CreateMissionForm() {
 					title: `${type === "Trivia" ? "Trivia" : "Búsqueda"} ${stage.subStages.length + 1}`,
 					order: stage.subStages.length,
 					type,
-					questions: type === "Trivia" ? [
-						{
-							tempId: crypto.randomUUID(),
-							text: "Nueva pregunta",
-							points: 10,
-							answers: [
-								{ tempId: crypto.randomUUID(), text: "Opción 1", isCorrect: true },
-								{ tempId: crypto.randomUUID(), text: "Opción 2", isCorrect: false },
-							],
-						}
-					] : [],
+					questions:
+						type === "Trivia"
+							? [
+									{
+										tempId: crypto.randomUUID(),
+										text: "Nueva pregunta",
+										points: 10,
+										answers: [
+											{
+												tempId: crypto.randomUUID(),
+												text: "Opción 1",
+												isCorrect: true,
+											},
+											{
+												tempId: crypto.randomUUID(),
+												text: "Opción 2",
+												isCorrect: false,
+											},
+										],
+									},
+								]
+							: [],
 					objective: "",
-					clues: type === "TreasureHunt" ? [
-						{ tempId: crypto.randomUUID(), text: "Pista 1", order: 0, penaltyPoints: 2 }
-					] : [],
+					clues:
+						type === "TreasureHunt"
+							? [
+									{
+										tempId: crypto.randomUUID(),
+										text: "Pista 1",
+										order: 0,
+										penaltyPoints: 2,
+									},
+								]
+							: [],
 				};
 
 				return { ...stage, subStages: [...stage.subStages, newSub] };
@@ -186,7 +209,10 @@ function CreateMissionForm() {
 			stages: prev.stages.map((s) => {
 				if (s.tempId !== stageId) return s;
 				const filtered = s.subStages.filter((sub) => sub.tempId !== subId);
-				const updated = filtered.map((sub, index) => ({ ...sub, order: index }));
+				const updated = filtered.map((sub, index) => ({
+					...sub,
+					order: index,
+				}));
 				return { ...s, subStages: updated };
 			}),
 		}));
@@ -228,8 +254,16 @@ function CreateMissionForm() {
 							text: "Pregunta nueva",
 							points: 10,
 							answers: [
-								{ tempId: crypto.randomUUID(), text: "Opción correcta", isCorrect: true },
-								{ tempId: crypto.randomUUID(), text: "Opción incorrecta", isCorrect: false },
+								{
+									tempId: crypto.randomUUID(),
+									text: "Opción correcta",
+									isCorrect: true,
+								},
+								{
+									tempId: crypto.randomUUID(),
+									text: "Opción incorrecta",
+									isCorrect: false,
+								},
 							],
 						};
 						return { ...sub, questions: [...sub.questions, newQ] };
@@ -248,7 +282,10 @@ function CreateMissionForm() {
 					...s,
 					subStages: s.subStages.map((sub) => {
 						if (sub.tempId !== subId) return sub;
-						return { ...sub, questions: sub.questions.filter((q) => q.tempId !== qId) };
+						return {
+							...sub,
+							questions: sub.questions.filter((q) => q.tempId !== qId),
+						};
 					}),
 				};
 			}),
@@ -311,7 +348,12 @@ function CreateMissionForm() {
 		}));
 	};
 
-	const removeAnswer = (stageId: string, subId: string, qId: string, aId: string) => {
+	const removeAnswer = (
+		stageId: string,
+		subId: string,
+		qId: string,
+		aId: string,
+	) => {
 		setMission((prev) => ({
 			...prev,
 			stages: prev.stages.map((s) => {
@@ -324,7 +366,10 @@ function CreateMissionForm() {
 							...sub,
 							questions: sub.questions.map((q) => {
 								if (q.tempId !== qId) return q;
-								return { ...q, answers: q.answers.filter((a) => a.tempId !== aId) };
+								return {
+									...q,
+									answers: q.answers.filter((a) => a.tempId !== aId),
+								};
 							}),
 						};
 					}),
@@ -357,7 +402,7 @@ function CreateMissionForm() {
 									...q,
 									answers: q.answers.map((a) => {
 										if (a.tempId !== aId) return a;
-										// If setting isCorrect=true, optionally clear other isCorrects for single choice, 
+										// If setting isCorrect=true, optionally clear other isCorrects for single choice,
 										// or allow multiple. Let's let them check multiple if they want, but keep simple.
 										return { ...a, [field]: value };
 									}),
@@ -404,7 +449,10 @@ function CreateMissionForm() {
 					subStages: s.subStages.map((sub) => {
 						if (sub.tempId !== subId) return sub;
 						const filtered = sub.clues.filter((c) => c.tempId !== clueId);
-						const reindexed = filtered.map((c, index) => ({ ...c, order: index }));
+						const reindexed = filtered.map((c, index) => ({
+							...c,
+							order: index,
+						}));
 						return { ...sub, clues: reindexed };
 					}),
 				};
@@ -441,9 +489,7 @@ function CreateMissionForm() {
 
 	// ─── Submission ────────────────────────────────────────────────────────────
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-
+	const handleSubmit = async () => {
 		if (!mission.name.trim() || !mission.description.trim()) {
 			toast.error("Por favor completa el nombre y descripción de la misión.");
 			return;
@@ -462,55 +508,71 @@ function CreateMissionForm() {
 			}
 
 			if (stage.subStages.length === 0) {
-				toast.error(`La etapa "${stage.name}" debe tener al menos una subetapa.`);
+				toast.error(
+					`La etapa "${stage.name}" debe tener al menos una subetapa.`,
+				);
 				return;
 			}
 
 			for (const sub of stage.subStages) {
 				if (!sub.title.trim()) {
-					toast.error(`Ingresa el título para la subetapa.`);
+					toast.error("Ingresa el título para la subetapa.");
 					return;
 				}
 
 				if (sub.type === "Trivia") {
 					if (sub.questions.length === 0) {
-						toast.error(`La trivia "${sub.title}" debe tener al menos una pregunta.`);
+						toast.error(
+							`La trivia "${sub.title}" debe tener al menos una pregunta.`,
+						);
 						return;
 					}
 
 					for (const q of sub.questions) {
 						if (!q.text.trim()) {
-							toast.error(`Escribe el texto para todas las preguntas de trivia.`);
+							toast.error(
+								"Escribe el texto para todas las preguntas de trivia.",
+							);
 							return;
 						}
 						if (q.answers.length === 0) {
-							toast.error(`La pregunta "${q.text}" debe tener opciones de respuesta.`);
+							toast.error(
+								`La pregunta "${q.text}" debe tener opciones de respuesta.`,
+							);
 							return;
 						}
 						const hasCorrect = q.answers.some((a) => a.isCorrect);
 						if (!hasCorrect) {
-							toast.error(`La pregunta "${q.text}" requiere al menos una respuesta correcta marcada.`);
+							toast.error(
+								`La pregunta "${q.text}" requiere al menos una respuesta correcta marcada.`,
+							);
 							return;
 						}
 						for (const a of q.answers) {
 							if (!a.text.trim()) {
-								toast.error(`Las opciones de respuesta no pueden estar vacías.`);
+								toast.error(
+									"Las opciones de respuesta no pueden estar vacías.",
+								);
 								return;
 							}
 						}
 					}
 				} else if (sub.type === "TreasureHunt") {
 					if (!sub.objective.trim()) {
-						toast.error(`Especifica el objetivo de la búsqueda "${sub.title}".`);
+						toast.error(
+							`Especifica el objetivo de la búsqueda "${sub.title}".`,
+						);
 						return;
 					}
 					if (sub.clues.length === 0) {
-						toast.error(`La búsqueda "${sub.title}" debe tener al menos una pista.`);
+						toast.error(
+							`La búsqueda "${sub.title}" debe tener al menos una pista.`,
+						);
 						return;
 					}
 					for (const c of sub.clues) {
 						if (!c.text.trim()) {
-							toast.error(`Las pistas no pueden estar vacías.`);
+							toast.error("Las pistas no pueden estar vacías.");
 							return;
 						}
 					}
@@ -566,23 +628,31 @@ function CreateMissionForm() {
 				})),
 			};
 
-			const response = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/api/missions`, {
-				method: "POST",
-				credentials: "omit",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${accessToken}`,
+			const response = await fetch(
+				`${env.NEXT_PUBLIC_SERVER_URL}/api/missions`,
+				{
+					method: "POST",
+					credentials: "omit",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${accessToken}`,
+					},
+					body: JSON.stringify(payload),
 				},
-				body: JSON.stringify(payload),
-			});
+			);
 
 			if (!response.ok) {
 				const errorJson = await response.json().catch(() => null);
-				const errorMsg = errorJson?.error || errorJson?.errors?.[0]?.message || `Error del servidor (${response.status})`;
+				const errorMsg =
+					errorJson?.error ||
+					errorJson?.errors?.[0]?.message ||
+					`Error del servidor (${response.status})`;
 				throw new Error(errorMsg);
 			}
 
-			toast.success(`Plantilla de Misión "${mission.name}" creada exitosamente en PostgreSQL.`);
+			toast.success(
+				`Plantilla de Misión "${mission.name}" creada exitosamente en PostgreSQL.`,
+			);
 			router.push("/dashboard/misiones");
 		} catch (err) {
 			toast.error(
@@ -607,16 +677,22 @@ function CreateMissionForm() {
 			</div>
 
 			{/* Page title */}
-			<div className="flex justify-between items-center gap-4">
+			<div className="flex items-center justify-between gap-4">
 				<div>
 					<h1 className="font-semibold text-2xl text-foreground tracking-tight">
 						Diseñar Nueva Misión
 					</h1>
 					<p className="mt-1 text-muted-foreground text-sm">
-						Configura la estructura jerárquica de etapas y subetapas (Trivia o Búsqueda del Tesoro).
+						Configura la estructura jerárquica de etapas y subetapas (Trivia o
+						Búsqueda del Tesoro).
 					</p>
 				</div>
-				<Button type="button" className="gap-2" onClick={handleSubmit} disabled={loading}>
+				<Button
+					type="button"
+					className="gap-2"
+					onClick={handleSubmit}
+					disabled={loading}
+				>
 					{loading ? (
 						<>
 							<Loader2 className="size-4 animate-spin" />
@@ -632,19 +708,19 @@ function CreateMissionForm() {
 			</div>
 
 			{/* 2 Column Layout: Form & Stats sidebar */}
-			<div className="grid gap-6 md:grid-cols-3 items-start">
-				
+			<div className="grid items-start gap-6 md:grid-cols-3">
 				{/* Main editor form (2 cols) */}
-				<div className="md:col-span-2 space-y-6">
-					
+				<div className="space-y-6 md:col-span-2">
 					{/* Basic Mission Card */}
 					<Card className="border-foreground/10">
 						<CardHeader>
-							<CardTitle className="text-base flex items-center gap-2">
+							<CardTitle className="flex items-center gap-2 text-base">
 								<ScrollText className="size-4 text-primary" />
 								Configuración de Plantilla
 							</CardTitle>
-							<CardDescription>Establece los datos de identificación generales de la misión.</CardDescription>
+							<CardDescription>
+								Establece los datos de identificación generales de la misión.
+							</CardDescription>
 						</CardHeader>
 						<CardContent className="space-y-4">
 							<div className="space-y-1.5">
@@ -677,38 +753,63 @@ function CreateMissionForm() {
 					{/* Stages Editor Section */}
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
-							<h3 className="font-semibold text-lg text-foreground">Etapas de la Misión</h3>
-							<Button type="button" variant="outline" size="sm" onClick={addStage} className="gap-1.5" disabled={loading}>
+							<h3 className="font-semibold text-foreground text-lg">
+								Etapas de la Misión
+							</h3>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={addStage}
+								className="gap-1.5"
+								disabled={loading}
+							>
 								<Plus className="size-3.5" /> Agregar Etapa
 							</Button>
 						</div>
 
 						{mission.stages.length === 0 ? (
-							<div className="rounded-xl border border-dashed border-foreground/20 p-8 text-center text-muted-foreground text-sm">
-								No hay etapas agregadas. Haz clic en "Agregar Etapa" para comenzar.
+							<div className="rounded-xl border border-foreground/20 border-dashed p-8 text-center text-muted-foreground text-sm">
+								No hay etapas agregadas. Haz clic en "Agregar Etapa" para
+								comenzar.
 							</div>
 						) : (
 							mission.stages.map((stage, sIdx) => (
-								<Card key={stage.tempId} className="border-foreground/15 shadow-sm relative">
+								<Card
+									key={stage.tempId}
+									className="relative border-foreground/15 shadow-sm"
+								>
 									<CardHeader className="flex flex-row items-center justify-between pb-3">
-										<div className="space-y-1 flex-1 pr-6">
+										<div className="flex-1 space-y-1 pr-6">
 											<div className="flex items-center gap-2">
-												<span className="font-bold text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+												<span className="rounded-full bg-primary/10 px-2 py-0.5 font-bold text-primary text-xs">
 													Etapa {sIdx + 1}
 												</span>
 												<Input
 													value={stage.name}
-													onChange={(e) => updateStageField(stage.tempId, "name", e.target.value)}
+													onChange={(e) =>
+														updateStageField(
+															stage.tempId,
+															"name",
+															e.target.value,
+														)
+													}
 													placeholder="Nombre de la etapa"
-													className="h-8 font-semibold text-base py-0 border-none shadow-none focus-visible:ring-0 pl-1 w-64 bg-transparent hover:bg-foreground/5"
+													className="h-8 w-64 border-none bg-transparent py-0 pl-1 font-semibold text-base shadow-none hover:bg-foreground/5 focus-visible:ring-0"
 													disabled={loading}
 												/>
 											</div>
 											<Input
 												value={stage.description}
-												onChange={(e) => updateStageField(stage.tempId, "description", e.target.value)}
+												onChange={(e) =>
+													updateStageField(
+														stage.tempId,
+														"description",
+														e.target.value,
+													)
+												}
 												placeholder="Breve descripción de esta fase del juego"
-												className="h-7 text-xs border-none shadow-none focus-visible:ring-0 pl-1 text-muted-foreground bg-transparent hover:bg-foreground/5"
+												className="h-7 border-none bg-transparent pl-1 text-muted-foreground text-xs shadow-none hover:bg-foreground/5 focus-visible:ring-0"
 												disabled={loading}
 											/>
 										</div>
@@ -716,7 +817,7 @@ function CreateMissionForm() {
 											type="button"
 											variant="ghost"
 											size="icon"
-											className="text-muted-foreground hover:text-destructive shrink-0 size-8"
+											className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
 											onClick={() => removeStage(stage.tempId)}
 											disabled={loading}
 											title="Eliminar Etapa"
@@ -724,18 +825,20 @@ function CreateMissionForm() {
 											<Trash className="size-4" />
 										</Button>
 									</CardHeader>
-									
+
 									<CardContent className="space-y-4 pt-0">
 										{/* Sub-stages list */}
-										<div className="space-y-3 bg-foreground/3 p-4 rounded-xl border border-foreground/5">
+										<div className="space-y-3 rounded-xl border border-foreground/5 bg-foreground/3 p-4">
 											<div className="flex items-center justify-between">
-												<span className="font-semibold text-xs text-muted-foreground">Subetapas (Actividades)</span>
+												<span className="font-semibold text-muted-foreground text-xs">
+													Subetapas (Actividades)
+												</span>
 												<div className="flex gap-2">
 													<Button
 														type="button"
 														variant="outline"
 														size="xs"
-														className="text-[10px] h-7 gap-1"
+														className="h-7 gap-1 text-[10px]"
 														onClick={() => addSubStage(stage.tempId, "Trivia")}
 														disabled={loading}
 													>
@@ -745,8 +848,10 @@ function CreateMissionForm() {
 														type="button"
 														variant="outline"
 														size="xs"
-														className="text-[10px] h-7 gap-1"
-														onClick={() => addSubStage(stage.tempId, "TreasureHunt")}
+														className="h-7 gap-1 text-[10px]"
+														onClick={() =>
+															addSubStage(stage.tempId, "TreasureHunt")
+														}
 														disabled={loading}
 													>
 														<Compass className="size-3" /> + Búsqueda
@@ -755,24 +860,36 @@ function CreateMissionForm() {
 											</div>
 
 											{stage.subStages.length === 0 ? (
-												<div className="text-center text-muted-foreground/60 text-xs py-4">
-													Sin actividades. Agrega una Trivia o Búsqueda del Tesoro.
+												<div className="py-4 text-center text-muted-foreground/60 text-xs">
+													Sin actividades. Agrega una Trivia o Búsqueda del
+													Tesoro.
 												</div>
 											) : (
 												stage.subStages.map((sub, subIdx) => (
-													<div key={sub.tempId} className="bg-background border border-foreground/10 rounded-lg p-4 space-y-4 relative">
-														
+													<div
+														key={sub.tempId}
+														className="relative space-y-4 rounded-lg border border-foreground/10 bg-background p-4"
+													>
 														{/* SubStage Header */}
-														<div className="flex items-start justify-between gap-3 border-b border-foreground/5 pb-2">
+														<div className="flex items-start justify-between gap-3 border-foreground/5 border-b pb-2">
 															<div className="flex items-center gap-2">
-																<span className="text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded bg-foreground/10 text-foreground">
-																	{sub.type === "Trivia" ? "TRIVIA" : "BÚSQUEDA"}
+																<span className="rounded bg-foreground/10 px-2 py-0.5 font-semibold text-[10px] text-foreground tracking-wider">
+																	{sub.type === "Trivia"
+																		? "TRIVIA"
+																		: "BÚSQUEDA"}
 																</span>
 																<Input
 																	value={sub.title}
-																	onChange={(e) => updateSubStageField(stage.tempId, sub.tempId, "title", e.target.value)}
+																	onChange={(e) =>
+																		updateSubStageField(
+																			stage.tempId,
+																			sub.tempId,
+																			"title",
+																			e.target.value,
+																		)
+																	}
 																	placeholder="Título de la actividad"
-																	className="h-7 text-xs font-semibold py-0 border-none shadow-none focus-visible:ring-0 pl-1 bg-transparent hover:bg-foreground/5 w-44"
+																	className="h-7 w-44 border-none bg-transparent py-0 pl-1 font-semibold text-xs shadow-none hover:bg-foreground/5 focus-visible:ring-0"
 																	disabled={loading}
 																/>
 															</div>
@@ -780,8 +897,10 @@ function CreateMissionForm() {
 																type="button"
 																variant="ghost"
 																size="icon"
-																className="text-muted-foreground hover:text-destructive size-6"
-																onClick={() => removeSubStage(stage.tempId, sub.tempId)}
+																className="size-6 text-muted-foreground hover:text-destructive"
+																onClick={() =>
+																	removeSubStage(stage.tempId, sub.tempId)
+																}
 																disabled={loading}
 															>
 																<Trash className="size-3.5" />
@@ -792,41 +911,68 @@ function CreateMissionForm() {
 														{sub.type === "Trivia" && (
 															<div className="space-y-4">
 																<div className="flex items-center justify-between">
-																	<span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+																	<span className="flex items-center gap-1 font-semibold text-[11px] text-muted-foreground">
 																		Preguntas
 																	</span>
 																	<Button
 																		type="button"
 																		variant="outline"
 																		size="xs"
-																		className="h-6 text-[10px] gap-1"
-																		onClick={() => addQuestion(stage.tempId, sub.tempId)}
+																		className="h-6 gap-1 text-[10px]"
+																		onClick={() =>
+																			addQuestion(stage.tempId, sub.tempId)
+																		}
 																		disabled={loading}
 																	>
-																		<PlusCircle className="size-3" /> Agregar Pregunta
+																		<PlusCircle className="size-3" /> Agregar
+																		Pregunta
 																	</Button>
 																</div>
 
 																{sub.questions.map((q, qIdx) => (
-																	<div key={q.tempId} className="border border-dashed border-foreground/10 p-3 rounded-lg space-y-3 bg-foreground/2">
-																		<div className="flex gap-2 items-center justify-between">
-																			<div className="flex-1 flex gap-2 items-center">
-																				<span className="text-xs text-muted-foreground font-semibold">Q{qIdx + 1}:</span>
+																	<div
+																		key={q.tempId}
+																		className="space-y-3 rounded-lg border border-foreground/10 border-dashed bg-foreground/2 p-3"
+																	>
+																		<div className="flex items-center justify-between gap-2">
+																			<div className="flex flex-1 items-center gap-2">
+																				<span className="font-semibold text-muted-foreground text-xs">
+																					Q{qIdx + 1}:
+																				</span>
 																				<Input
 																					value={q.text}
-																					onChange={(e) => updateQuestionField(stage.tempId, sub.tempId, q.tempId, "text", e.target.value)}
+																					onChange={(e) =>
+																						updateQuestionField(
+																							stage.tempId,
+																							sub.tempId,
+																							q.tempId,
+																							"text",
+																							e.target.value,
+																						)
+																					}
 																					placeholder="Escribe la pregunta..."
-																					className="h-8 text-xs flex-1 bg-background"
+																					className="h-8 flex-1 bg-background text-xs"
 																					disabled={loading}
 																				/>
 																			</div>
-																			<div className="flex items-center gap-1 w-20">
-																				<Label className="text-[10px] text-muted-foreground shrink-0">Pts:</Label>
+																			<div className="flex w-20 items-center gap-1">
+																				<Label className="shrink-0 text-[10px] text-muted-foreground">
+																					Pts:
+																				</Label>
 																				<Input
 																					type="number"
 																					value={q.points}
-																					onChange={(e) => updateQuestionField(stage.tempId, sub.tempId, q.tempId, "points", parseInt(e.target.value) || 0)}
-																					className="h-8 text-xs p-1 text-center"
+																					onChange={(e) =>
+																						updateQuestionField(
+																							stage.tempId,
+																							sub.tempId,
+																							q.tempId,
+																							"points",
+																							Number.parseInt(e.target.value) ||
+																								0,
+																						)
+																					}
+																					className="h-8 p-1 text-center text-xs"
 																					disabled={loading}
 																				/>
 																			</div>
@@ -834,8 +980,14 @@ function CreateMissionForm() {
 																				type="button"
 																				variant="ghost"
 																				size="icon"
-																				className="text-muted-foreground hover:text-destructive size-7"
-																				onClick={() => removeQuestion(stage.tempId, sub.tempId, q.tempId)}
+																				className="size-7 text-muted-foreground hover:text-destructive"
+																				onClick={() =>
+																					removeQuestion(
+																						stage.tempId,
+																						sub.tempId,
+																						q.tempId,
+																					)
+																				}
 																				disabled={loading}
 																			>
 																				<Trash className="size-3.5" />
@@ -843,14 +995,22 @@ function CreateMissionForm() {
 																		</div>
 
 																		{/* Answer options */}
-																		<div className="space-y-2 pl-4 border-l-2 border-primary/20">
-																			<div className="flex justify-between items-center">
-																				<span className="text-[10px] font-semibold text-muted-foreground">Opciones</span>
+																		<div className="space-y-2 border-primary/20 border-l-2 pl-4">
+																			<div className="flex items-center justify-between">
+																				<span className="font-semibold text-[10px] text-muted-foreground">
+																					Opciones
+																				</span>
 																				<Button
 																					type="button"
 																					variant="ghost"
 																					className="h-5 text-[9px] text-primary"
-																					onClick={() => addAnswer(stage.tempId, sub.tempId, q.tempId)}
+																					onClick={() =>
+																						addAnswer(
+																							stage.tempId,
+																							sub.tempId,
+																							q.tempId,
+																						)
+																					}
 																					disabled={loading}
 																				>
 																					+ Agregar Opción
@@ -858,30 +1018,54 @@ function CreateMissionForm() {
 																			</div>
 
 																			{q.answers.map((ans) => (
-																				<div key={ans.tempId} className="flex gap-2 items-center">
+																				<div
+																					key={ans.tempId}
+																					className="flex items-center gap-2"
+																				>
 																					<Checkbox
 																						id={`correct-${ans.tempId}`}
 																						checked={ans.isCorrect}
 																						onCheckedChange={(checked) =>
-																							updateAnswerField(stage.tempId, sub.tempId, q.tempId, ans.tempId, "isCorrect", checked === true)
+																							updateAnswerField(
+																								stage.tempId,
+																								sub.tempId,
+																								q.tempId,
+																								ans.tempId,
+																								"isCorrect",
+																								checked === true,
+																							)
 																						}
 																						disabled={loading}
 																					/>
 																					<Input
 																						value={ans.text}
 																						onChange={(e) =>
-																							updateAnswerField(stage.tempId, sub.tempId, q.tempId, ans.tempId, "text", e.target.value)
+																							updateAnswerField(
+																								stage.tempId,
+																								sub.tempId,
+																								q.tempId,
+																								ans.tempId,
+																								"text",
+																								e.target.value,
+																							)
 																						}
 																						placeholder="Texto de la respuesta"
-																						className="h-7 text-xs flex-1 bg-background"
+																						className="h-7 flex-1 bg-background text-xs"
 																						disabled={loading}
 																					/>
 																					<Button
 																						type="button"
 																						variant="ghost"
 																						size="icon"
-																						className="text-muted-foreground hover:text-destructive size-6 shrink-0"
-																						onClick={() => removeAnswer(stage.tempId, sub.tempId, q.tempId, ans.tempId)}
+																						className="size-6 shrink-0 text-muted-foreground hover:text-destructive"
+																						onClick={() =>
+																							removeAnswer(
+																								stage.tempId,
+																								sub.tempId,
+																								q.tempId,
+																								ans.tempId,
+																							)
+																						}
 																						disabled={loading}
 																					>
 																						<Trash className="size-3" />
@@ -898,50 +1082,86 @@ function CreateMissionForm() {
 														{sub.type === "TreasureHunt" && (
 															<div className="space-y-4">
 																<div className="space-y-1.5">
-																	<Label className="text-xs text-muted-foreground">Objetivo de la Búsqueda</Label>
+																	<Label className="text-muted-foreground text-xs">
+																		Objetivo de la Búsqueda
+																	</Label>
 																	<Input
 																		value={sub.objective}
-																		onChange={(e) => updateSubStageField(stage.tempId, sub.tempId, "objective", e.target.value)}
+																		onChange={(e) =>
+																			updateSubStageField(
+																				stage.tempId,
+																				sub.tempId,
+																				"objective",
+																				e.target.value,
+																			)
+																		}
 																		placeholder="¿Qué deben encontrar los jugadores?"
-																		className="h-8 text-xs bg-background"
+																		className="h-8 bg-background text-xs"
 																		disabled={loading}
 																	/>
 																</div>
 
 																<div className="space-y-2">
-																	<div className="flex justify-between items-center">
-																		<span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+																	<div className="flex items-center justify-between">
+																		<span className="flex items-center gap-1 font-semibold text-[11px] text-muted-foreground">
 																			Pistas Ordenadas
 																		</span>
 																		<Button
 																			type="button"
 																			variant="outline"
 																			size="xs"
-																			className="h-6 text-[10px] gap-1"
-																			onClick={() => addClue(stage.tempId, sub.tempId)}
+																			className="h-6 gap-1 text-[10px]"
+																			onClick={() =>
+																				addClue(stage.tempId, sub.tempId)
+																			}
 																			disabled={loading}
 																		>
-																			<PlusCircle className="size-3" /> Agregar Pista
+																			<PlusCircle className="size-3" /> Agregar
+																			Pista
 																		</Button>
 																	</div>
 
 																	{sub.clues.map((clue, clueIdx) => (
-																		<div key={clue.tempId} className="flex gap-2 items-center bg-foreground/2 p-2 rounded border border-foreground/5">
-																			<span className="text-xs text-muted-foreground font-semibold">P{clueIdx + 1}:</span>
+																		<div
+																			key={clue.tempId}
+																			className="flex items-center gap-2 rounded border border-foreground/5 bg-foreground/2 p-2"
+																		>
+																			<span className="font-semibold text-muted-foreground text-xs">
+																				P{clueIdx + 1}:
+																			</span>
 																			<Input
 																				value={clue.text}
-																				onChange={(e) => updateClueField(stage.tempId, sub.tempId, clue.tempId, "text", e.target.value)}
+																				onChange={(e) =>
+																					updateClueField(
+																						stage.tempId,
+																						sub.tempId,
+																						clue.tempId,
+																						"text",
+																						e.target.value,
+																					)
+																				}
 																				placeholder="Descripción de la pista..."
-																				className="h-8 text-xs flex-1 bg-background"
+																				className="h-8 flex-1 bg-background text-xs"
 																				disabled={loading}
 																			/>
-																			<div className="flex items-center gap-1 w-24">
-																				<Label className="text-[9px] text-muted-foreground shrink-0">Penalización (Pts):</Label>
+																			<div className="flex w-24 items-center gap-1">
+																				<Label className="shrink-0 text-[9px] text-muted-foreground">
+																					Penalización (Pts):
+																				</Label>
 																				<Input
 																					type="number"
 																					value={clue.penaltyPoints}
-																					onChange={(e) => updateClueField(stage.tempId, sub.tempId, clue.tempId, "penaltyPoints", parseInt(e.target.value) || 0)}
-																					className="h-8 text-xs w-12 text-center"
+																					onChange={(e) =>
+																						updateClueField(
+																							stage.tempId,
+																							sub.tempId,
+																							clue.tempId,
+																							"penaltyPoints",
+																							Number.parseInt(e.target.value) ||
+																								0,
+																						)
+																					}
+																					className="h-8 w-12 text-center text-xs"
 																					disabled={loading}
 																				/>
 																			</div>
@@ -949,8 +1169,14 @@ function CreateMissionForm() {
 																				type="button"
 																				variant="ghost"
 																				size="icon"
-																				className="text-muted-foreground hover:text-destructive size-7"
-																				onClick={() => removeClue(stage.tempId, sub.tempId, clue.tempId)}
+																				className="size-7 text-muted-foreground hover:text-destructive"
+																				onClick={() =>
+																					removeClue(
+																						stage.tempId,
+																						sub.tempId,
+																						clue.tempId,
+																					)
+																				}
 																				disabled={loading}
 																			>
 																				<Trash className="size-3.5" />
@@ -960,7 +1186,6 @@ function CreateMissionForm() {
 																</div>
 															</div>
 														)}
-
 													</div>
 												))
 											)}
@@ -974,57 +1199,78 @@ function CreateMissionForm() {
 
 				{/* Live Summary Sidebar (1 col) */}
 				<div className="space-y-6">
-					<Card className="border-foreground/10 bg-card/60 backdrop-blur sticky top-6">
+					<Card className="sticky top-6 border-foreground/10 bg-card/60 backdrop-blur">
 						<CardHeader>
-							<CardTitle className="text-sm font-semibold text-foreground tracking-wide uppercase">Resumen del Diseño</CardTitle>
-							<CardDescription>Estadísticas del juego en tiempo real.</CardDescription>
+							<CardTitle className="font-semibold text-foreground text-sm uppercase tracking-wide">
+								Resumen del Diseño
+							</CardTitle>
+							<CardDescription>
+								Estadísticas del juego en tiempo real.
+							</CardDescription>
 						</CardHeader>
 						<CardContent className="space-y-4 text-sm">
-							<div className="flex justify-between items-center py-1.5 border-b border-foreground/5">
+							<div className="flex items-center justify-between border-foreground/5 border-b py-1.5">
 								<span className="text-muted-foreground">Nombre:</span>
-								<span className="font-semibold text-foreground truncate max-w-[150px]" title={mission.name || "Sin nombre"}>
+								<span
+									className="max-w-[150px] truncate font-semibold text-foreground"
+									title={mission.name || "Sin nombre"}
+								>
 									{mission.name || "Sin nombre"}
 								</span>
 							</div>
-							<div className="flex justify-between items-center py-1.5 border-b border-foreground/5">
+							<div className="flex items-center justify-between border-foreground/5 border-b py-1.5">
 								<span className="text-muted-foreground">Etapas:</span>
-								<span className="font-bold text-primary">{mission.stages.length}</span>
+								<span className="font-bold text-primary">
+									{mission.stages.length}
+								</span>
 							</div>
-							<div className="flex justify-between items-center py-1.5 border-b border-foreground/5">
-								<span className="text-muted-foreground">Subetapas de Trivia:</span>
+							<div className="flex items-center justify-between border-foreground/5 border-b py-1.5">
+								<span className="text-muted-foreground">
+									Subetapas de Trivia:
+								</span>
 								<span className="font-semibold text-foreground">
 									{mission.stages.reduce(
-										(acc, s) => acc + s.subStages.filter((sub) => sub.type === "Trivia").length,
+										(acc, s) =>
+											acc +
+											s.subStages.filter((sub) => sub.type === "Trivia").length,
 										0,
 									)}
 								</span>
 							</div>
-							<div className="flex justify-between items-center py-1.5 border-b border-foreground/5">
-								<span className="text-muted-foreground">Subetapas de Búsqueda:</span>
+							<div className="flex items-center justify-between border-foreground/5 border-b py-1.5">
+								<span className="text-muted-foreground">
+									Subetapas de Búsqueda:
+								</span>
 								<span className="font-semibold text-foreground">
 									{mission.stages.reduce(
-										(acc, s) => acc + s.subStages.filter((sub) => sub.type === "TreasureHunt").length,
+										(acc, s) =>
+											acc +
+											s.subStages.filter((sub) => sub.type === "TreasureHunt")
+												.length,
 										0,
 									)}
 								</span>
 							</div>
-							<div className="flex justify-between items-center py-1.5 border-b border-foreground/5 text-primary">
+							<div className="flex items-center justify-between border-foreground/5 border-b py-1.5 text-primary">
 								<span className="font-semibold">Puntos Totales:</span>
-								<span className="font-bold text-base">{calculateTotalPoints()} Pts</span>
+								<span className="font-bold text-base">
+									{calculateTotalPoints()} Pts
+								</span>
 							</div>
-							<div className="rounded-lg bg-foreground/5 p-3 text-xs text-muted-foreground space-y-1">
-								<span className="font-semibold text-foreground flex items-center gap-1">
+							<div className="space-y-1 rounded-lg bg-foreground/5 p-3 text-muted-foreground text-xs">
+								<span className="flex items-center gap-1 font-semibold text-foreground">
 									<Check className="size-3 text-emerald-400" />
 									Reglas de Validación (Domain)
 								</span>
 								<p>• Estado inicial Inactiva.</p>
-								<p>• Trivias requieren al menos una opción marcada como correcta.</p>
+								<p>
+									• Trivias requieren al menos una opción marcada como correcta.
+								</p>
 								<p>• Orden correlativo para etapas e índices de pistas.</p>
 							</div>
 						</CardContent>
 					</Card>
 				</div>
-
 			</div>
 		</div>
 	);

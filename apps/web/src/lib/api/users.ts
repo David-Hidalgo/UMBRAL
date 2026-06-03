@@ -52,7 +52,9 @@ export async function updateUser(
 		let detail = "Datos de edición inválidos.";
 		try {
 			const json = JSON.parse(text) as {
-				errors?: Record<string, string[]> | Array<{ field: string; message: string }>;
+				errors?:
+					| Record<string, string[]>
+					| Array<{ field: string; message: string }>;
 			};
 			const messages = Array.isArray(json.errors)
 				? json.errors.map((e) => e.message)

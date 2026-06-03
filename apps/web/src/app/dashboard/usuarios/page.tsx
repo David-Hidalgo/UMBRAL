@@ -391,7 +391,7 @@ function UsersListPageInner() {
 												<Button
 													size="sm"
 													variant="ghost"
-													className="shrink-0 gap-1.5 text-xs opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+													className="shrink-0 gap-1.5 text-xs opacity-0 transition-opacity focus:opacity-100 group-hover:opacity-100"
 													onClick={() => {
 														handleViewDetail(u);
 														// La lógica de cambio a editMode está dentro del sheet
@@ -407,7 +407,7 @@ function UsersListPageInner() {
 											<Button
 												size="sm"
 												variant="ghost"
-												className="shrink-0 text-xs opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+												className="shrink-0 text-xs opacity-0 transition-opacity focus:opacity-100 group-hover:opacity-100"
 												onClick={() => handleViewDetail(u)}
 											>
 												Ver detalle

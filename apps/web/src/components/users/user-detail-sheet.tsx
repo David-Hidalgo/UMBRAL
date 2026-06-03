@@ -195,7 +195,7 @@ export function UserDetailSheet({
 							<>
 								{/* Avatar + name + email */}
 								<div className="flex flex-col items-center gap-3 text-center">
-									<div className="flex size-16 items-center justify-center rounded-full bg-primary/15 ring-2 ring-primary/25 font-bold text-2xl text-primary">
+									<div className="flex size-16 items-center justify-center rounded-full bg-primary/15 font-bold text-2xl text-primary ring-2 ring-primary/25">
 										{user.name.slice(0, 1).toUpperCase()}
 									</div>
 									<div>
@@ -226,10 +226,7 @@ export function UserDetailSheet({
 											<button
 												type="button"
 												onClick={() =>
-													void copyToClipboard(
-														user.email,
-														"Correo electrónico",
-													)
+													void copyToClipboard(user.email, "Correo electrónico")
 												}
 												className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground"
 												aria-label="Copiar correo"
@@ -342,7 +339,7 @@ export function UserDetailSheet({
 								<div className="space-y-1.5">
 									<Label className="text-muted-foreground">
 										Correo electrónico
-										<span className="ml-2 rounded bg-foreground/8 px-1.5 py-0.5 text-[10px] font-normal">
+										<span className="ml-2 rounded bg-foreground/8 px-1.5 py-0.5 font-normal text-[10px]">
 											No editable
 										</span>
 									</Label>
