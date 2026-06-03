@@ -43,10 +43,27 @@ namespace UserService.Infrastructure.Controllers
             return Ok(users);
         }
 
-        /// <summary>
-        /// HU52 - Actualiza Nombre y Rol. Un Administrador puede editar a cualquiera;
-        /// un usuario no-admin solo puede editar su propio perfil y no puede cambiar su rol.
-        /// </summary>
+        [HttpDelete("{keycloakId}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> Delete(string keycloakId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _mediator.Send(new DeleteUserCommand(keycloakId), cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (InvalidOperationException)
+            {
+                return Conflict();
+            }
+        }
+
         [HttpPut("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -59,11 +76,9 @@ namespace UserService.Infrastructure.Controllers
             {
                 var callerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
 
-                // Solo puede editar su propio perfil.
                 if (string.IsNullOrEmpty(callerId) || !string.Equals(callerId, id.ToString(), StringComparison.OrdinalIgnoreCase))
                     return Forbid();
 
-                // No puede cambiar su propio rol (integridad del rol).
                 var currentRole = User.IsInRole("operator") ? "operator" : "player";
                 if (!string.Equals(request.Role, currentRole, StringComparison.OrdinalIgnoreCase))
                     return Forbid();

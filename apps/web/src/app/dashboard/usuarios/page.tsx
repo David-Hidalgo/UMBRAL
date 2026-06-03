@@ -6,7 +6,6 @@ import { Input } from "@umbral/ui/components/input";
 import {
 	AlertTriangle,
 	ChevronDown,
-	Pencil,
 	RefreshCw,
 	Search,
 	UserPlus,
@@ -167,10 +166,6 @@ function UsersListPageInner() {
 	useEffect(() => {
 		void fetchUsers();
 	}, [fetchUsers]);
-
-	/** Devuelve true si el usuario autenticado puede editar la fila dada. */
-	const canEditUser = (user: ApiUser): boolean =>
-		isAdmin || user.keycloakUserId === subjectId;
 
 	const handleViewDetail = (user: ApiUser) => {
 		setSelectedUser({
@@ -357,7 +352,6 @@ function UsersListPageInner() {
 						{state.status === "success" && users.length > 0 && (
 							<ul className="divide-y divide-foreground/6">
 								{users.map((u) => {
-									const showEditButton = canEditUser(u);
 									return (
 										<li
 											key={u.keycloakUserId || u.id}
@@ -386,23 +380,6 @@ function UsersListPageInner() {
 												{formatDateShort(u.createdAt)}
 											</span>
 
-											{/* Editar — solo si admin o fila propia */}
-											{showEditButton && (
-												<Button
-													size="sm"
-													variant="ghost"
-													className="shrink-0 gap-1.5 text-xs opacity-0 transition-opacity focus:opacity-100 group-hover:opacity-100"
-													onClick={() => {
-														handleViewDetail(u);
-														// La lógica de cambio a editMode está dentro del sheet
-													}}
-													aria-label={`Editar ${u.name}`}
-												>
-													<Pencil className="size-3" />
-													Editar
-												</Button>
-											)}
-
 											{/* Ver detalle */}
 											<Button
 												size="sm"
@@ -427,6 +404,11 @@ function UsersListPageInner() {
 				canEdit={canEditSelected}
 				isAdmin={isAdmin}
 				onClose={() => setSelectedUser(null)}
+				getAccessToken={getAccessToken}
+				onDeleteSuccess={() => {
+					setSelectedUser(null);
+					void fetchUsers();
+				}}
 				onSaveEdit={(keycloakUserId, name, role) =>
 					handleSaveEdit(keycloakUserId, name, role)
 				}
