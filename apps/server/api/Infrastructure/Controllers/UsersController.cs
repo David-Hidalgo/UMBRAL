@@ -72,7 +72,26 @@ public sealed class UsersController : ControllerBase
                 return Forbid();
         }
 
-        await _mediator.Send(new UpdateUserCommand(id, request), cancellationToken);
-        return NoContent();
+        try
+        {
+            await _mediator.Send(new UpdateUserCommand(id, request), cancellationToken);
+            return NoContent();
+        }
+        catch (api.Application.Exceptions.UserServiceException ex)
+        {
+            const string prefix = "UserService returned ";
+            if (ex.Message.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                ex.Message.Length >= prefix.Length + 3 &&
+                int.TryParse(ex.Message.Substring(prefix.Length, 3), out var status))
+            {
+                var idx = ex.Message.IndexOf(": ", StringComparison.Ordinal);
+                var body = idx >= 0 ? ex.Message[(idx + 2)..] : ex.Message;
+                var result = Content(body, "application/json");
+                result.StatusCode = status;
+                return result;
+            }
+
+            throw;
+        }
     }
 }
