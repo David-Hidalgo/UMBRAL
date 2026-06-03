@@ -267,6 +267,133 @@ namespace UserService.Infrastructure.Authentication
             return result.OrderByDescending(u => u.CreatedAt).ToList();
         }
 
+        public async Task<UserDto?> GetUserByIdAsync(string keycloakUserId, CancellationToken cancellationToken = default)
+        {
+            EnsureConfigured();
+
+            var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
+            var baseUrl = NormalizeBaseUrl(_options.EffectiveInternalBaseUrl);
+            var uri = $"{baseUrl}/admin/realms/{_options.Realm}/users/{keycloakUserId}";
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return null;
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new InvalidOperationException($"Failed to fetch Keycloak user '{keycloakUserId}': {(int)response.StatusCode}: {body}");
+            }
+
+            var ku = await response.Content.ReadFromJsonAsync<KeycloakUserRepresentation>(SerializerOptions, cancellationToken);
+            if (ku is null || string.IsNullOrWhiteSpace(ku.Id))
+                return null;
+
+            if (!Guid.TryParse(ku.Id, out var userGuid))
+                throw new InvalidOperationException($"Keycloak returned an invalid non-GUID user id: '{ku.Id}'.");
+
+            var roleMappingsUri = $"{baseUrl}/admin/realms/{_options.Realm}/users/{ku.Id}/role-mappings/realm";
+            var roles = await GetUserRolesAsync(roleMappingsUri, accessToken, cancellationToken);
+            var resolvedRole = roles.Any(r => string.Equals(r.Name, "admin", StringComparison.OrdinalIgnoreCase))
+                ? "admin"
+                : roles.Any(r => string.Equals(r.Name, "operator", StringComparison.OrdinalIgnoreCase))
+                    ? "operator"
+                    : "player";
+
+            var createdAt = DateTimeOffset.FromUnixTimeMilliseconds(ku.CreatedTimestamp).UtcDateTime;
+            var name = !string.IsNullOrWhiteSpace(ku.FirstName) ? ku.FirstName : ku.Username;
+            if (string.IsNullOrWhiteSpace(name))
+                name = ku.Email;
+
+            return new UserDto(userGuid, ku.Id, ku.Email, name, resolvedRole, createdAt);
+        }
+
+        public async Task UpdateUserAsync(string keycloakUserId, string name, CancellationToken cancellationToken = default)
+        {
+            EnsureConfigured();
+
+            var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
+            var baseUrl = NormalizeBaseUrl(_options.EffectiveInternalBaseUrl);
+            var uri = $"{baseUrl}/admin/realms/{_options.Realm}/users/{keycloakUserId}";
+
+            // GET representacion completa para no sobreescribir campos no editados en el PUT.
+            using var getRequest = new HttpRequestMessage(HttpMethod.Get, uri);
+            getRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            using var getResponse = await _httpClient.SendAsync(getRequest, cancellationToken);
+            if (!getResponse.IsSuccessStatusCode)
+            {
+                var getBody = await getResponse.Content.ReadAsStringAsync(cancellationToken);
+                throw new InvalidOperationException($"Failed to fetch user '{keycloakUserId}' before update: {(int)getResponse.StatusCode}: {getBody}");
+            }
+            var existing = await getResponse.Content.ReadFromJsonAsync<KeycloakUserRepresentation>(SerializerOptions, cancellationToken)
+                ?? throw new InvalidOperationException($"Keycloak returned null for user '{keycloakUserId}'.");
+
+            var payload = new
+            {
+                id = existing.Id,
+                username = existing.Username,
+                email = existing.Email,
+                firstName = name,
+                lastName = existing.LastName,
+                enabled = existing.Enabled,
+                emailVerified = existing.EmailVerified
+            };
+
+            using var putRequest = new HttpRequestMessage(HttpMethod.Put, uri)
+            {
+                Content = JsonContent.Create(payload, options: SerializerOptions)
+            };
+            putRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var putResponse = await _httpClient.SendAsync(putRequest, cancellationToken);
+            if (!putResponse.IsSuccessStatusCode)
+            {
+                var body = await putResponse.Content.ReadAsStringAsync(cancellationToken);
+                throw new InvalidOperationException($"Keycloak user update failed for '{keycloakUserId}': {(int)putResponse.StatusCode}: {body}");
+            }
+        }
+
+        public async Task UpdateUserRoleAsync(string keycloakUserId, string newRole, CancellationToken cancellationToken = default)
+        {
+            EnsureConfigured();
+
+            var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
+
+            // Reemplazo idempotente: quitar los roles de aplicacion vigentes y asignar el nuevo.
+            await RemoveAppRealmRolesAsync(accessToken, keycloakUserId, cancellationToken);
+            await AssignRealmRoleAsync(accessToken, keycloakUserId, newRole, cancellationToken);
+        }
+
+        private async Task RemoveAppRealmRolesAsync(string accessToken, string userId, CancellationToken cancellationToken)
+        {
+            var baseUrl = NormalizeBaseUrl(_options.EffectiveInternalBaseUrl);
+            var roleMappingsUri = $"{baseUrl}/admin/realms/{_options.Realm}/users/{userId}/role-mappings/realm";
+
+            var assignedRoles = await GetUserRolesAsync(roleMappingsUri, accessToken, cancellationToken);
+            var appRoles = assignedRoles
+                .Where(r => r.Name is "admin" or "operator" or "player")
+                .ToList();
+
+            if (appRoles.Count == 0)
+                return;
+
+            using var request = new HttpRequestMessage(HttpMethod.Delete, roleMappingsUri)
+            {
+                Content = JsonContent.Create(appRoles, options: SerializerOptions)
+            };
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new InvalidOperationException($"Failed to remove existing roles for user '{userId}': {(int)response.StatusCode}: {body}");
+            }
+        }
+
         private async Task<List<KeycloakRoleRepresentation>> GetUserRolesAsync(string uri, string accessToken, CancellationToken cancellationToken)
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, uri);
@@ -324,6 +451,9 @@ namespace UserService.Infrastructure.Authentication
 
             [JsonPropertyName("enabled")]
             public bool Enabled { get; set; }
+
+            [JsonPropertyName("emailVerified")]
+            public bool EmailVerified { get; set; }
 
             [JsonPropertyName("createdTimestamp")]
             public long CreatedTimestamp { get; set; }

@@ -1,8 +1,10 @@
 "use client";
 
 import { Button } from "@umbral/ui/components/button";
-import { Copy, Pencil, Trash2, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Input } from "@umbral/ui/components/input";
+import { Label } from "@umbral/ui/components/label";
+import { Copy, Loader2, Pencil, Save, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export type AppRole = "admin" | "operator" | "player";
@@ -30,7 +32,21 @@ const ROLE_COLORS: Record<AppRole, string> = {
 
 interface UserDetailSheetProps {
 	user: UserDetailData | null;
+	/** Si el usuario autenticado puede editar este perfil. */
+	canEdit: boolean;
+	/** Si el usuario autenticado es admin (puede cambiar el rol). */
+	isAdmin: boolean;
 	onClose: () => void;
+	/**
+	 * Llamado cuando el usuario guarda los cambios.
+	 * El componente padre ejecuta la petición HTTP y refresca la lista.
+	 * Si lanza un error, el sheet muestra el toast de error sin cerrarse.
+	 */
+	onSaveEdit: (
+		keycloakUserId: string,
+		name: string,
+		role: AppRole,
+	) => Promise<void>;
 }
 
 function formatDate(iso: string): string {
@@ -57,26 +73,80 @@ async function copyToClipboard(text: string, label: string) {
 	}
 }
 
-export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
+export function UserDetailSheet({
+	user,
+	canEdit,
+	isAdmin,
+	onClose,
+	onSaveEdit,
+}: UserDetailSheetProps) {
 	const panelRef = useRef<HTMLDivElement>(null);
 	const isOpen = user !== null;
 
-	// Close on Escape key
+	const [editMode, setEditMode] = useState(false);
+	const [editName, setEditName] = useState("");
+	const [editRole, setEditRole] = useState<AppRole>("player");
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	// Sincroniza el formulario cada vez que se abre un usuario distinto
+	useEffect(() => {
+		if (user) {
+			setEditName(user.name);
+			setEditRole(user.role);
+			setEditMode(false);
+		}
+	}, [user]);
+
+	// Cierra el modo edición al cerrar el panel
+	useEffect(() => {
+		if (!isOpen) setEditMode(false);
+	}, [isOpen]);
+
+	// Cierra con Escape (sale del modo edición primero si estaba activo)
 	useEffect(() => {
 		if (!isOpen) return;
 		const handler = (e: KeyboardEvent) => {
-			if (e.key === "Escape") onClose();
+			if (e.key === "Escape") {
+				if (editMode) {
+					setEditMode(false);
+				} else {
+					onClose();
+				}
+			}
 		};
 		document.addEventListener("keydown", handler);
 		return () => document.removeEventListener("keydown", handler);
-	}, [isOpen, onClose]);
+	}, [isOpen, editMode, onClose]);
 
-	// Focus panel container when open (improves keyboard navigation)
 	useEffect(() => {
-		if (isOpen && panelRef.current) {
-			panelRef.current.focus();
-		}
+		if (isOpen && panelRef.current) panelRef.current.focus();
 	}, [isOpen]);
+
+	const handleSave = async () => {
+		if (!user) return;
+
+		const trimmedName = editName.trim();
+		if (!trimmedName) {
+			toast.error("El nombre no puede estar vacío.");
+			return;
+		}
+		if (trimmedName.length > 200) {
+			toast.error("El nombre no puede superar los 200 caracteres.");
+			return;
+		}
+
+		setIsSubmitting(true);
+		try {
+			await onSaveEdit(user.keycloakUserId, trimmedName, editRole);
+			// El padre cierra el sheet y refresca la lista al resolver.
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "No se pudo guardar los cambios.",
+			);
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
 
 	return (
 		<>
@@ -87,7 +157,7 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
 					"fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300",
 					isOpen ? "opacity-100" : "pointer-events-none opacity-0",
 				].join(" ")}
-				onClick={onClose}
+				onClick={editMode ? undefined : onClose}
 			/>
 
 			{/* Slide-over panel */}
@@ -95,7 +165,7 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
 				ref={panelRef}
 				role="dialog"
 				aria-modal="true"
-				aria-label="Detalle del usuario"
+				aria-label={editMode ? "Editar usuario" : "Detalle del usuario"}
 				tabIndex={-1}
 				className={[
 					"fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-sidebar shadow-2xl ring-1 ring-foreground/10 transition-transform duration-300 focus:outline-none",
@@ -105,13 +175,14 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
 				{/* Header */}
 				<div className="flex items-center justify-between border-b border-foreground/8 px-6 py-4">
 					<h2 className="font-semibold text-base text-foreground">
-						Detalle del usuario
+						{editMode ? "Editar usuario" : "Detalle del usuario"}
 					</h2>
 					<button
 						type="button"
-						onClick={onClose}
-						className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground"
-						aria-label="Cerrar panel"
+						onClick={editMode ? () => setEditMode(false) : onClose}
+						disabled={isSubmitting}
+						className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+						aria-label={editMode ? "Cancelar edición" : "Cerrar panel"}
 					>
 						<X className="size-4" />
 					</button>
@@ -119,115 +190,219 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
 
 				{user && (
 					<div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-6">
-						{/* Avatar + name + email */}
-						<div className="flex flex-col items-center gap-3 text-center">
-							<div className="flex size-16 items-center justify-center rounded-full bg-primary/15 ring-2 ring-primary/25 font-bold text-2xl text-primary">
-								{user.name.slice(0, 1).toUpperCase()}
-							</div>
-							<div>
-								<p className="font-semibold text-foreground text-lg leading-tight">
-									{user.name}
-								</p>
-								<p className="mt-0.5 text-muted-foreground text-sm">
-									{user.email}
-								</p>
-							</div>
-							<span
-								className={`inline-flex items-center rounded-full px-3 py-1 font-medium text-xs ${ROLE_COLORS[user.role]}`}
-							>
-								{ROLE_LABELS[user.role]}
-							</span>
-						</div>
-
-						{/* Divider */}
-						<div className="h-px bg-foreground/8" />
-
-						{/* Details */}
-						<dl className="space-y-4">
-							<div>
-								<dt className="mb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-									Correo electrónico
-								</dt>
-								<dd className="flex items-center gap-2 text-foreground text-sm">
-									<span className="flex-1 truncate">{user.email}</span>
-									<button
-										type="button"
-										onClick={() =>
-											void copyToClipboard(user.email, "Correo electrónico")
-										}
-										className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground"
-										aria-label="Copiar correo"
+						{/* ── MODO VISTA ─────────────────────────────────────────────── */}
+						{!editMode && (
+							<>
+								{/* Avatar + name + email */}
+								<div className="flex flex-col items-center gap-3 text-center">
+									<div className="flex size-16 items-center justify-center rounded-full bg-primary/15 ring-2 ring-primary/25 font-bold text-2xl text-primary">
+										{user.name.slice(0, 1).toUpperCase()}
+									</div>
+									<div>
+										<p className="font-semibold text-foreground text-lg leading-tight">
+											{user.name}
+										</p>
+										<p className="mt-0.5 text-muted-foreground text-sm">
+											{user.email}
+										</p>
+									</div>
+									<span
+										className={`inline-flex items-center rounded-full px-3 py-1 font-medium text-xs ${ROLE_COLORS[user.role]}`}
 									>
-										<Copy className="size-3.5" />
-									</button>
-								</dd>
-							</div>
+										{ROLE_LABELS[user.role]}
+									</span>
+								</div>
 
-							<div>
-								<dt className="mb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-									ID de Keycloak
-								</dt>
-								<dd className="flex items-center gap-2">
-									<code className="flex-1 truncate rounded bg-foreground/6 px-2 py-1 font-mono text-[11px] text-foreground">
-										{user.keycloakUserId}
-									</code>
-									<button
+								<div className="h-px bg-foreground/8" />
+
+								{/* Detalles */}
+								<dl className="space-y-4">
+									<div>
+										<dt className="mb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+											Correo electrónico
+										</dt>
+										<dd className="flex items-center gap-2 text-foreground text-sm">
+											<span className="flex-1 truncate">{user.email}</span>
+											<button
+												type="button"
+												onClick={() =>
+													void copyToClipboard(
+														user.email,
+														"Correo electrónico",
+													)
+												}
+												className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground"
+												aria-label="Copiar correo"
+											>
+												<Copy className="size-3.5" />
+											</button>
+										</dd>
+									</div>
+
+									<div>
+										<dt className="mb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+											ID de Keycloak
+										</dt>
+										<dd className="flex items-center gap-2">
+											<code className="flex-1 truncate rounded bg-foreground/6 px-2 py-1 font-mono text-[11px] text-foreground">
+												{user.keycloakUserId}
+											</code>
+											<button
+												type="button"
+												onClick={() =>
+													void copyToClipboard(
+														user.keycloakUserId,
+														"ID de Keycloak",
+													)
+												}
+												className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground"
+												aria-label="Copiar ID de Keycloak"
+											>
+												<Copy className="size-3.5" />
+											</button>
+										</dd>
+									</div>
+
+									<div>
+										<dt className="mb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+											Fecha de creación
+										</dt>
+										<dd className="text-foreground text-sm">
+											{formatDate(user.createdAt)}
+										</dd>
+									</div>
+								</dl>
+
+								<div className="h-px bg-foreground/8" />
+
+								{/* Acciones */}
+								<div className="space-y-2">
+									<p className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+										Acciones
+									</p>
+									<div className="flex gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											className="flex-1 gap-2"
+											disabled={!canEdit}
+											title={canEdit ? "Editar usuario" : "Sin permisos"}
+											onClick={() => setEditMode(true)}
+										>
+											<Pencil className="size-3.5" />
+											Editar
+										</Button>
+										<Button
+											variant="outline"
+											size="sm"
+											className="flex-1 gap-2 text-destructive opacity-50 hover:text-destructive"
+											disabled
+											title="Próximamente"
+										>
+											<Trash2 className="size-3.5" />
+											Eliminar
+										</Button>
+									</div>
+									{!canEdit && (
+										<p className="text-center text-[11px] text-muted-foreground/60">
+											Solo puedes editar tu propio perfil.
+										</p>
+									)}
+								</div>
+							</>
+						)}
+
+						{/* ── MODO EDICIÓN ───────────────────────────────────────────── */}
+						{editMode && (
+							<div className="space-y-5">
+								<p className="text-muted-foreground text-sm">
+									Modifica los datos del usuario. El correo electrónico no puede
+									editarse.
+								</p>
+
+								{/* Nombre */}
+								<div className="space-y-1.5">
+									<Label htmlFor="edit-name">Nombre completo</Label>
+									<Input
+										id="edit-name"
+										value={editName}
+										onChange={(e) => setEditName(e.target.value)}
+										placeholder="Nombre del usuario"
+										maxLength={200}
+										disabled={isSubmitting}
+										autoComplete="off"
+										autoFocus
+									/>
+									<p className="text-right text-[11px] text-muted-foreground">
+										{editName.length}/200
+									</p>
+								</div>
+
+								{/* Correo (solo lectura) */}
+								<div className="space-y-1.5">
+									<Label className="text-muted-foreground">
+										Correo electrónico
+										<span className="ml-2 rounded bg-foreground/8 px-1.5 py-0.5 text-[10px] font-normal">
+											No editable
+										</span>
+									</Label>
+									<Input
+										value={user.email}
+										disabled
+										className="cursor-not-allowed"
+									/>
+								</div>
+
+								{/* Rol — solo visible para admins */}
+								{isAdmin && (
+									<div className="space-y-1.5">
+										<Label htmlFor="edit-role">Rol</Label>
+										<select
+											id="edit-role"
+											value={editRole}
+											onChange={(e) => setEditRole(e.target.value as AppRole)}
+											disabled={isSubmitting}
+											className="flex h-9 w-full appearance-none rounded-md border border-input bg-background px-3 py-1 text-foreground text-sm shadow-sm ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+										>
+											<option value="admin">Administrador</option>
+											<option value="operator">Operador</option>
+											<option value="player">Jugador</option>
+										</select>
+									</div>
+								)}
+
+								{/* Botones */}
+								<div className="flex gap-3 pt-2">
+									<Button
 										type="button"
-										onClick={() =>
-											void copyToClipboard(user.keycloakUserId, "ID de Keycloak")
-										}
-										className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground"
-										aria-label="Copiar ID de Keycloak"
+										variant="outline"
+										className="flex-1"
+										disabled={isSubmitting}
+										onClick={() => setEditMode(false)}
 									>
-										<Copy className="size-3.5" />
-									</button>
-								</dd>
+										Cancelar
+									</Button>
+									<Button
+										type="button"
+										className="flex-1 gap-2"
+										disabled={isSubmitting}
+										onClick={() => void handleSave()}
+									>
+										{isSubmitting ? (
+											<>
+												<Loader2 className="size-4 animate-spin" />
+												Guardando…
+											</>
+										) : (
+											<>
+												<Save className="size-3.5" />
+												Guardar cambios
+											</>
+										)}
+									</Button>
+								</div>
 							</div>
-
-							<div>
-								<dt className="mb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-									Fecha de creación
-								</dt>
-								<dd className="text-foreground text-sm">
-									{formatDate(user.createdAt)}
-								</dd>
-							</div>
-						</dl>
-
-						{/* Divider */}
-						<div className="h-px bg-foreground/8" />
-
-						{/* Actions (disabled — future feature) */}
-						<div className="space-y-2">
-							<p className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-								Acciones
-							</p>
-							<div className="flex gap-2">
-								<Button
-									variant="outline"
-									size="sm"
-									className="flex-1 gap-2 opacity-50"
-									disabled
-									title="Próximamente"
-								>
-									<Pencil className="size-3.5" />
-									Editar
-								</Button>
-								<Button
-									variant="outline"
-									size="sm"
-									className="flex-1 gap-2 text-destructive opacity-50 hover:text-destructive"
-									disabled
-									title="Próximamente"
-								>
-									<Trash2 className="size-3.5" />
-									Eliminar
-								</Button>
-							</div>
-							<p className="text-center text-[11px] text-muted-foreground/60">
-								Estas acciones estarán disponibles próximamente.
-							</p>
-						</div>
+						)}
 					</div>
 				)}
 			</div>

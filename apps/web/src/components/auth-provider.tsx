@@ -39,6 +39,8 @@ type AuthContextValue = {
 	getAccessToken: (minValidity?: number) => Promise<string | null>;
 	/** Delegates to keycloak-js hasRealmRole – works after initialization */
 	hasRealmRole: (role: string) => boolean;
+	/** Returns the `sub` claim of the current token (Keycloak user ID), or null if not authenticated. */
+	getSubjectId: () => string | null;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -227,6 +229,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		return keycloakClient.hasRealmRole(role);
 	};
 
+	const getSubjectId = (): string | null => {
+		if (!keycloakClient.authenticated) return null;
+		return keycloakClient.tokenParsed?.sub ?? null;
+	};
+
 	return (
 		<AuthContext.Provider
 			value={{
@@ -238,6 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				refreshSession,
 				getAccessToken,
 				hasRealmRole,
+				getSubjectId,
 			}}
 		>
 			{children}
