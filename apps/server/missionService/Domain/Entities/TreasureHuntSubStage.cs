@@ -12,12 +12,14 @@ namespace MissionService.Domain.Entities
 
         private TreasureHuntSubStage() : base() { }
 
-        public static TreasureHuntSubStage Create(Guid id, string title, int order, string objective, List<Clue> clues)
+        public static TreasureHuntSubStage Create(Guid id, string title, int order, int points, string objective, List<Clue> clues)
         {
             if (id == Guid.Empty)
                 throw new ArgumentException("Substage ID cannot be empty.", nameof(id));
             if (string.IsNullOrWhiteSpace(title))
                 throw new ArgumentException("Substage title cannot be empty.", nameof(title));
+            if (points < 0)
+                throw new ArgumentException("Substage points cannot be negative.", nameof(points));
             if (string.IsNullOrWhiteSpace(objective))
                 throw new ArgumentException("Treasure hunt objective cannot be empty.", nameof(objective));
             if (clues == null || clues.Count == 0)
@@ -28,6 +30,7 @@ namespace MissionService.Domain.Entities
                 Id = id,
                 Title = title,
                 Order = order,
+                Points = points,
                 Objective = objective
             };
 

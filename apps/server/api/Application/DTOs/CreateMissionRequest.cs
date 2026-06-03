@@ -19,14 +19,14 @@ public sealed record CreateSubStageRequest(
     string Title,
     int Order,
     string Type, // "Trivia" o "TreasureHunt"
-    List<CreateQuestionRequest>? Questions,
+    int Points,
+    CreateQuestionRequest? Question,
     string? Objective,
     List<CreateClueRequest>? Clues
 );
 
 public sealed record CreateQuestionRequest(
     string Text,
-    int Points,
     List<CreateAnswerRequest> Answers
 );
 

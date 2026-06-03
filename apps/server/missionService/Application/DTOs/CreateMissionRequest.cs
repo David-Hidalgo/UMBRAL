@@ -19,14 +19,16 @@ namespace MissionService.Application.DTOs
         string Title,
         int Order,
         string Type, // "Trivia" o "TreasureHunt"
-        List<CreateQuestionRequest>? Questions,
+        int Points,
+        // Trivia: exactamente 1 pregunta
+        CreateQuestionRequest? Question,
+        // TreasureHunt
         string? Objective,
         List<CreateClueRequest>? Clues
     );
 
     public sealed record CreateQuestionRequest(
         string Text,
-        int Points,
         List<CreateAnswerRequest> Answers
     );
 

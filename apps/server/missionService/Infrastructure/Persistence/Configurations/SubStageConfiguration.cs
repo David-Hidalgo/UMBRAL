@@ -17,6 +17,9 @@ namespace MissionService.Infrastructure.Persistence.Configurations
 
             builder.Property(x => x.Order)
                 .IsRequired();
+
+            builder.Property(x => x.Points)
+                .IsRequired();
         }
     }
 }

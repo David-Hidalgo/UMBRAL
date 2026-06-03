@@ -9,7 +9,6 @@ namespace MissionService.Domain.Entities
     {
         public Guid Id { get; private set; }
         public string Text { get; private set; } = string.Empty;
-        public int Points { get; private set; }
         public Guid TriviaSubStageId { get; private set; }
 
         private readonly List<Answer> _answers = new();
@@ -17,14 +16,12 @@ namespace MissionService.Domain.Entities
 
         private Question() { }
 
-        public static Question Create(Guid id, string text, int points, List<Answer> answers)
+        public static Question Create(Guid id, string text, List<Answer> answers)
         {
             if (id == Guid.Empty)
                 throw new ArgumentException("Question ID cannot be empty.", nameof(id));
             if (string.IsNullOrWhiteSpace(text))
                 throw new ArgumentException("Question text cannot be empty.", nameof(text));
-            if (points < 0)
-                throw new ArgumentException("Question points cannot be negative.", nameof(points));
             if (answers == null || answers.Count == 0)
                 throw new ArgumentException("Question must have at least one answer.", nameof(answers));
 
@@ -35,8 +32,7 @@ namespace MissionService.Domain.Entities
             var question = new Question
             {
                 Id = id,
-                Text = text,
-                Points = points
+                Text = text
             };
 
             foreach (var a in answers)

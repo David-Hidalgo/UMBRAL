@@ -15,9 +15,6 @@ namespace MissionService.Infrastructure.Persistence.Configurations
                 .HasMaxLength(500)
                 .IsRequired();
 
-            builder.Property(x => x.Points)
-                .IsRequired();
-
             builder.HasMany(x => x.Answers)
                 .WithOne()
                 .HasForeignKey(x => x.QuestionId)

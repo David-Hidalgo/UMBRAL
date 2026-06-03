@@ -32,19 +32,21 @@ namespace MissionService.Infrastructure.Controllers
             var command = new CreateMissionCommand(
                 request.Name,
                 request.Description,
-                request.Stages.Select(s => new CreateStageCommand(
+                (request.Stages ?? []).Select(s => new CreateStageCommand(
                     s.Name,
                     s.Description,
                     s.Order,
-                    s.SubStages.Select(ss => new CreateSubStageCommand(
+                    (s.SubStages ?? []).Select(ss => new CreateSubStageCommand(
                         ss.Title,
                         ss.Order,
                         ss.Type,
-                        ss.Questions?.Select(q => new CreateQuestionCommand(
-                            q.Text,
-                            q.Points,
-                            q.Answers.Select(a => new CreateAnswerCommand(a.Text, a.IsCorrect)).ToList()
-                        )).ToList(),
+                        ss.Points,
+                        ss.Question != null
+                            ? new CreateQuestionCommand(
+                                ss.Question.Text,
+                                (ss.Question.Answers ?? []).Select(a => new CreateAnswerCommand(a.Text, a.IsCorrect)).ToList()
+                            )
+                            : null,
                         ss.Objective,
                         ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order, c.PenaltyPoints)).ToList()
                     )).ToList()

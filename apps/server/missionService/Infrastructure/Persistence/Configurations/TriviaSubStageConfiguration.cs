@@ -10,13 +10,13 @@ namespace MissionService.Infrastructure.Persistence.Configurations
         {
             builder.ToTable("TriviaSubStages");
 
-            builder.HasMany(x => x.Questions)
+            builder.HasOne(x => x.Question)
                 .WithOne()
-                .HasForeignKey(x => x.TriviaSubStageId)
+                .HasForeignKey<Question>(x => x.TriviaSubStageId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Navigation(x => x.Questions)
-                .UsePropertyAccessMode(PropertyAccessMode.Field);
+            builder.Navigation(x => x.Question)
+                .UsePropertyAccessMode(PropertyAccessMode.Property);
         }
     }
 }

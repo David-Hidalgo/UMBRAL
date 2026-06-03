@@ -24,7 +24,7 @@ namespace MissionService.Infrastructure.Persistence
                     .ThenInclude(s => s.SubStages)
                 .Include(m => m.Stages)
                     .ThenInclude(s => s.SubStages.OfType<TriviaSubStage>())
-                        .ThenInclude(t => t.Questions)
+                        .ThenInclude(t => t.Question)
                             .ThenInclude(q => q.Answers)
                 .Include(m => m.Stages)
                     .ThenInclude(s => s.SubStages.OfType<TreasureHuntSubStage>())

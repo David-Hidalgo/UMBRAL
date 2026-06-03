@@ -16,6 +16,9 @@ namespace MissionService.Infrastructure.Persistence.Configurations
                 .HasMaxLength(150)
                 .IsRequired();
 
+            builder.HasIndex(x => x.Name)
+                .IsUnique();
+
             builder.Property(x => x.Description)
                 .HasMaxLength(1000)
                 .IsRequired();

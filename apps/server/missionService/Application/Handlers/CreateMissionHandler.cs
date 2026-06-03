@@ -39,22 +39,22 @@ namespace MissionService.Application.Handlers
                 {
                     if (ssc.Type.Equals("Trivia", StringComparison.OrdinalIgnoreCase))
                     {
-                        var domainQuestions = new List<Question>();
-                        
-                        if (ssc.Questions != null)
-                        {
-                            foreach (var qc in ssc.Questions)
-                            {
-                                var domainAnswers = qc.Answers
-                                    .Select(ac => Answer.Create(Guid.NewGuid(), ac.Text, ac.IsCorrect))
-                                    .ToList();
+                        if (ssc.Question == null)
+                            throw new ArgumentException("Trivia sub-stage must have a question.");
 
-                                var question = Question.Create(Guid.NewGuid(), qc.Text, qc.Points, domainAnswers);
-                                domainQuestions.Add(question);
-                            }
-                        }
+                        var domainAnswers = (ssc.Question.Answers ?? [])
+                            .Select(ac => Answer.Create(Guid.NewGuid(), ac.Text, ac.IsCorrect))
+                            .ToList();
 
-                        var triviaSubStage = TriviaSubStage.Create(Guid.NewGuid(), ssc.Title, ssc.Order, domainQuestions);
+                        var question = Question.Create(Guid.NewGuid(), ssc.Question.Text, domainAnswers);
+
+                        var triviaSubStage = TriviaSubStage.Create(
+                            Guid.NewGuid(),
+                            ssc.Title,
+                            ssc.Order,
+                            ssc.Points,
+                            question
+                        );
                         domainSubStages.Add(triviaSubStage);
                     }
                     else if (ssc.Type.Equals("TreasureHunt", StringComparison.OrdinalIgnoreCase))
@@ -71,10 +71,11 @@ namespace MissionService.Application.Handlers
                         }
 
                         var treasureHuntSubStage = TreasureHuntSubStage.Create(
-                            Guid.NewGuid(), 
-                            ssc.Title, 
-                            ssc.Order, 
-                            ssc.Objective ?? string.Empty, 
+                            Guid.NewGuid(),
+                            ssc.Title,
+                            ssc.Order,
+                            ssc.Points,
+                            ssc.Objective ?? string.Empty,
                             domainClues
                         );
                         domainSubStages.Add(treasureHuntSubStage);

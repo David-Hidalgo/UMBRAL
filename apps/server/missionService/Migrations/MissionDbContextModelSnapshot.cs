@@ -96,6 +96,9 @@ namespace missionService.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Name")
+                        .IsUnique();
+
                     b.ToTable("Missions", (string)null);
                 });
 
@@ -104,9 +107,6 @@ namespace missionService.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<int>("Points")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Text")
                         .IsRequired()
@@ -118,7 +118,8 @@ namespace missionService.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TriviaSubStageId");
+                    b.HasIndex("TriviaSubStageId")
+                        .IsUnique();
 
                     b.ToTable("Questions", (string)null);
                 });
@@ -159,6 +160,9 @@ namespace missionService.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Points")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("StageId")
@@ -218,8 +222,8 @@ namespace missionService.Migrations
             modelBuilder.Entity("MissionService.Domain.Entities.Question", b =>
                 {
                     b.HasOne("MissionService.Domain.Entities.TriviaSubStage", null)
-                        .WithMany("Questions")
-                        .HasForeignKey("TriviaSubStageId")
+                        .WithOne("Question")
+                        .HasForeignKey("MissionService.Domain.Entities.Question", "TriviaSubStageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -282,7 +286,8 @@ namespace missionService.Migrations
 
             modelBuilder.Entity("MissionService.Domain.Entities.TriviaSubStage", b =>
                 {
-                    b.Navigation("Questions");
+                    b.Navigation("Question")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

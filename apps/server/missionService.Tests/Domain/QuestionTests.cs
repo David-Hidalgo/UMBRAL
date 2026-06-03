@@ -15,7 +15,6 @@ namespace MissionService.Tests.Domain
             // Arrange
             var id = Guid.NewGuid();
             var text = "What is the capital of France?";
-            var points = 10;
             var answers = new List<Answer>
             {
                 Answer.Create(Guid.NewGuid(), "Paris", true),
@@ -23,13 +22,12 @@ namespace MissionService.Tests.Domain
             };
 
             // Act
-            var question = Question.Create(id, text, points, answers);
+            var question = Question.Create(id, text, answers);
 
             // Assert
             question.Should().NotBeNull();
             question.Id.Should().Be(id);
             question.Text.Should().Be(text);
-            question.Points.Should().Be(points);
             question.Answers.Should().HaveCount(2);
         }
 
@@ -39,7 +37,6 @@ namespace MissionService.Tests.Domain
             // Arrange
             var id = Guid.NewGuid();
             var text = "What is the capital of France?";
-            var points = 10;
             var answers = new List<Answer>
             {
                 Answer.Create(Guid.NewGuid(), "Paris", false),
@@ -47,7 +44,7 @@ namespace MissionService.Tests.Domain
             };
 
             // Act
-            Action act = () => Question.Create(id, text, points, answers);
+            Action act = () => Question.Create(id, text, answers);
 
             // Assert
             act.Should().Throw<TriviaRequiresCorrectAnswerException>();
@@ -63,20 +60,17 @@ namespace MissionService.Tests.Domain
             var answers = new List<Answer> { Answer.Create(Guid.NewGuid(), "Paris", true) };
 
             // Act
-            Action act = () => Question.Create(Guid.NewGuid(), invalidText!, 10, answers);
+            Action act = () => Question.Create(Guid.NewGuid(), invalidText!, answers);
 
             // Assert
             act.Should().Throw<ArgumentException>();
         }
 
         [Fact]
-        public void Creation_Should_Throw_ArgumentException_When_Points_Are_Negative()
+        public void Creation_Should_Throw_ArgumentException_When_Answers_Are_Empty()
         {
-            // Arrange
-            var answers = new List<Answer> { Answer.Create(Guid.NewGuid(), "Paris", true) };
-
             // Act
-            Action act = () => Question.Create(Guid.NewGuid(), "Question text", -5, answers);
+            Action act = () => Question.Create(Guid.NewGuid(), "Question text", new List<Answer>());
 
             // Assert
             act.Should().Throw<ArgumentException>();

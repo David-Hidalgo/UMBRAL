@@ -9,7 +9,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@umbral/ui/components/card";
-import { Compass, Gamepad2, Plus, ScrollText, Trophy } from "lucide-react";
+import { Plus, ScrollText } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { RoleGuard } from "@/components/role-guard";

@@ -1,44 +1,32 @@
 using System;
-using System.Collections.Generic;
 
 namespace MissionService.Domain.Entities
 {
     public class TriviaSubStage : SubStage
     {
-        private readonly List<Question> _questions = new();
-        public IReadOnlyCollection<Question> Questions => _questions.AsReadOnly();
+        public Question Question { get; private set; } = null!;
 
         private TriviaSubStage() : base() { }
 
-        public static TriviaSubStage Create(Guid id, string title, int order, List<Question> questions)
+        public static TriviaSubStage Create(Guid id, string title, int order, int points, Question question)
         {
             if (id == Guid.Empty)
                 throw new ArgumentException("Substage ID cannot be empty.", nameof(id));
             if (string.IsNullOrWhiteSpace(title))
                 throw new ArgumentException("Substage title cannot be empty.", nameof(title));
-            if (questions == null || questions.Count == 0)
-                throw new ArgumentException("Trivia sub-stage must contain at least one question.", nameof(questions));
+            if (points < 0)
+                throw new ArgumentException("Substage points cannot be negative.", nameof(points));
+            if (question == null)
+                throw new ArgumentNullException(nameof(question), "Trivia sub-stage must have a question.");
 
-            var trivia = new TriviaSubStage
+            return new TriviaSubStage
             {
                 Id = id,
                 Title = title,
-                Order = order
+                Order = order,
+                Points = points,
+                Question = question
             };
-
-            foreach (var q in questions)
-            {
-                trivia.AddQuestion(q);
-            }
-
-            return trivia;
-        }
-
-        private void AddQuestion(Question question)
-        {
-            if (question == null)
-                throw new ArgumentNullException(nameof(question));
-            _questions.Add(question);
         }
     }
 }

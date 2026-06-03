@@ -28,6 +28,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth-provider";
 import { RoleGuard } from "@/components/role-guard";
 
 // ─── Types and Interfaces ───────────────────────────────────────────────────
@@ -41,7 +42,6 @@ interface ClientAnswer {
 interface ClientQuestion {
 	tempId: string;
 	text: string;
-	points: number;
 	answers: ClientAnswer[];
 }
 
@@ -57,8 +57,9 @@ interface ClientSubStage {
 	title: string;
 	order: number;
 	type: "Trivia" | "TreasureHunt";
-	// Trivia
-	questions: ClientQuestion[];
+	points: number;
+	// Trivia: exactly 1 question
+	question: ClientQuestion;
 	// TreasureHunt
 	objective: string;
 	clues: ClientClue[];
@@ -78,6 +79,41 @@ interface MissionForm {
 	stages: ClientStage[];
 }
 
+// ─── Payload Types (API shape) ────────────────────────────────────────────────
+
+type SubStagePayload =
+	| {
+			title: string;
+			order: number;
+			type: "Trivia";
+			points: number;
+			question: {
+				text: string;
+				answers: { text: string; isCorrect: boolean }[];
+			};
+	  }
+	| {
+			title: string;
+			order: number;
+			type: "TreasureHunt";
+			points: number;
+			objective: string;
+			clues: { text: string; order: number; penaltyPoints: number }[];
+	  };
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function makeDefaultQuestion(): ClientQuestion {
+	return {
+		tempId: crypto.randomUUID(),
+		text: "Nueva pregunta",
+		answers: [
+			{ tempId: crypto.randomUUID(), text: "Opción 1", isCorrect: true },
+			{ tempId: crypto.randomUUID(), text: "Opción 2", isCorrect: false },
+		],
+	};
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 function CreateMissionForm() {
@@ -91,16 +127,12 @@ function CreateMissionForm() {
 		stages: [],
 	});
 
-	// Helper to calculate total points dynamically for premium UI feedback
+	// Helper to calculate total points across all substages
 	const calculateTotalPoints = () => {
 		let total = 0;
 		for (const stage of mission.stages) {
 			for (const sub of stage.subStages) {
-				if (sub.type === "Trivia") {
-					for (const q of sub.questions) {
-						total += Number(q.points) || 0;
-					}
-				}
+				total += Number(sub.points) || 0;
 			}
 		}
 		return total;
@@ -130,7 +162,6 @@ function CreateMissionForm() {
 	const removeStage = (stageId: string) => {
 		setMission((prev) => {
 			const filtered = prev.stages.filter((s) => s.tempId !== stageId);
-			// Re-index order
 			const updated = filtered.map((s, index) => ({ ...s, order: index }));
 			return { ...prev, stages: updated };
 		});
@@ -139,7 +170,7 @@ function CreateMissionForm() {
 	const updateStageField = (
 		stageId: string,
 		field: keyof ClientStage,
-		value: any,
+		value: ClientStage[keyof ClientStage],
 	) => {
 		setMission((prev) => ({
 			...prev,
@@ -162,28 +193,8 @@ function CreateMissionForm() {
 					title: `${type === "Trivia" ? "Trivia" : "Búsqueda"} ${stage.subStages.length + 1}`,
 					order: stage.subStages.length,
 					type,
-					questions:
-						type === "Trivia"
-							? [
-									{
-										tempId: crypto.randomUUID(),
-										text: "Nueva pregunta",
-										points: 10,
-										answers: [
-											{
-												tempId: crypto.randomUUID(),
-												text: "Opción 1",
-												isCorrect: true,
-											},
-											{
-												tempId: crypto.randomUUID(),
-												text: "Opción 2",
-												isCorrect: false,
-											},
-										],
-									},
-								]
-							: [],
+					points: 10,
+					question: makeDefaultQuestion(),
 					objective: "",
 					clues:
 						type === "TreasureHunt"
@@ -222,7 +233,7 @@ function CreateMissionForm() {
 		stageId: string,
 		subId: string,
 		field: keyof ClientSubStage,
-		value: any,
+		value: ClientSubStage[keyof ClientSubStage],
 	) => {
 		setMission((prev) => ({
 			...prev,
@@ -238,66 +249,13 @@ function CreateMissionForm() {
 		}));
 	};
 
-	// ─── Handlers: Trivia Questions ───────────────────────────────────────────
-
-	const addQuestion = (stageId: string, subId: string) => {
-		setMission((prev) => ({
-			...prev,
-			stages: prev.stages.map((s) => {
-				if (s.tempId !== stageId) return s;
-				return {
-					...s,
-					subStages: s.subStages.map((sub) => {
-						if (sub.tempId !== subId) return sub;
-						const newQ: ClientQuestion = {
-							tempId: crypto.randomUUID(),
-							text: "Pregunta nueva",
-							points: 10,
-							answers: [
-								{
-									tempId: crypto.randomUUID(),
-									text: "Opción correcta",
-									isCorrect: true,
-								},
-								{
-									tempId: crypto.randomUUID(),
-									text: "Opción incorrecta",
-									isCorrect: false,
-								},
-							],
-						};
-						return { ...sub, questions: [...sub.questions, newQ] };
-					}),
-				};
-			}),
-		}));
-	};
-
-	const removeQuestion = (stageId: string, subId: string, qId: string) => {
-		setMission((prev) => ({
-			...prev,
-			stages: prev.stages.map((s) => {
-				if (s.tempId !== stageId) return s;
-				return {
-					...s,
-					subStages: s.subStages.map((sub) => {
-						if (sub.tempId !== subId) return sub;
-						return {
-							...sub,
-							questions: sub.questions.filter((q) => q.tempId !== qId),
-						};
-					}),
-				};
-			}),
-		}));
-	};
+	// ─── Handlers: Trivia Question (single per substage) ──────────────────────
 
 	const updateQuestionField = (
 		stageId: string,
 		subId: string,
-		qId: string,
 		field: keyof ClientQuestion,
-		value: any,
+		value: ClientQuestion[keyof ClientQuestion],
 	) => {
 		setMission((prev) => ({
 			...prev,
@@ -307,12 +265,7 @@ function CreateMissionForm() {
 					...s,
 					subStages: s.subStages.map((sub) => {
 						if (sub.tempId !== subId) return sub;
-						return {
-							...sub,
-							questions: sub.questions.map((q) =>
-								q.tempId === qId ? { ...q, [field]: value } : q,
-							),
-						};
+						return { ...sub, question: { ...sub.question, [field]: value } };
 					}),
 				};
 			}),
@@ -321,7 +274,7 @@ function CreateMissionForm() {
 
 	// ─── Handlers: Trivia Answers ─────────────────────────────────────────────
 
-	const addAnswer = (stageId: string, subId: string, qId: string) => {
+	const addAnswer = (stageId: string, subId: string) => {
 		setMission((prev) => ({
 			...prev,
 			stages: prev.stages.map((s) => {
@@ -330,17 +283,17 @@ function CreateMissionForm() {
 					...s,
 					subStages: s.subStages.map((sub) => {
 						if (sub.tempId !== subId) return sub;
+						const newA: ClientAnswer = {
+							tempId: crypto.randomUUID(),
+							text: "Nueva opción",
+							isCorrect: false,
+						};
 						return {
 							...sub,
-							questions: sub.questions.map((q) => {
-								if (q.tempId !== qId) return q;
-								const newA: ClientAnswer = {
-									tempId: crypto.randomUUID(),
-									text: "Nueva opción",
-									isCorrect: false,
-								};
-								return { ...q, answers: [...q.answers, newA] };
-							}),
+							question: {
+								...sub.question,
+								answers: [...sub.question.answers, newA],
+							},
 						};
 					}),
 				};
@@ -348,12 +301,7 @@ function CreateMissionForm() {
 		}));
 	};
 
-	const removeAnswer = (
-		stageId: string,
-		subId: string,
-		qId: string,
-		aId: string,
-	) => {
+	const removeAnswer = (stageId: string, subId: string, aId: string) => {
 		setMission((prev) => ({
 			...prev,
 			stages: prev.stages.map((s) => {
@@ -364,13 +312,10 @@ function CreateMissionForm() {
 						if (sub.tempId !== subId) return sub;
 						return {
 							...sub,
-							questions: sub.questions.map((q) => {
-								if (q.tempId !== qId) return q;
-								return {
-									...q,
-									answers: q.answers.filter((a) => a.tempId !== aId),
-								};
-							}),
+							question: {
+								...sub.question,
+								answers: sub.question.answers.filter((a) => a.tempId !== aId),
+							},
 						};
 					}),
 				};
@@ -381,10 +326,9 @@ function CreateMissionForm() {
 	const updateAnswerField = (
 		stageId: string,
 		subId: string,
-		qId: string,
 		aId: string,
 		field: keyof ClientAnswer,
-		value: any,
+		value: ClientAnswer[keyof ClientAnswer],
 	) => {
 		setMission((prev) => ({
 			...prev,
@@ -396,18 +340,12 @@ function CreateMissionForm() {
 						if (sub.tempId !== subId) return sub;
 						return {
 							...sub,
-							questions: sub.questions.map((q) => {
-								if (q.tempId !== qId) return q;
-								return {
-									...q,
-									answers: q.answers.map((a) => {
-										if (a.tempId !== aId) return a;
-										// If setting isCorrect=true, optionally clear other isCorrects for single choice,
-										// or allow multiple. Let's let them check multiple if they want, but keep simple.
-										return { ...a, [field]: value };
-									}),
-								};
-							}),
+							question: {
+								...sub.question,
+								answers: sub.question.answers.map((a) =>
+									a.tempId === aId ? { ...a, [field]: value } : a,
+								),
+							},
 						};
 					}),
 				};
@@ -465,7 +403,7 @@ function CreateMissionForm() {
 		subId: string,
 		clueId: string,
 		field: keyof ClientClue,
-		value: any,
+		value: ClientClue[keyof ClientClue],
 	) => {
 		setMission((prev) => ({
 			...prev,
@@ -500,7 +438,6 @@ function CreateMissionForm() {
 			return;
 		}
 
-		// Client side validation for rules: Trivias must have at least one correct answer
 		for (const stage of mission.stages) {
 			if (!stage.name.trim() || !stage.description.trim()) {
 				toast.error(`La etapa "${stage.name}" debe tener descripción.`);
@@ -520,41 +457,35 @@ function CreateMissionForm() {
 					return;
 				}
 
+				if ((Number(sub.points) || 0) < 0) {
+					toast.error(`Los puntos de "${sub.title}" no pueden ser negativos.`);
+					return;
+				}
+
 				if (sub.type === "Trivia") {
-					if (sub.questions.length === 0) {
+					if (!sub.question.text.trim()) {
 						toast.error(
-							`La trivia "${sub.title}" debe tener al menos una pregunta.`,
+							`Escribe el texto de la pregunta en la trivia "${sub.title}".`,
 						);
 						return;
 					}
-
-					for (const q of sub.questions) {
-						if (!q.text.trim()) {
-							toast.error(
-								"Escribe el texto para todas las preguntas de trivia.",
-							);
+					if (sub.question.answers.length === 0) {
+						toast.error(
+							`La pregunta de "${sub.title}" debe tener opciones de respuesta.`,
+						);
+						return;
+					}
+					const hasCorrect = sub.question.answers.some((a) => a.isCorrect);
+					if (!hasCorrect) {
+						toast.error(
+							`La pregunta de "${sub.title}" requiere al menos una respuesta correcta marcada.`,
+						);
+						return;
+					}
+					for (const a of sub.question.answers) {
+						if (!a.text.trim()) {
+							toast.error("Las opciones de respuesta no pueden estar vacías.");
 							return;
-						}
-						if (q.answers.length === 0) {
-							toast.error(
-								`La pregunta "${q.text}" debe tener opciones de respuesta.`,
-							);
-							return;
-						}
-						const hasCorrect = q.answers.some((a) => a.isCorrect);
-						if (!hasCorrect) {
-							toast.error(
-								`La pregunta "${q.text}" requiere al menos una respuesta correcta marcada.`,
-							);
-							return;
-						}
-						for (const a of q.answers) {
-							if (!a.text.trim()) {
-								toast.error(
-									"Las opciones de respuesta no pueden estar vacías.",
-								);
-								return;
-							}
 						}
 					}
 				} else if (sub.type === "TreasureHunt") {
@@ -598,32 +529,34 @@ function CreateMissionForm() {
 					name: s.name,
 					description: s.description,
 					order: s.order,
-					subStages: s.subStages.map((sub) => {
-						const mapped: any = {
+					subStages: s.subStages.map((sub): SubStagePayload => {
+						if (sub.type === "Trivia") {
+							return {
+								title: sub.title,
+								order: sub.order,
+								type: "Trivia",
+								points: Number(sub.points) || 0,
+								question: {
+									text: sub.question.text,
+									answers: sub.question.answers.map((a) => ({
+										text: a.text,
+										isCorrect: a.isCorrect,
+									})),
+								},
+							};
+						}
+						return {
 							title: sub.title,
 							order: sub.order,
-							type: sub.type,
-						};
-
-						if (sub.type === "Trivia") {
-							mapped.questions = sub.questions.map((q) => ({
-								text: q.text,
-								points: Number(q.points) || 0,
-								answers: q.answers.map((a) => ({
-									text: a.text,
-									isCorrect: a.isCorrect,
-								})),
-							}));
-						} else if (sub.type === "TreasureHunt") {
-							mapped.objective = sub.objective;
-							mapped.clues = sub.clues.map((c) => ({
+							type: "TreasureHunt",
+							points: Number(sub.points) || 0,
+							objective: sub.objective,
+							clues: sub.clues.map((c) => ({
 								text: c.text,
 								order: c.order,
 								penaltyPoints: Number(c.penaltyPoints) || 0,
-							}));
-						}
-
-						return mapped;
+							})),
+						};
 					}),
 				})),
 			};
@@ -865,25 +798,25 @@ function CreateMissionForm() {
 													Tesoro.
 												</div>
 											) : (
-												stage.subStages.map((sub, subIdx) => (
+												stage.subStages.map((_sub, _subIdx) => (
 													<div
-														key={sub.tempId}
+														key={_sub.tempId}
 														className="relative space-y-4 rounded-lg border border-foreground/10 bg-background p-4"
 													>
 														{/* SubStage Header */}
 														<div className="flex items-start justify-between gap-3 border-foreground/5 border-b pb-2">
 															<div className="flex items-center gap-2">
 																<span className="rounded bg-foreground/10 px-2 py-0.5 font-semibold text-[10px] text-foreground tracking-wider">
-																	{sub.type === "Trivia"
+																	{_sub.type === "Trivia"
 																		? "TRIVIA"
 																		: "BÚSQUEDA"}
 																</span>
 																<Input
-																	value={sub.title}
+																	value={_sub.title}
 																	onChange={(e) =>
 																		updateSubStageField(
 																			stage.tempId,
-																			sub.tempId,
+																			_sub.tempId,
 																			"title",
 																			e.target.value,
 																		)
@@ -893,204 +826,158 @@ function CreateMissionForm() {
 																	disabled={loading}
 																/>
 															</div>
-															<Button
-																type="button"
-																variant="ghost"
-																size="icon"
-																className="size-6 text-muted-foreground hover:text-destructive"
-																onClick={() =>
-																	removeSubStage(stage.tempId, sub.tempId)
-																}
-																disabled={loading}
-															>
-																<Trash className="size-3.5" />
-															</Button>
+															<div className="flex items-center gap-2">
+																{/* Points field — shared by both types */}
+																<div className="flex items-center gap-1">
+																	<Label className="shrink-0 text-[10px] text-muted-foreground">
+																		Pts:
+																	</Label>
+																	<Input
+																		type="number"
+																		value={_sub.points}
+																		onChange={(e) =>
+																			updateSubStageField(
+																				stage.tempId,
+																				_sub.tempId,
+																				"points",
+																				Number.parseInt(e.target.value, 10) ||
+																					0,
+																			)
+																		}
+																		className="h-7 w-16 p-1 text-center text-xs"
+																		disabled={loading}
+																		min={0}
+																	/>
+																</div>
+																<Button
+																	type="button"
+																	variant="ghost"
+																	size="icon"
+																	className="size-6 text-muted-foreground hover:text-destructive"
+																	onClick={() =>
+																		removeSubStage(stage.tempId, _sub.tempId)
+																	}
+																	disabled={loading}
+																>
+																	<Trash className="size-3.5" />
+																</Button>
+															</div>
 														</div>
 
 														{/* TRIVIA TYPE SUBSTAGE */}
-														{sub.type === "Trivia" && (
-															<div className="space-y-4">
-																<div className="flex items-center justify-between">
-																	<span className="flex items-center gap-1 font-semibold text-[11px] text-muted-foreground">
-																		Preguntas
-																	</span>
-																	<Button
-																		type="button"
-																		variant="outline"
-																		size="xs"
-																		className="h-6 gap-1 text-[10px]"
-																		onClick={() =>
-																			addQuestion(stage.tempId, sub.tempId)
-																		}
-																		disabled={loading}
-																	>
-																		<PlusCircle className="size-3" /> Agregar
-																		Pregunta
-																	</Button>
-																</div>
+														{_sub.type === "Trivia" && (
+															<div className="space-y-3">
+																<span className="flex items-center gap-1 font-semibold text-[11px] text-muted-foreground">
+																	Pregunta
+																</span>
 
-																{sub.questions.map((q, qIdx) => (
-																	<div
-																		key={q.tempId}
-																		className="space-y-3 rounded-lg border border-foreground/10 border-dashed bg-foreground/2 p-3"
-																	>
-																		<div className="flex items-center justify-between gap-2">
-																			<div className="flex flex-1 items-center gap-2">
-																				<span className="font-semibold text-muted-foreground text-xs">
-																					Q{qIdx + 1}:
-																				</span>
-																				<Input
-																					value={q.text}
-																					onChange={(e) =>
-																						updateQuestionField(
+																<div className="space-y-3 rounded-lg border border-foreground/10 border-dashed bg-foreground/2 p-3">
+																	{/* Question text */}
+																	<Input
+																		value={_sub.question.text}
+																		onChange={(e) =>
+																			updateQuestionField(
+																				stage.tempId,
+																				_sub.tempId,
+																				"text",
+																				e.target.value,
+																			)
+																		}
+																		placeholder="Escribe la pregunta..."
+																		className="h-8 bg-background text-xs"
+																		disabled={loading}
+																	/>
+
+																	{/* Answer options */}
+																	<div className="space-y-2 border-primary/20 border-l-2 pl-4">
+																		<div className="flex items-center justify-between">
+																			<span className="font-semibold text-[10px] text-muted-foreground">
+																				Opciones
+																			</span>
+																			<Button
+																				type="button"
+																				variant="ghost"
+																				className="h-5 text-[9px] text-primary"
+																				onClick={() =>
+																					addAnswer(stage.tempId, _sub.tempId)
+																				}
+																				disabled={loading}
+																			>
+																				<PlusCircle className="mr-1 size-3" />
+																				Agregar Opción
+																			</Button>
+																		</div>
+
+																		{_sub.question.answers.map((ans) => (
+																			<div
+																				key={ans.tempId}
+																				className="flex items-center gap-2"
+																			>
+																				<Checkbox
+																					id={`correct-${ans.tempId}`}
+																					checked={ans.isCorrect}
+																					onCheckedChange={(checked) =>
+																						updateAnswerField(
 																							stage.tempId,
-																							sub.tempId,
-																							q.tempId,
+																							_sub.tempId,
+																							ans.tempId,
+																							"isCorrect",
+																							checked === true,
+																						)
+																					}
+																					disabled={loading}
+																				/>
+																				<Input
+																					value={ans.text}
+																					onChange={(e) =>
+																						updateAnswerField(
+																							stage.tempId,
+																							_sub.tempId,
+																							ans.tempId,
 																							"text",
 																							e.target.value,
 																						)
 																					}
-																					placeholder="Escribe la pregunta..."
-																					className="h-8 flex-1 bg-background text-xs"
+																					placeholder="Texto de la respuesta"
+																					className="h-7 flex-1 bg-background text-xs"
 																					disabled={loading}
 																				/>
-																			</div>
-																			<div className="flex w-20 items-center gap-1">
-																				<Label className="shrink-0 text-[10px] text-muted-foreground">
-																					Pts:
-																				</Label>
-																				<Input
-																					type="number"
-																					value={q.points}
-																					onChange={(e) =>
-																						updateQuestionField(
-																							stage.tempId,
-																							sub.tempId,
-																							q.tempId,
-																							"points",
-																							Number.parseInt(e.target.value) ||
-																								0,
-																						)
-																					}
-																					className="h-8 p-1 text-center text-xs"
-																					disabled={loading}
-																				/>
-																			</div>
-																			<Button
-																				type="button"
-																				variant="ghost"
-																				size="icon"
-																				className="size-7 text-muted-foreground hover:text-destructive"
-																				onClick={() =>
-																					removeQuestion(
-																						stage.tempId,
-																						sub.tempId,
-																						q.tempId,
-																					)
-																				}
-																				disabled={loading}
-																			>
-																				<Trash className="size-3.5" />
-																			</Button>
-																		</div>
-
-																		{/* Answer options */}
-																		<div className="space-y-2 border-primary/20 border-l-2 pl-4">
-																			<div className="flex items-center justify-between">
-																				<span className="font-semibold text-[10px] text-muted-foreground">
-																					Opciones
-																				</span>
 																				<Button
 																					type="button"
 																					variant="ghost"
-																					className="h-5 text-[9px] text-primary"
+																					size="icon"
+																					className="size-6 shrink-0 text-muted-foreground hover:text-destructive"
 																					onClick={() =>
-																						addAnswer(
+																						removeAnswer(
 																							stage.tempId,
-																							sub.tempId,
-																							q.tempId,
+																							_sub.tempId,
+																							ans.tempId,
 																						)
 																					}
 																					disabled={loading}
 																				>
-																					+ Agregar Opción
+																					<Trash className="size-3" />
 																				</Button>
 																			</div>
-
-																			{q.answers.map((ans) => (
-																				<div
-																					key={ans.tempId}
-																					className="flex items-center gap-2"
-																				>
-																					<Checkbox
-																						id={`correct-${ans.tempId}`}
-																						checked={ans.isCorrect}
-																						onCheckedChange={(checked) =>
-																							updateAnswerField(
-																								stage.tempId,
-																								sub.tempId,
-																								q.tempId,
-																								ans.tempId,
-																								"isCorrect",
-																								checked === true,
-																							)
-																						}
-																						disabled={loading}
-																					/>
-																					<Input
-																						value={ans.text}
-																						onChange={(e) =>
-																							updateAnswerField(
-																								stage.tempId,
-																								sub.tempId,
-																								q.tempId,
-																								ans.tempId,
-																								"text",
-																								e.target.value,
-																							)
-																						}
-																						placeholder="Texto de la respuesta"
-																						className="h-7 flex-1 bg-background text-xs"
-																						disabled={loading}
-																					/>
-																					<Button
-																						type="button"
-																						variant="ghost"
-																						size="icon"
-																						className="size-6 shrink-0 text-muted-foreground hover:text-destructive"
-																						onClick={() =>
-																							removeAnswer(
-																								stage.tempId,
-																								sub.tempId,
-																								q.tempId,
-																								ans.tempId,
-																							)
-																						}
-																						disabled={loading}
-																					>
-																						<Trash className="size-3" />
-																					</Button>
-																				</div>
-																			))}
-																		</div>
+																		))}
 																	</div>
-																))}
+																</div>
 															</div>
 														)}
 
 														{/* TREASURE HUNT TYPE SUBSTAGE */}
-														{sub.type === "TreasureHunt" && (
+														{_sub.type === "TreasureHunt" && (
 															<div className="space-y-4">
 																<div className="space-y-1.5">
 																	<Label className="text-muted-foreground text-xs">
 																		Objetivo de la Búsqueda
 																	</Label>
 																	<Input
-																		value={sub.objective}
+																		value={_sub.objective}
 																		onChange={(e) =>
 																			updateSubStageField(
 																				stage.tempId,
-																				sub.tempId,
+																				_sub.tempId,
 																				"objective",
 																				e.target.value,
 																			)
@@ -1112,7 +999,7 @@ function CreateMissionForm() {
 																			size="xs"
 																			className="h-6 gap-1 text-[10px]"
 																			onClick={() =>
-																				addClue(stage.tempId, sub.tempId)
+																				addClue(stage.tempId, _sub.tempId)
 																			}
 																			disabled={loading}
 																		>
@@ -1121,7 +1008,7 @@ function CreateMissionForm() {
 																		</Button>
 																	</div>
 
-																	{sub.clues.map((clue, clueIdx) => (
+																	{_sub.clues.map((clue, clueIdx) => (
 																		<div
 																			key={clue.tempId}
 																			className="flex items-center gap-2 rounded border border-foreground/5 bg-foreground/2 p-2"
@@ -1134,7 +1021,7 @@ function CreateMissionForm() {
 																				onChange={(e) =>
 																					updateClueField(
 																						stage.tempId,
-																						sub.tempId,
+																						_sub.tempId,
 																						clue.tempId,
 																						"text",
 																						e.target.value,
@@ -1154,15 +1041,18 @@ function CreateMissionForm() {
 																					onChange={(e) =>
 																						updateClueField(
 																							stage.tempId,
-																							sub.tempId,
+																							_sub.tempId,
 																							clue.tempId,
 																							"penaltyPoints",
-																							Number.parseInt(e.target.value) ||
-																								0,
+																							Number.parseInt(
+																								e.target.value,
+																								10,
+																							) || 0,
 																						)
 																					}
 																					className="h-8 w-12 text-center text-xs"
 																					disabled={loading}
+																					min={0}
 																				/>
 																			</div>
 																			<Button
@@ -1173,7 +1063,7 @@ function CreateMissionForm() {
 																				onClick={() =>
 																					removeClue(
 																						stage.tempId,
-																						sub.tempId,
+																						_sub.tempId,
 																						clue.tempId,
 																					)
 																				}
@@ -1266,6 +1156,7 @@ function CreateMissionForm() {
 								<p>
 									• Trivias requieren al menos una opción marcada como correcta.
 								</p>
+								<p>• Puntos asignados por subetapa (Trivia y Búsqueda).</p>
 								<p>• Orden correlativo para etapas e índices de pistas.</p>
 							</div>
 						</CardContent>
@@ -1275,16 +1166,6 @@ function CreateMissionForm() {
 		</div>
 	);
 }
-
-// Helper auth check mock - use client side provider auth logic
-function useAuth() {
-	const auth = useAuthContext();
-	return {
-		getAccessToken: auth.getAccessToken,
-	};
-}
-
-import { useAuth as useAuthContext } from "@/components/auth-provider";
 
 export default function NuevaMisionPage() {
 	return (

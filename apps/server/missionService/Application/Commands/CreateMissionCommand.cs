@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using MediatR;
 
@@ -21,8 +20,9 @@ namespace MissionService.Application.Commands
         string Title,
         int Order,
         string Type, // "Trivia" o "TreasureHunt"
-        // Campos para Trivia
-        List<CreateQuestionCommand>? Questions,
+        int Points,
+        // Campos para Trivia (exactamente 1 pregunta)
+        CreateQuestionCommand? Question,
         // Campos para TreasureHunt
         string? Objective,
         List<CreateClueCommand>? Clues
@@ -30,7 +30,6 @@ namespace MissionService.Application.Commands
 
     public sealed record CreateQuestionCommand(
         string Text,
-        int Points,
         List<CreateAnswerCommand> Answers
     );
 

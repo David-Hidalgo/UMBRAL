@@ -83,18 +83,15 @@ namespace MissionService.Tests.Application
                                 "Trivia SubStage",
                                 0,
                                 "Trivia",
-                                new List<CreateQuestionCommand>
-                                {
-                                    new CreateQuestionCommand(
-                                        "Which team has won most World Cups?",
-                                        15,
-                                        new List<CreateAnswerCommand>
-                                        {
-                                            new CreateAnswerCommand("Brazil", true),
-                                            new CreateAnswerCommand("Germany", false)
-                                        }
-                                    )
-                                },
+                                15,
+                                new CreateQuestionCommand(
+                                    "Which team has won most World Cups?",
+                                    new List<CreateAnswerCommand>
+                                    {
+                                        new CreateAnswerCommand("Brazil", true),
+                                        new CreateAnswerCommand("Germany", false)
+                                    }
+                                ),
                                 null,
                                 null
                             ),
@@ -102,6 +99,7 @@ namespace MissionService.Tests.Application
                                 "Treasure SubStage",
                                 1,
                                 "TreasureHunt",
+                                20,
                                 null,
                                 "Find the hidden keys in the room",
                                 new List<CreateClueCommand>

@@ -57,6 +57,9 @@ namespace MissionService.Application.Validators
             RuleFor(x => x.Order)
                 .GreaterThanOrEqualTo(0).WithMessage("Sub-stage order must be greater than or equal to 0.");
 
+            RuleFor(x => x.Points)
+                .GreaterThanOrEqualTo(0).WithMessage("Sub-stage points must be greater than or equal to 0.");
+
             RuleFor(x => x.Type)
                 .NotEmpty().WithMessage("Sub-stage type is required.")
                 .Must(type => type == "Trivia" || type == "TreasureHunt")
@@ -65,10 +68,12 @@ namespace MissionService.Application.Validators
             // Conditional validation for Trivia
             When(x => x.Type == "Trivia", () =>
             {
-                RuleFor(x => x.Questions)
-                    .NotEmpty().WithMessage("Trivia sub-stage must contain at least one question.");
+                RuleFor(x => x.Question)
+                    .NotNull().WithMessage("Trivia sub-stage must have a question.");
 
-                RuleForEach(x => x.Questions).SetValidator(new QuestionCommandValidator());
+                RuleFor(x => x.Question)
+                    .SetValidator(new QuestionCommandValidator()!)
+                    .When(x => x.Question != null);
             });
 
             // Conditional validation for Treasure Hunt
@@ -93,9 +98,6 @@ namespace MissionService.Application.Validators
             RuleFor(x => x.Text)
                 .NotEmpty().WithMessage("Question text is required.")
                 .MaximumLength(500).WithMessage("Question text must not exceed 500 characters.");
-
-            RuleFor(x => x.Points)
-                .GreaterThanOrEqualTo(0).WithMessage("Question points must be greater than or equal to 0.");
 
             RuleFor(x => x.Answers)
                 .NotEmpty().WithMessage("Question must contain at least one answer.")
