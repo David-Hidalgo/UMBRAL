@@ -22,6 +22,7 @@ public sealed record CreateSubStageRequest(
     int Points,
     CreateQuestionRequest? Question,
     string? Objective,
+    string? SecretCode,
     List<CreateClueRequest>? Clues
 );
 
@@ -37,6 +38,5 @@ public sealed record CreateAnswerRequest(
 
 public sealed record CreateClueRequest(
     string Text,
-    int Order,
-    int PenaltyPoints
+    int Order
 );

@@ -24,13 +24,18 @@ namespace MissionService.Domain.Entities
                 throw new ArgumentException("Mission ID cannot be empty.", nameof(id));
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("Mission name cannot be empty.", nameof(name));
+
+            var trimmedName = name.Trim();
+            if (string.IsNullOrWhiteSpace(trimmedName))
+                throw new ArgumentException("Mission name cannot be empty or consist only of whitespace.", nameof(name));
+
             if (string.IsNullOrWhiteSpace(description))
                 throw new ArgumentException("Mission description cannot be empty.", nameof(description));
 
             var mission = new Mission
             {
                 Id = id,
-                Name = name,
+                Name = trimmedName,
                 Description = description,
                 Status = MissionStatus.Inactive
             };

@@ -65,7 +65,7 @@ namespace MissionService.Application.Handlers
                         {
                             foreach (var cc in ssc.Clues)
                             {
-                                var clue = Clue.Create(Guid.NewGuid(), cc.Text, cc.Order, cc.PenaltyPoints);
+                                var clue = Clue.Create(Guid.NewGuid(), cc.Text, cc.Order);
                                 domainClues.Add(clue);
                             }
                         }
@@ -76,6 +76,7 @@ namespace MissionService.Application.Handlers
                             ssc.Order,
                             ssc.Points,
                             ssc.Objective ?? string.Empty,
+                            ssc.SecretCode ?? string.Empty,
                             domainClues
                         );
                         domainSubStages.Add(treasureHuntSubStage);

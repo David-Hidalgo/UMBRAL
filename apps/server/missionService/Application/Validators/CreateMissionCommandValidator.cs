@@ -83,6 +83,11 @@ namespace MissionService.Application.Validators
                     .NotEmpty().WithMessage("Treasure hunt objective is required.")
                     .MaximumLength(500).WithMessage("Treasure hunt objective must not exceed 500 characters.");
 
+                RuleFor(x => x.SecretCode)
+                    .NotEmpty().WithMessage("Treasure hunt secret code is required.")
+                    .MaximumLength(100).WithMessage("Treasure hunt secret code must not exceed 100 characters.")
+                    .Matches("^[a-zA-Z0-9-]+$").WithMessage("Treasure hunt secret code must be alphanumeric and can contain hyphens.");
+
                 RuleFor(x => x.Clues)
                     .NotEmpty().WithMessage("Treasure hunt must contain at least one clue.");
 
@@ -128,9 +133,6 @@ namespace MissionService.Application.Validators
 
             RuleFor(x => x.Order)
                 .GreaterThanOrEqualTo(0).WithMessage("Clue order must be greater than or equal to 0.");
-
-            RuleFor(x => x.PenaltyPoints)
-                .GreaterThanOrEqualTo(0).WithMessage("Clue penalty points must be greater than or equal to 0.");
         }
     }
 }

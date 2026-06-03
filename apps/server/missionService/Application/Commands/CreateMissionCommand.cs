@@ -25,6 +25,7 @@ namespace MissionService.Application.Commands
         CreateQuestionCommand? Question,
         // Campos para TreasureHunt
         string? Objective,
+        string? SecretCode,
         List<CreateClueCommand>? Clues
     );
 
@@ -40,7 +41,6 @@ namespace MissionService.Application.Commands
 
     public sealed record CreateClueCommand(
         string Text,
-        int Order,
-        int PenaltyPoints
+        int Order
     );
 }

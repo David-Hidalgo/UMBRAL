@@ -46,7 +46,7 @@ public sealed class MissionServiceClient : IMissionServiceClient
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
-            throw new MissionServiceException($"MissionService returned {(int)response.StatusCode}: {body}");
+            throw new MissionServiceException((int)response.StatusCode, body, $"MissionService returned {(int)response.StatusCode}: {body}");
 
         if (string.IsNullOrWhiteSpace(body))
             throw new MissionServiceException("MissionService returned an empty response.");

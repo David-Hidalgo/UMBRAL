@@ -29,7 +29,7 @@ namespace MissionService.Tests.Application
         {
             // Arrange
             var command = ValidCommand();
-            
+
             _repositoryMock.Setup(r => r.ExistsByNameAsync(command.Name, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
@@ -93,6 +93,7 @@ namespace MissionService.Tests.Application
                                     }
                                 ),
                                 null,
+                                null,
                                 null
                             ),
                             new CreateSubStageCommand(
@@ -102,9 +103,10 @@ namespace MissionService.Tests.Application
                                 20,
                                 null,
                                 "Find the hidden keys in the room",
+                                "SECRET-CODE-123",
                                 new List<CreateClueCommand>
                                 {
-                                    new CreateClueCommand("Look under the desk", 0, 5)
+                                    new CreateClueCommand("Look under the desk", 0)
                                 }
                             )
                         }

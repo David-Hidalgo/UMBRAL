@@ -40,6 +40,7 @@ namespace MissionService.Tests.Application
                                     }
                                 ),
                                 null,
+                                null,
                                 null
                             )
                         }
@@ -101,6 +102,7 @@ namespace MissionService.Tests.Application
                                     }
                                 ),
                                 null,
+                                null,
                                 null
                             )
                         }
@@ -144,6 +146,7 @@ namespace MissionService.Tests.Application
                                     }
                                 ),
                                 null,
+                                null,
                                 null
                             )
                         }
@@ -179,6 +182,7 @@ namespace MissionService.Tests.Application
                                 0,
                                 "Trivia",
                                 10,
+                                null,
                                 null,
                                 null,
                                 null

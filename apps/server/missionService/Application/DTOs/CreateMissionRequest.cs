@@ -24,6 +24,7 @@ namespace MissionService.Application.DTOs
         CreateQuestionRequest? Question,
         // TreasureHunt
         string? Objective,
+        string? SecretCode,
         List<CreateClueRequest>? Clues
     );
 
@@ -39,7 +40,6 @@ namespace MissionService.Application.DTOs
 
     public sealed record CreateClueRequest(
         string Text,
-        int Order,
-        int PenaltyPoints
+        int Order
     );
 }

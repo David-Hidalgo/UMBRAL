@@ -49,7 +49,6 @@ interface ClientClue {
 	tempId: string;
 	text: string;
 	order: number;
-	penaltyPoints: number;
 }
 
 interface ClientSubStage {
@@ -62,6 +61,7 @@ interface ClientSubStage {
 	question: ClientQuestion;
 	// TreasureHunt
 	objective: string;
+	secretCode: string;
 	clues: ClientClue[];
 }
 
@@ -98,7 +98,8 @@ type SubStagePayload =
 			type: "TreasureHunt";
 			points: number;
 			objective: string;
-			clues: { text: string; order: number; penaltyPoints: number }[];
+			secretCode: string;
+			clues: { text: string; order: number }[];
 	  };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -196,6 +197,7 @@ function CreateMissionForm() {
 					points: 10,
 					question: makeDefaultQuestion(),
 					objective: "",
+					secretCode: "",
 					clues:
 						type === "TreasureHunt"
 							? [
@@ -203,7 +205,6 @@ function CreateMissionForm() {
 										tempId: crypto.randomUUID(),
 										text: "Pista 1",
 										order: 0,
-										penaltyPoints: 2,
 									},
 								]
 							: [],
@@ -368,7 +369,6 @@ function CreateMissionForm() {
 							tempId: crypto.randomUUID(),
 							text: "Nueva pista",
 							order: sub.clues.length,
-							penaltyPoints: 1,
 						};
 						return { ...sub, clues: [...sub.clues, newClue] };
 					}),
@@ -495,6 +495,18 @@ function CreateMissionForm() {
 						);
 						return;
 					}
+					if (!sub.secretCode.trim()) {
+						toast.error(
+							`Especifica el código secreto de la búsqueda "${sub.title}".`,
+						);
+						return;
+					}
+					if (!/^[a-zA-Z0-9-]+$/.test(sub.secretCode.trim())) {
+						toast.error(
+							`El código secreto de "${sub.title}" debe ser alfanumérico y solo puede contener guiones.`,
+						);
+						return;
+					}
 					if (sub.clues.length === 0) {
 						toast.error(
 							`La búsqueda "${sub.title}" debe tener al menos una pista.`,
@@ -551,10 +563,10 @@ function CreateMissionForm() {
 							type: "TreasureHunt",
 							points: Number(sub.points) || 0,
 							objective: sub.objective,
+							secretCode: sub.secretCode.trim().toUpperCase(),
 							clues: sub.clues.map((c) => ({
 								text: c.text,
 								order: c.order,
-								penaltyPoints: Number(c.penaltyPoints) || 0,
 							})),
 						};
 					}),
@@ -968,24 +980,71 @@ function CreateMissionForm() {
 														{/* TREASURE HUNT TYPE SUBSTAGE */}
 														{_sub.type === "TreasureHunt" && (
 															<div className="space-y-4">
-																<div className="space-y-1.5">
-																	<Label className="text-muted-foreground text-xs">
-																		Objetivo de la Búsqueda
-																	</Label>
-																	<Input
-																		value={_sub.objective}
-																		onChange={(e) =>
-																			updateSubStageField(
-																				stage.tempId,
-																				_sub.tempId,
-																				"objective",
-																				e.target.value,
-																			)
-																		}
-																		placeholder="¿Qué deben encontrar los jugadores?"
-																		className="h-8 bg-background text-xs"
-																		disabled={loading}
-																	/>
+																<div className="grid gap-4 sm:grid-cols-2">
+																	<div className="space-y-1.5">
+																		<Label className="text-muted-foreground text-xs">
+																			Objetivo de la Búsqueda
+																		</Label>
+																		<Input
+																			value={_sub.objective}
+																			onChange={(e) =>
+																				updateSubStageField(
+																					stage.tempId,
+																					_sub.tempId,
+																					"objective",
+																					e.target.value,
+																				)
+																			}
+																			placeholder="¿Qué deben encontrar los jugadores?"
+																			className="h-8 bg-background text-xs"
+																			disabled={loading}
+																		/>
+																	</div>
+
+																	<div className="space-y-1.5">
+																		<Label className="text-muted-foreground text-xs">
+																			Código Secreto (para validación)
+																		</Label>
+																		<div className="flex gap-2">
+																			<Input
+																				value={_sub.secretCode}
+																				onChange={(e) =>
+																					updateSubStageField(
+																						stage.tempId,
+																						_sub.tempId,
+																						"secretCode",
+																						e.target.value
+																							.toUpperCase()
+																							.replace(/[^A-Z0-9-]/g, ""),
+																					)
+																				}
+																				placeholder="Ej. SECRETO-123"
+																				className="h-8 flex-1 bg-background font-mono text-xs uppercase"
+																				disabled={loading}
+																			/>
+																			<Button
+																				type="button"
+																				variant="outline"
+																				size="sm"
+																				className="h-8 shrink-0 text-xs"
+																				onClick={() => {
+																					const rand = Math.random()
+																						.toString(36)
+																						.substring(2, 6)
+																						.toUpperCase();
+																					updateSubStageField(
+																						stage.tempId,
+																						_sub.tempId,
+																						"secretCode",
+																						`TESORO-${rand}`,
+																					);
+																				}}
+																				disabled={loading}
+																			>
+																				Generar
+																			</Button>
+																		</div>
+																	</div>
 																</div>
 
 																<div className="space-y-2">
@@ -1031,30 +1090,6 @@ function CreateMissionForm() {
 																				className="h-8 flex-1 bg-background text-xs"
 																				disabled={loading}
 																			/>
-																			<div className="flex w-24 items-center gap-1">
-																				<Label className="shrink-0 text-[9px] text-muted-foreground">
-																					Penalización (Pts):
-																				</Label>
-																				<Input
-																					type="number"
-																					value={clue.penaltyPoints}
-																					onChange={(e) =>
-																						updateClueField(
-																							stage.tempId,
-																							_sub.tempId,
-																							clue.tempId,
-																							"penaltyPoints",
-																							Number.parseInt(
-																								e.target.value,
-																								10,
-																							) || 0,
-																						)
-																					}
-																					className="h-8 w-12 text-center text-xs"
-																					disabled={loading}
-																					min={0}
-																				/>
-																			</div>
 																			<Button
 																				type="button"
 																				variant="ghost"

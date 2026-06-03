@@ -14,6 +14,10 @@ namespace MissionService.Infrastructure.Persistence.Configurations
                 .HasMaxLength(500)
                 .IsRequired();
 
+            builder.Property(x => x.SecretCode)
+                .HasMaxLength(100)
+                .IsRequired();
+
             builder.HasMany(x => x.Clues)
                 .WithOne()
                 .HasForeignKey(x => x.TreasureHuntSubStageId)

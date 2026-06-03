@@ -48,7 +48,8 @@ namespace MissionService.Infrastructure.Controllers
                             )
                             : null,
                         ss.Objective,
-                        ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order, c.PenaltyPoints)).ToList()
+                        ss.SecretCode,
+                        ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order)).ToList()
                     )).ToList()
                 )).ToList()
             );

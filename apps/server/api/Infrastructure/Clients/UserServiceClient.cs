@@ -48,7 +48,7 @@ public sealed class UserServiceClient : IUserServiceClient
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
-            throw new UserServiceException($"UserService returned {(int)response.StatusCode}: {body}");
+            throw new UserServiceException((int)response.StatusCode, body, $"UserService returned {(int)response.StatusCode}: {body}");
 
         if (string.IsNullOrWhiteSpace(body))
             throw new UserServiceException("UserService returned an empty response.");
@@ -85,7 +85,7 @@ public sealed class UserServiceClient : IUserServiceClient
         if (!response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new UserServiceException($"UserService returned {(int)response.StatusCode}: {body}");
+            throw new UserServiceException((int)response.StatusCode, body, $"UserService returned {(int)response.StatusCode}: {body}");
         }
     }
 
@@ -114,7 +114,7 @@ public sealed class UserServiceClient : IUserServiceClient
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
-            throw new UserServiceException($"UserService returned {(int)response.StatusCode}: {body}");
+            throw new UserServiceException((int)response.StatusCode, body, $"UserService returned {(int)response.StatusCode}: {body}");
 
         if (string.IsNullOrWhiteSpace(body))
             return Array.Empty<UserDto>();
