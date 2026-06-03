@@ -441,7 +441,7 @@ function UsersListPageInner() {
 
 export default function UsuariosPage() {
 	return (
-		<RoleGuard requiredRoles={["admin", "operator", "player"]}>
+		<RoleGuard requiredRoles={["admin"]}>
 			<UsersListPageInner />
 		</RoleGuard>
 	);
