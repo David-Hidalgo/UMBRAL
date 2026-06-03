@@ -125,9 +125,15 @@ app.UseExceptionHandler(exceptionApp =>
             return;
         }
 
+        if (exception is ArgumentException argEx)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = argEx.Message }));
+            return;
+        }
+
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = "An unexpected error occurred." }));
-    });
 });
 
 if (app.Environment.IsDevelopment())
