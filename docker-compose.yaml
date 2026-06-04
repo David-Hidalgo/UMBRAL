@@ -30,7 +30,7 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env}
       # Keycloak__BaseUrl must match the public issuer URL minted in client tokens (localhost:8080).
       # Keycloak__InternalBaseUrl is the container/podman internal hostname (keycloak:8080) for JWT validation backchannel queries.
-      Keycloak__BaseUrl: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8080}
+      Keycloak__BaseUrl: http://localhost:8080
       Keycloak__InternalBaseUrl: http://keycloak:8080
       Keycloak__Realm: umbral
       Keycloak__Audience: account
@@ -66,7 +66,7 @@ services:
       ASPNETCORE_URLS: http://+:5020
       # Keycloak__BaseUrl must match the public issuer URL minted in client tokens (localhost:8080).
       # Keycloak__InternalBaseUrl is the container/podman internal hostname (keycloak:8080) for JWT validation backchannel queries.
-      Keycloak__BaseUrl: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8080}
+      Keycloak__BaseUrl: http://localhost:8080
       Keycloak__InternalBaseUrl: http://keycloak:8080
       Keycloak__Realm: umbral
       Keycloak__Audience: account
@@ -143,8 +143,8 @@ services:
     command: start-dev
     environment:
       KC_HEALTH_ENABLED: true
-      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8080}
-      KC_HOSTNAME_ADMIN: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8080}
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_ADMIN: http://localhost:8080
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD in .env}
     ports:

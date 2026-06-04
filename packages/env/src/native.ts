@@ -5,9 +5,6 @@ export const env = createEnv({
 	clientPrefix: "EXPO_PUBLIC_",
 	client: {
 		EXPO_PUBLIC_SERVER_URL: z.url(),
-		EXPO_PUBLIC_KEYCLOAK_URL: z.url(),
-		EXPO_PUBLIC_KEYCLOAK_REALM: z.string().min(1),
-		EXPO_PUBLIC_KEYCLOAK_CLIENT_ID: z.string().min(1),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,
