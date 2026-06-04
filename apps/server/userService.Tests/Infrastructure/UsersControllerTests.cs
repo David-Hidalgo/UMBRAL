@@ -197,7 +197,7 @@ public class UsersControllerTests
         var role = "admin";
         var expectedUsers = new List<UserDto>
         {
-            new UserDto(Guid.NewGuid(), "keycloak-1", "user1@umbral.io", "User One", "admin", DateTime.UtcNow)
+            new UserDto(Guid.NewGuid(), "keycloak-1", "user1@umbral.io", "User One", "admin", DateTime.UtcNow, IsEnabled: true)
         };
 
         _mediatorMock
@@ -219,7 +219,7 @@ public class UsersControllerTests
         var role = "admin";
         var expectedUsers = new List<UserDto>
         {
-            new UserDto(Guid.NewGuid(), "keycloak-1", "user1@umbral.io", "User One", "admin", DateTime.UtcNow)
+            new UserDto(Guid.NewGuid(), "keycloak-1", "user1@umbral.io", "User One", "admin", DateTime.UtcNow, IsEnabled: true)
         };
 
         _mediatorMock

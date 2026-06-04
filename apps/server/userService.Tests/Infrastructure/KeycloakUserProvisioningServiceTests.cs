@@ -356,6 +356,7 @@ public class KeycloakUserProvisioningServiceTests
         result!.KeycloakUserId.Should().Be(userId);
         result.Name.Should().Be("Test User");
         result.Role.Should().Be("admin");
+        result.IsEnabled.Should().BeTrue();
     }
 
     [Fact]

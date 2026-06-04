@@ -61,6 +61,7 @@ services:
     depends_on:
       - keycloak
       - postgres
+      - rabbitmq
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:5020
@@ -72,6 +73,11 @@ services:
       Keycloak__Audience: account
       Keycloak__AdminClientId: ${KEYCLOAK_ADMIN_CLIENT_ID:-user-service-admin}
       Keycloak__AdminClientSecret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:?set KEYCLOAK_ADMIN_CLIENT_SECRET in .env}
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__Username: ${RABBITMQ_DEFAULT_USER:-guest}
+      RabbitMq__Password: ${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env}
+      RabbitMq__ExchangeName: umbral.users
     ports:
       - 5020:5020
     healthcheck:

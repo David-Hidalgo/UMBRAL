@@ -8,10 +8,8 @@ using UserService.Application.Behaviors;
 using UserService.Application.Handlers;
 using UserService.Application.Interfaces;
 using UserService.Application.Validators;
-using UserService.Domain.RepositoryInterfaces;
 using UserService.Infrastructure.Authentication;
 using UserService.Infrastructure.Messaging;
-using UserService.Infrastructure.Persistence;
 using shared.Authentication;
 using shared.Extensions;
 
@@ -72,8 +70,8 @@ builder.Services.AddTransient<IValidator<UserService.Application.Commands.Update
 builder.Services.AddTransient<IValidator<UserService.Application.Queries.GetUsersQuery>, GetUsersQueryValidator>();
 
 // Infrastructure bindings
-builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
-builder.Services.AddScoped<IEventBus, NullEventBus>();
+builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"));
+builder.Services.AddSingleton<IEventBus, RabbitMqEventBus>();
 builder.Services.AddHttpClient<IIdentityProviderService, KeycloakUserProvisioningService>();
 builder.Services.AddHealthChecks();
 

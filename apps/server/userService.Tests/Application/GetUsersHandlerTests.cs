@@ -32,7 +32,7 @@ public class GetUsersHandlerTests
         var query = new GetUsersQuery("search", "player");
         var expectedUsers = new List<UserDto>
         {
-            new(Guid.NewGuid(), "kc-1", "user@umbral.io", "Test User", "player", DateTime.UtcNow)
+            new(Guid.NewGuid(), "kc-1", "user@umbral.io", "Test User", "player", DateTime.UtcNow, IsEnabled: true)
         };
 
         _identityMock
@@ -54,8 +54,8 @@ public class GetUsersHandlerTests
         var query = new GetUsersQuery(null, null);
         var expectedUsers = new List<UserDto>
         {
-            new(Guid.NewGuid(), "kc-2", "admin@umbral.io", "Admin User", "admin", DateTime.UtcNow),
-            new(Guid.NewGuid(), "kc-3", "op@umbral.io", "Op User", "operator", DateTime.UtcNow)
+            new(Guid.NewGuid(), "kc-2", "admin@umbral.io", "Admin User", "admin", DateTime.UtcNow, IsEnabled: true),
+            new(Guid.NewGuid(), "kc-3", "op@umbral.io", "Op User", "operator", DateTime.UtcNow, IsEnabled: true)
         };
 
         _identityMock
