@@ -14,4 +14,6 @@ public interface IMissionServiceClient
         string? searchTerm,
         string? status,
         CancellationToken cancellationToken = default);
+
+    Task<MissionDetailDto> GetMissionByIdAsync(Guid id, CancellationToken cancellationToken = default);
 }

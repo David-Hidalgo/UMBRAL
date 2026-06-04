@@ -38,6 +38,16 @@ namespace MissionService.Infrastructure.Controllers
             return Ok(missions);
         }
 
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(MissionDetailDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new GetMissionByIdQuery(id), cancellationToken);
+            return Ok(result);
+        }
+
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

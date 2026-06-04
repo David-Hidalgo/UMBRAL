@@ -25,12 +25,12 @@ namespace MissionService.Infrastructure.Persistence
                 .Include(m => m.Stages)
                     .ThenInclude(s => s.SubStages)
                 .Include(m => m.Stages)
-                    .ThenInclude(s => s.SubStages.OfType<TriviaSubStage>())
-                        .ThenInclude(t => t.Question)
+                    .ThenInclude(s => s.SubStages)
+                        .ThenInclude(ss => ((TriviaSubStage)ss).Question)
                             .ThenInclude(q => q.Answers)
                 .Include(m => m.Stages)
-                    .ThenInclude(s => s.SubStages.OfType<TreasureHuntSubStage>())
-                        .ThenInclude(th => th.Clues)
+                    .ThenInclude(s => s.SubStages)
+                        .ThenInclude(ss => ((TreasureHuntSubStage)ss).Clues)
                 .FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
         }
 
