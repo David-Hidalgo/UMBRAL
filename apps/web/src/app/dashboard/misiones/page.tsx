@@ -333,14 +333,16 @@ function MisionesPanelInner() {
 									</div>
 								</CardContent>
 								<CardFooter className="flex gap-2 border-foreground/5 border-t px-6 py-3">
-									<Button
-										variant="ghost"
-										size="sm"
-										className="w-full cursor-not-allowed text-muted-foreground text-xs hover:bg-transparent"
-										disabled
-									>
-										Estructura (Detalle próximamente)
-									</Button>
+									<Link href={`/dashboard/misiones/${m.id}` as Route}>
+										<Button
+											variant="ghost"
+											size="sm"
+											className="w-full gap-2 text-xs"
+										>
+											<ScrollText className="size-3.5" />
+											Ver estructura
+										</Button>
+									</Link>
 								</CardFooter>
 							</Card>
 						))}

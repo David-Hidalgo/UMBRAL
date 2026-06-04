@@ -1,0 +1,82 @@
+using MediatR;
+using MissionService.Application.DTOs;
+using MissionService.Application.Queries;
+using MissionService.Domain.Entities;
+using MissionService.Domain.Exceptions;
+using MissionService.Domain.RepositoryInterfaces;
+
+namespace MissionService.Application.Handlers;
+
+public sealed class GetMissionByIdHandler : IRequestHandler<GetMissionByIdQuery, MissionDetailDto>
+{
+    private readonly IMissionRepository _repository;
+
+    public GetMissionByIdHandler(IMissionRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task<MissionDetailDto> Handle(GetMissionByIdQuery request, CancellationToken cancellationToken)
+    {
+        var mission = await _repository.GetByIdAsync(request.Id, cancellationToken);
+
+        if (mission is null)
+            throw new MissionNotFoundException(request.Id);
+
+        return MapToDto(mission);
+    }
+
+    private static MissionDetailDto MapToDto(Mission mission) =>
+        new(
+            mission.Id,
+            mission.Name,
+            mission.Description,
+            mission.Status.Value,
+            mission.Stages
+                .OrderBy(s => s.Order)
+                .Select(MapStage)
+                .ToList()
+                .AsReadOnly()
+        );
+
+    private static StageDetailDto MapStage(Stage stage) =>
+        new(
+            stage.Id,
+            stage.Name,
+            stage.Description,
+            stage.Order,
+            stage.SubStages
+                .OrderBy(ss => ss.Order)
+                .Select(MapSubStage)
+                .ToList()
+                .AsReadOnly()
+        );
+
+    private static SubStageDetailDto MapSubStage(SubStage ss) => ss switch
+    {
+        TriviaSubStage t => new(
+            t.Id, t.Title, t.Order, t.Points,
+            new QuestionDetailDto(
+                t.Question.Id,
+                t.Question.Text,
+                t.Question.Answers
+                    .Select(a => new AnswerDetailDto(a.Id, a.Text, a.IsCorrect))
+                    .ToList()
+                    .AsReadOnly()
+            ),
+            null, null, null
+        ),
+        TreasureHuntSubStage th => new(
+            th.Id, th.Title, th.Order, th.Points,
+            null,
+            th.Objective,
+            th.SecretCode,
+            th.Clues
+                .OrderBy(c => c.Order)
+                .Select(c => new ClueDetailDto(c.Id, c.Text, c.Order))
+                .ToList()
+                .AsReadOnly()
+        ),
+        _ => throw new InvalidOperationException($"Unknown SubStage type: {ss.GetType().Name}")
+    };
+}

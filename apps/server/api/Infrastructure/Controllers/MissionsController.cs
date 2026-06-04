@@ -37,6 +37,18 @@ public sealed class MissionsController : ControllerBase
         return Ok(missions);
     }
 
+    [HttpGet("{id:guid}")]
+    [Authorize(Roles = "admin,operator")]
+    [ProducesResponseType(typeof(MissionDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _missionService.GetMissionByIdAsync(id, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost]
     [Authorize(Roles = "admin,operator")]
     [ProducesResponseType(StatusCodes.Status201Created)]

@@ -105,6 +105,37 @@ public sealed class MissionServiceClient : IMissionServiceClient
         }
     }
 
+    public async Task<MissionDetailDto> GetMissionByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+            throw new InvalidOperationException("MissionService:BaseUrl is not configured.");
+
+        using var message = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{_options.BaseUrl.TrimEnd('/')}/api/missions/{id}");
+
+        var rawHeader = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(rawHeader) && AuthenticationHeaderValue.TryParse(rawHeader, out var parsedHeader))
+            message.Headers.Authorization = parsedHeader;
+
+        using var response = await _httpClient.SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new MissionServiceException((int)response.StatusCode, body,
+                $"MissionService returned {(int)response.StatusCode}: {body}");
+
+        try
+        {
+            var result = JsonSerializer.Deserialize<MissionDetailDto>(body, SerializerOptions);
+            return result ?? throw new MissionServiceException("MissionService returned an empty mission detail.");
+        }
+        catch (JsonException ex)
+        {
+            throw new MissionServiceException($"MissionService returned a non-JSON response: {body}", ex);
+        }
+    }
+
     private sealed record MissionCreatedResponse(Guid Id);
 }
 
