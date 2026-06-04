@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -47,7 +48,7 @@ public sealed class UserServiceClient : IUserServiceClient
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
-            throw new UserServiceException($"UserService returned {(int)response.StatusCode}: {body}");
+            throw new UserServiceException((int)response.StatusCode, body, $"UserService returned {(int)response.StatusCode}: {body}");
 
         if (string.IsNullOrWhiteSpace(body))
             throw new UserServiceException("UserService returned an empty response.");
@@ -84,7 +85,7 @@ public sealed class UserServiceClient : IUserServiceClient
         if (!response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new UserServiceException($"UserService returned {(int)response.StatusCode}: {body}");
+            throw new UserServiceException((int)response.StatusCode, body, $"UserService returned {(int)response.StatusCode}: {body}");
         }
     }
 
@@ -113,7 +114,7 @@ public sealed class UserServiceClient : IUserServiceClient
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
-            throw new UserServiceException($"UserService returned {(int)response.StatusCode}: {body}");
+            throw new UserServiceException((int)response.StatusCode, body, $"UserService returned {(int)response.StatusCode}: {body}");
 
         if (string.IsNullOrWhiteSpace(body))
             return Array.Empty<UserDto>();
@@ -127,6 +128,34 @@ public sealed class UserServiceClient : IUserServiceClient
         {
             throw new UserServiceException($"UserService returned a non-JSON response: {body}", ex);
         }
+    }
+
+    public async Task DeleteUserAsync(string keycloakId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+            throw new InvalidOperationException("UserService:BaseUrl is not configured.");
+
+        using var message = new HttpRequestMessage(
+            HttpMethod.Delete,
+            $"{_options.BaseUrl.TrimEnd('/')}/api/users/{keycloakId}");
+
+        var rawHeader = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(rawHeader) && AuthenticationHeaderValue.TryParse(rawHeader, out var parsedHeader))
+            message.Headers.Authorization = parsedHeader;
+
+        using var response = await _httpClient.SendAsync(message, cancellationToken);
+
+        if (response.IsSuccessStatusCode) return;
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new UserServiceException(404, $"UserService returned 404 (user not found): {body}");
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new UserServiceException(409, $"UserService returned 409 (user already inactive): {body}");
+
+        throw new UserServiceException(502, $"UserService returned {(int)response.StatusCode}: {body}");
     }
 
     private sealed record UserCreatedResponse(Guid Id);

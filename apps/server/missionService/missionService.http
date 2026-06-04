@@ -1,0 +1,6 @@
+@missionService_HostAddress = http://localhost:5022
+
+GET {{missionService_HostAddress}}/health
+Accept: application/json
+
+###

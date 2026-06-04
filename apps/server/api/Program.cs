@@ -16,6 +16,7 @@ builder.Services.AddControllers();
 builder.Services.AddSwaggerGenWithAuthSupport(builder.Configuration);
 builder.Services.Configure<KeycloakOptions>(builder.Configuration.GetSection("Keycloak"));
 builder.Services.Configure<UserServiceOptions>(builder.Configuration.GetSection("UserService"));
+builder.Services.Configure<MissionServiceOptions>(builder.Configuration.GetSection("MissionService"));
 
 var keycloakOptions = builder.Configuration.GetSection("Keycloak").Get<KeycloakOptions>() ?? new KeycloakOptions();
 
@@ -85,6 +86,13 @@ builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>((sp, clien
         client.BaseAddress = new Uri(opts.BaseUrl);
 });
 
+builder.Services.AddHttpClient<IMissionServiceClient, MissionServiceClient>((sp, client) =>
+{
+    var opts = sp.GetRequiredService<IOptions<MissionServiceOptions>>().Value;
+    if (!string.IsNullOrWhiteSpace(opts.BaseUrl))
+        client.BaseAddress = new Uri(opts.BaseUrl);
+});
+
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddHealthChecks();
 
@@ -96,11 +104,25 @@ app.UseExceptionHandler(exceptionApp =>
     exceptionApp.Run(async context =>
     {
         var feature = context.Features.Get<IExceptionHandlerFeature>();
-        if (feature?.Error is UserServiceException)
+        if (feature?.Error is UserServiceException usEx)
         {
-            context.Response.StatusCode = StatusCodes.Status502BadGateway;
+            context.Response.StatusCode = usEx.StatusCode;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = "Upstream service error." }));
+            var responseBody = !string.IsNullOrWhiteSpace(usEx.Content) 
+                ? usEx.Content 
+                : JsonSerializer.Serialize(new { error = usEx.Message });
+            await context.Response.WriteAsync(responseBody);
+            return;
+        }
+
+        if (feature?.Error is MissionServiceException msEx)
+        {
+            context.Response.StatusCode = msEx.StatusCode;
+            context.Response.ContentType = "application/json";
+            var responseBody = !string.IsNullOrWhiteSpace(msEx.Content) 
+                ? msEx.Content 
+                : JsonSerializer.Serialize(new { error = msEx.Message });
+            await context.Response.WriteAsync(responseBody);
             return;
         }
 

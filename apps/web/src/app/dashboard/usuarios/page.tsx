@@ -6,7 +6,6 @@ import { Input } from "@umbral/ui/components/input";
 import {
 	AlertTriangle,
 	ChevronDown,
-	Pencil,
 	RefreshCw,
 	Search,
 	UserPlus,
@@ -151,9 +150,7 @@ function UsersListPageInner() {
 
 			if (!response.ok) {
 				const errorText = await response.text().catch(() => "");
-				throw new Error(
-					errorText || `Error del servidor (${response.status})`,
-				);
+				throw new Error(errorText || `Error del servidor (${response.status})`);
 			}
 
 			const users = (await response.json()) as ApiUser[];
@@ -169,10 +166,6 @@ function UsersListPageInner() {
 	useEffect(() => {
 		void fetchUsers();
 	}, [fetchUsers]);
-
-	/** Devuelve true si el usuario autenticado puede editar la fila dada. */
-	const canEditUser = (user: ApiUser): boolean =>
-		isAdmin || user.keycloakUserId === subjectId;
 
 	const handleViewDetail = (user: ApiUser) => {
 		setSelectedUser({
@@ -226,7 +219,7 @@ function UsersListPageInner() {
 						</p>
 					</div>
 					<Link href={"/dashboard/usuarios/nuevo" as Route}>
-						<Button className="gap-2 shrink-0">
+						<Button className="shrink-0 gap-2">
 							<UserPlus className="size-4" />
 							Nuevo usuario
 						</Button>
@@ -236,7 +229,7 @@ function UsersListPageInner() {
 				{/* Filters */}
 				<div className="flex flex-col gap-3 sm:flex-row">
 					<div className="relative flex-1">
-						<Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+						<Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 						<Input
 							id="user-search"
 							placeholder="Buscar por nombre o correo…"
@@ -251,7 +244,7 @@ function UsersListPageInner() {
 							id="role-filter"
 							value={roleFilter}
 							onChange={(e) => setRoleFilter(e.target.value as AppRole | "")}
-							className="flex h-9 w-full appearance-none rounded-md border border-input bg-background py-1 pl-3 pr-8 text-foreground text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-44"
+							className="flex h-9 w-full appearance-none rounded-md border border-input bg-background py-1 pr-8 pl-3 text-foreground text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-44"
 						>
 							{ALL_ROLES.map((r) => (
 								<option key={r.value} value={r.value}>
@@ -259,14 +252,14 @@ function UsersListPageInner() {
 								</option>
 							))}
 						</select>
-						<ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+						<ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
 					</div>
 				</div>
 
 				{/* Users list card */}
 				<div className="rounded-xl border border-foreground/10 bg-card">
 					{/* Card header */}
-					<div className="flex items-center justify-between border-b border-foreground/8 px-5 py-3.5">
+					<div className="flex items-center justify-between border-foreground/8 border-b px-5 py-3.5">
 						<div className="flex items-center gap-2">
 							<Users className="size-4 text-primary" />
 							<span className="font-medium text-foreground text-sm">
@@ -359,7 +352,6 @@ function UsersListPageInner() {
 						{state.status === "success" && users.length > 0 && (
 							<ul className="divide-y divide-foreground/6">
 								{users.map((u) => {
-									const showEditButton = canEditUser(u);
 									return (
 										<li
 											key={u.keycloakUserId || u.id}
@@ -388,28 +380,11 @@ function UsersListPageInner() {
 												{formatDateShort(u.createdAt)}
 											</span>
 
-											{/* Editar — solo si admin o fila propia */}
-											{showEditButton && (
-												<Button
-													size="sm"
-													variant="ghost"
-													className="shrink-0 gap-1.5 text-xs opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-													onClick={() => {
-														handleViewDetail(u);
-														// La lógica de cambio a editMode está dentro del sheet
-													}}
-													aria-label={`Editar ${u.name}`}
-												>
-													<Pencil className="size-3" />
-													Editar
-												</Button>
-											)}
-
 											{/* Ver detalle */}
 											<Button
 												size="sm"
 												variant="ghost"
-												className="shrink-0 text-xs opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+												className="shrink-0 text-xs opacity-0 transition-opacity focus:opacity-100 group-hover:opacity-100"
 												onClick={() => handleViewDetail(u)}
 											>
 												Ver detalle
@@ -429,6 +404,11 @@ function UsersListPageInner() {
 				canEdit={canEditSelected}
 				isAdmin={isAdmin}
 				onClose={() => setSelectedUser(null)}
+				getAccessToken={getAccessToken}
+				onDeleteSuccess={() => {
+					setSelectedUser(null);
+					void fetchUsers();
+				}}
 				onSaveEdit={(keycloakUserId, name, role) =>
 					handleSaveEdit(keycloakUserId, name, role)
 				}
