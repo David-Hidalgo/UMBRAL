@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MissionService.Domain.Entities
 {
@@ -8,7 +9,7 @@ namespace MissionService.Domain.Entities
 
         private TriviaSubStage() : base() { }
 
-        public static TriviaSubStage Create(Guid id, string title, int order, int points, Question question)
+        public static TriviaSubStage Create(Guid id, string title, int order, int points, Question question, List<Clue>? clues = null)
         {
             if (id == Guid.Empty)
                 throw new ArgumentException("Substage ID cannot be empty.", nameof(id));
@@ -19,7 +20,7 @@ namespace MissionService.Domain.Entities
             if (question == null)
                 throw new ArgumentNullException(nameof(question), "Trivia sub-stage must have a question.");
 
-            return new TriviaSubStage
+            var trivia = new TriviaSubStage
             {
                 Id = id,
                 Title = title,
@@ -27,6 +28,16 @@ namespace MissionService.Domain.Entities
                 Points = points,
                 Question = question
             };
+
+            if (clues != null)
+            {
+                foreach (var clue in clues)
+                {
+                    trivia.AddClue(clue);
+                }
+            }
+
+            return trivia;
         }
     }
 }

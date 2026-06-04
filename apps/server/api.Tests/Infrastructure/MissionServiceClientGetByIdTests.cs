@@ -53,12 +53,16 @@ public class MissionServiceClientGetByIdTests
             "Mission Alpha",
             "Full mission description",
             "Active",
+            0,
+            "Beginner",
+            60,
             new List<StageDetailDto>
             {
                 new(
                     Guid.NewGuid(),
                     "Stage 1",
                     "Stage description",
+                    0,
                     0,
                     new List<SubStageDetailDto>
                     {
@@ -67,6 +71,7 @@ public class MissionServiceClientGetByIdTests
                             "Trivia 1",
                             0,
                             10,
+                            0,
                             new QuestionDetailDto(
                                 Guid.NewGuid(),
                                 "What is 2+2?",

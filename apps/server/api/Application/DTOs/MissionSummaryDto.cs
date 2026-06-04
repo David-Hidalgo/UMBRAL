@@ -10,6 +10,9 @@ public sealed record MissionSummaryDto(
     Guid Id,
     string Name,
     string Description,
-    string Status,
+    string State,
+    int ActiveSessionCount,
+    string DifficultyLevel,
+    int MaxTimeMinutes,
     int StageCount
 );

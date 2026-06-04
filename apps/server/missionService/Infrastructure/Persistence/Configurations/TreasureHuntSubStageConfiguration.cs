@@ -17,14 +17,6 @@ namespace MissionService.Infrastructure.Persistence.Configurations
             builder.Property(x => x.SecretCode)
                 .HasMaxLength(100)
                 .IsRequired();
-
-            builder.HasMany(x => x.Clues)
-                .WithOne()
-                .HasForeignKey(x => x.TreasureHuntSubStageId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            builder.Navigation(x => x.Clues)
-                .UsePropertyAccessMode(PropertyAccessMode.Field);
         }
     }
 }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using MissionService.Domain.Entities;
+using MissionService.Domain.Enums;
 using MissionService.Infrastructure.Persistence;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -15,7 +16,7 @@ namespace MissionService.Tests.Application
     /// <summary>
     /// Integration tests for MissionRepository.GetAllAsync using a real PostgreSQL
     /// instance via Testcontainers. Validates filtering logic against the actual DB engine,
-    /// including EF Core value conversions for MissionStatus.
+    /// including EF Core value conversions for MissionState.
     /// </summary>
     [Trait("Category", "Integration")]
     public class MissionRepositoryGetAllTests : IAsyncLifetime
@@ -224,7 +225,7 @@ namespace MissionService.Tests.Application
 
         private static Mission CreateMission(string name, string description)
         {
-            return Mission.Create(Guid.NewGuid(), name, description, new List<Stage>());
+            return Mission.Create(Guid.NewGuid(), name, description, DifficultyLevel.Beginner, 60, new List<Stage>());
         }
     }
 

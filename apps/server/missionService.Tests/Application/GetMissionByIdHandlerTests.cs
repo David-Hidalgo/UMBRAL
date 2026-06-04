@@ -8,6 +8,7 @@ using Moq;
 using MissionService.Application.Handlers;
 using MissionService.Application.Queries;
 using MissionService.Domain.Entities;
+using MissionService.Domain.Enums;
 using MissionService.Domain.Exceptions;
 using MissionService.Domain.RepositoryInterfaces;
 using Xunit;
@@ -43,7 +44,9 @@ namespace MissionService.Tests.Application
             // Assert
             result.Id.Should().Be(missionId);
             result.Name.Should().Be("Test Mission");
-            result.Status.Should().Be("Inactive");
+            result.State.Should().Be("Inactive");
+            result.DifficultyLevel.Should().Be("Beginner");
+            result.MaxTimeMinutes.Should().Be(60);
             result.Stages.Should().HaveCount(1);
 
             var stage = result.Stages.Single();
@@ -110,6 +113,8 @@ namespace MissionService.Tests.Application
                 missionId,
                 "Ordered Mission",
                 "Description",
+                DifficultyLevel.Beginner,
+                60,
                 new List<Stage> { stageSecond, stageThird, stageFirst });
             var query = new GetMissionByIdQuery(missionId);
 
@@ -143,6 +148,8 @@ namespace MissionService.Tests.Application
                 missionId,
                 "SubStage Order Mission",
                 "Description",
+                DifficultyLevel.Beginner,
+                60,
                 new List<Stage> { stage });
             var query = new GetMissionByIdQuery(missionId);
 
@@ -163,7 +170,7 @@ namespace MissionService.Tests.Application
         {
             var trivia = CreateTriviaSubStage("Trivia 1", 0);
             var stage = Stage.Create(Guid.NewGuid(), "Stage 1", "Stage description", 0, new List<SubStage> { trivia });
-            return Mission.Create(missionId, "Test Mission", "Mission description", new List<Stage> { stage });
+            return Mission.Create(missionId, "Test Mission", "Mission description", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
         }
 
         private static Mission CreateMissionWithTreasureHuntSubStage(Guid missionId)
@@ -186,7 +193,7 @@ namespace MissionService.Tests.Application
                 "Stage description",
                 0,
                 new List<SubStage> { treasureHunt });
-            return Mission.Create(missionId, "Treasure Mission", "Mission description", new List<Stage> { stage });
+            return Mission.Create(missionId, "Treasure Mission", "Mission description", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
         }
 
         private static TriviaSubStage CreateTriviaSubStage(string title, int order)

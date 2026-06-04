@@ -10,17 +10,17 @@ namespace MissionService.Infrastructure.Persistence.Configurations
         {
             builder.ToTable("Stages");
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+            builder.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            builder.Property(x => x.Order).IsRequired();
 
-            builder.Property(x => x.Name)
-                .HasMaxLength(150)
-                .IsRequired();
-
-            builder.Property(x => x.Description)
-                .HasMaxLength(500)
-                .IsRequired();
-
-            builder.Property(x => x.Order)
-                .IsRequired();
+            builder.OwnsOne(x => x.Status, status =>
+            {
+                status.Property(p => p.ActiveSessionCount)
+                    .HasColumnName("ActiveSessionCount")
+                    .HasDefaultValue(0)
+                    .IsRequired();
+            });
 
             builder.HasMany(x => x.SubStages)
                 .WithOne()
