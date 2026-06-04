@@ -126,9 +126,7 @@ function CreateUserForm() {
 						<UserPlus className="size-4 text-primary" />
 						Datos del usuario
 					</CardTitle>
-					<CardDescription>
-						Todos los campos son obligatorios.
-					</CardDescription>
+					<CardDescription>Todos los campos son obligatorios.</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">

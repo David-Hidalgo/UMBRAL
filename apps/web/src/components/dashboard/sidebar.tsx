@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@umbral/ui/components/button";
-import { Gamepad2, LogOut, ShieldCheck, Users } from "lucide-react";
+import { Gamepad2, LogOut, ScrollText, ShieldCheck, Users } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -20,6 +20,11 @@ const NAV_ITEMS: NavItem[] = [
 		href: "/dashboard/partidas",
 		label: "Partidas",
 		icon: <Gamepad2 className="size-4" />,
+	},
+	{
+		href: "/dashboard/misiones",
+		label: "Misiones",
+		icon: <ScrollText className="size-4" />,
 	},
 	{
 		href: "/dashboard/usuarios",

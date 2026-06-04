@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { env } from "@umbral/env/native";
+import * as Network from "expo-network";
 import {
 	Button,
 	Chip,
@@ -8,11 +9,9 @@ import {
 	Surface,
 	useThemeColor,
 } from "heroui-native";
+import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
-import * as Network from "expo-network";
-
 import { Container } from "@/components/container";
-import { env } from "@umbral/env/native";
 
 export default function Home() {
 	const successColor = useThemeColor("success");
