@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MissionService.Application.Commands;
 using MissionService.Application.DTOs;
+using MissionService.Application.Queries;
 
 namespace MissionService.Infrastructure.Controllers
 {
@@ -20,6 +22,20 @@ namespace MissionService.Infrastructure.Controllers
         public MissionsController(IMediator mediator)
         {
             _mediator = mediator;
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "admin,operator")]
+        [ProducesResponseType(typeof(IEnumerable<MissionSummaryDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? search,
+            [FromQuery] string? status,
+            CancellationToken cancellationToken)
+        {
+            var missions = await _mediator.Send(new GetMissionsQuery(search, status), cancellationToken);
+            return Ok(missions);
         }
 
         [HttpPost]
