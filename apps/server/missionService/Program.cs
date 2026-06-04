@@ -72,6 +72,7 @@ builder.Services.AddMediatR(cfg =>
 // FluentValidation Manual Registration
 builder.Services.AddTransient<IValidator<MissionService.Application.Commands.CreateMissionCommand>, CreateMissionCommandValidator>();
 builder.Services.AddTransient<IValidator<MissionService.Application.Queries.GetMissionsQuery>, GetMissionsQueryValidator>();
+builder.Services.AddTransient<IValidator<MissionService.Application.Queries.GetMissionByIdQuery>, GetMissionByIdQueryValidator>();
 
 // Infrastructure
 builder.Services.AddScoped<IMissionRepository, MissionRepository>();
@@ -116,6 +117,13 @@ app.UseExceptionHandler(exceptionApp =>
         {
             context.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
             await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = activeEx.Message }));
+            return;
+        }
+
+        if (exception is MissionNotFoundException notFoundEx)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = notFoundEx.Message }));
             return;
         }
 
