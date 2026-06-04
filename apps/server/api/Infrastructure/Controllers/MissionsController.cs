@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -21,6 +22,21 @@ public sealed class MissionsController : ControllerBase
         _missionService = missionService;
     }
 
+    [HttpGet]
+    [Authorize(Roles = "admin,operator")]
+    [ProducesResponseType(typeof(IEnumerable<MissionSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? search,
+        [FromQuery] string? status,
+        CancellationToken cancellationToken)
+    {
+        var missions = await _missionService.GetMissionsAsync(search, status, cancellationToken);
+        return Ok(missions);
+    }
+
     [HttpPost]
     [Authorize(Roles = "admin,operator")]
     [ProducesResponseType(StatusCodes.Status201Created)]
@@ -33,3 +49,4 @@ public sealed class MissionsController : ControllerBase
         return Created($"/api/missions/{missionId}", new { id = missionId });
     }
 }
+

@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using api.Application.DTOs;
@@ -65,5 +67,44 @@ public sealed class MissionServiceClient : IMissionServiceClient
         throw new MissionServiceException("MissionService returned an unexpected response payload.");
     }
 
+    public async Task<IEnumerable<MissionSummaryDto>> GetMissionsAsync(
+        string? searchTerm,
+        string? status,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+            throw new InvalidOperationException("MissionService:BaseUrl is not configured.");
+
+        var queryString = HttpUtility.ParseQueryString(string.Empty);
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+            queryString["search"] = searchTerm;
+        if (!string.IsNullOrWhiteSpace(status))
+            queryString["status"] = status;
+
+        var qs = queryString.Count > 0 ? $"?{queryString}" : string.Empty;
+        using var message = new HttpRequestMessage(HttpMethod.Get, $"{_options.BaseUrl.TrimEnd('/')}/api/missions{qs}");
+
+        var rawHeader = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(rawHeader) && AuthenticationHeaderValue.TryParse(rawHeader, out var parsedHeader))
+            message.Headers.Authorization = parsedHeader;
+
+        using var response = await _httpClient.SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new MissionServiceException((int)response.StatusCode, body, $"MissionService returned {(int)response.StatusCode}: {body}");
+
+        try
+        {
+            var result = JsonSerializer.Deserialize<IEnumerable<MissionSummaryDto>>(body, SerializerOptions);
+            return result ?? [];
+        }
+        catch (JsonException ex)
+        {
+            throw new MissionServiceException($"MissionService returned a non-JSON response: {body}", ex);
+        }
+    }
+
     private sealed record MissionCreatedResponse(Guid Id);
 }
+

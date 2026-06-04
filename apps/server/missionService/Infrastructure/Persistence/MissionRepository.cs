@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MissionService.Domain.Entities;
 using MissionService.Domain.RepositoryInterfaces;
+using MissionService.Domain.ValueObjects;
 
 namespace MissionService.Infrastructure.Persistence
 {
@@ -50,6 +52,35 @@ namespace MissionService.Infrastructure.Persistence
         public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task<IEnumerable<Mission>> GetAllAsync(
+            string? searchTerm,
+            string? status,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _context.Missions
+                .AsNoTracking()
+                .Include(m => m.Stages)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim().ToLowerInvariant();
+                query = query.Where(m => m.Name.ToLower().Contains(term));
+            }
+
+            if (status is not null)
+            {
+                // Convert to MissionStatus so EF Core can apply the registered value
+                // converter (s => s.Value) when building the parameterized SQL WHERE clause.
+                var missionStatus = MissionStatus.FromString(status.Trim());
+                query = query.Where(m => m.Status == missionStatus);
+            }
+
+            return await query
+                .OrderBy(m => m.Name)
+                .ToListAsync(cancellationToken);
         }
     }
 }

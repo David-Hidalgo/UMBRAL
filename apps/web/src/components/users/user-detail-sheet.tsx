@@ -4,7 +4,15 @@ import { env } from "@umbral/env/web";
 import { Button } from "@umbral/ui/components/button";
 import { Input } from "@umbral/ui/components/input";
 import { Label } from "@umbral/ui/components/label";
-import { Copy, Loader2, Pencil, RefreshCw, Save, Trash2, X } from "lucide-react";
+import {
+	Copy,
+	Loader2,
+	Pencil,
+	RefreshCw,
+	Save,
+	Trash2,
+	X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -322,8 +330,8 @@ export function UserDetailSheet({
 										<div className="space-y-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3">
 											<p className="text-foreground text-sm">
 												¿Desactivar a{" "}
-												<span className="font-medium">{user.name}</span>? El usuario
-												no podrá iniciar sesión.
+												<span className="font-medium">{user.name}</span>? El
+												usuario no podrá iniciar sesión.
 											</p>
 											<div className="flex gap-2">
 												<Button

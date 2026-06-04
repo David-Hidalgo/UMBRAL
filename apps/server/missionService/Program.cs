@@ -71,6 +71,7 @@ builder.Services.AddMediatR(cfg =>
 
 // FluentValidation Manual Registration
 builder.Services.AddTransient<IValidator<MissionService.Application.Commands.CreateMissionCommand>, CreateMissionCommandValidator>();
+builder.Services.AddTransient<IValidator<MissionService.Application.Queries.GetMissionsQuery>, GetMissionsQueryValidator>();
 
 // Infrastructure
 builder.Services.AddScoped<IMissionRepository, MissionRepository>();
