@@ -71,7 +71,27 @@ namespace MissionService.Tests.Application
             // Arrange
             var missionId = Guid.NewGuid();
             var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage>());
-            mission.IncrementSessionCount(); // Set active session
+            mission.IncrementSessionCount();
+            var command = new DeleteMissionCommand(missionId);
+
+            _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mission);
+
+            // Act
+            Func<Task> act = async () => await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<MissionHasActiveSessionsException>();
+        }
+
+        [Fact]
+        public async Task Handle_Should_Throw_MissionHasActiveSessionsException_When_A_Stage_Has_Active_Sessions()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var stage = Stage.Create(Guid.NewGuid(), "Stage 1", "Description", 0, new List<SubStage>());
+            stage.IncrementSessionCount();
+            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
             var command = new DeleteMissionCommand(missionId);
 
             _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
