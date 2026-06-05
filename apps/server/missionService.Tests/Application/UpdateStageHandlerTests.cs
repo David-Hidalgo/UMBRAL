@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -156,6 +157,83 @@ namespace MissionService.Tests.Application
 
             // Assert
             await act.Should().ThrowAsync<ArgumentException>().WithMessage("*must have a question*");
+        }
+
+        [Fact]
+        public async Task Handle_Should_Update_Stage_With_TreasureHunt_SubStage_When_Type_Is_TreasureHunt()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var stageId = Guid.NewGuid();
+            var stage = Stage.Create(stageId, "Old Name", "Old Desc", 1, new List<SubStage>());
+            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+
+            var command = new UpdateStageCommand(
+                missionId,
+                stageId,
+                "New Name",
+                "New Desc",
+                new List<CreateSubStageCommand>
+                {
+                    new CreateSubStageCommand("TH SubStage", 0, "TreasureHunt", 20, null, "Find the hidden object", "SECRETCODE123", null)
+                }
+            );
+
+            _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mission);
+            _repositoryMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            stage.SubStages.Should().HaveCount(1);
+            stage.SubStages.First().Should().BeOfType<TreasureHuntSubStage>();
+            _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_Should_Update_Stage_With_Clues_When_SubStage_Has_Non_Empty_Clues()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var stageId = Guid.NewGuid();
+            var stage = Stage.Create(stageId, "Old Name", "Old Desc", 1, new List<SubStage>());
+            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+
+            var command = new UpdateStageCommand(
+                missionId,
+                stageId,
+                "New Name",
+                "New Desc",
+                new List<CreateSubStageCommand>
+                {
+                    new CreateSubStageCommand(
+                        "Trivia SubStage",
+                        0,
+                        "Trivia",
+                        10,
+                        new CreateQuestionCommand("What is 2+2?", new List<CreateAnswerCommand> { new CreateAnswerCommand("4", true) }),
+                        null,
+                        null,
+                        new List<CreateClueCommand> { new CreateClueCommand("Think about basic math", 1) }
+                    )
+                }
+            );
+
+            _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mission);
+            _repositoryMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            stage.SubStages.Should().HaveCount(1);
+            stage.SubStages.First().Clues.Should().HaveCount(1);
+            _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }
