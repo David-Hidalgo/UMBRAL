@@ -74,6 +74,61 @@ namespace MissionService.Tests.Application
         }
 
         [Fact]
+        public async Task Handle_Should_Update_Stage_With_TreasureHunt_And_Clues_Successfully()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var stageId = Guid.NewGuid();
+            var stage = Stage.Create(stageId, "Old Name", "Old Desc", 1, new List<SubStage>());
+            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+
+            var command = new UpdateStageCommand(
+                missionId,
+                stageId,
+                "New Name",
+                "New Desc",
+                new List<CreateSubStageCommand>
+                {
+                    new CreateSubStageCommand(
+                        "Treasure SubStage",
+                        0,
+                        "TreasureHunt",
+                        20,
+                        null,
+                        "Find secret code",
+                        "SECRET-123",
+                        new List<CreateClueCommand>
+                        {
+                            new CreateClueCommand("Clue text", 1)
+                        }
+                    )
+                }
+            );
+
+            _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mission);
+
+            _repositoryMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            stage.Name.Should().Be("New Name");
+            stage.Description.Should().Be("New Desc");
+            stage.SubStages.Should().HaveCount(1);
+            var subStage = stage.SubStages.Single() as TreasureHuntSubStage;
+            subStage.Should().NotBeNull();
+            subStage!.Title.Should().Be("Treasure SubStage");
+            subStage.SecretCode.Should().Be("SECRET-123");
+            subStage.Clues.Should().HaveCount(1);
+            subStage.Clues.Single().Text.Should().Be("Clue text");
+            _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+
+        [Fact]
         public async Task Handle_Should_Throw_MissionNotFoundException_When_Mission_DoesNotExist()
         {
             // Arrange

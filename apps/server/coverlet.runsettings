@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Exclude>[missionService]missionService.Migrations.*,[*]*Program*,[*]Microsoft.AspNetCore.OpenApi.Generated.*,[*]*DbContextModelSnapshot*,[*]*KeycloakInternalRedirectHandler*,[*]*.Controllers.*,[*]*EventBus*</Exclude>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

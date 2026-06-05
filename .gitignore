@@ -109,3 +109,4 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 build_check/*
+**/coveragereport/
