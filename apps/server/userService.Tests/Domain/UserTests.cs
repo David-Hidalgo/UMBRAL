@@ -1,0 +1,191 @@
+using System;
+using FluentAssertions;
+using UserService.Domain.Entities;
+using Xunit;
+
+namespace UserService.Tests.Domain;
+
+public class UserTests
+{
+    [Fact]
+    public void Create_WithValidParameters_ReturnsUserWithCorrectProperties()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        const string keycloakUserId = "kc-abc-123";
+        const string email = "admin@umbral.io";
+        const string name = "Admin UMBRAL";
+
+        // Act
+        var user = User.Create(id, keycloakUserId, email, name);
+
+        // Assert
+        user.Id.Should().Be(id);
+        user.KeycloakUserId.Should().Be(keycloakUserId);
+        user.Email.Value.Should().Be(email);
+        user.Name.Value.Should().Be(name);
+    }
+
+    [Fact]
+    public void Create_WithMixedCaseEmail_NormalizesToLowercase()
+    {
+        // Act
+        var user = User.Create(Guid.NewGuid(), "kc-123", "ADMIN@UMBRAL.IO", "Admin");
+
+        // Assert
+        user.Email.Value.Should().Be("admin@umbral.io");
+    }
+
+    [Fact]
+    public void Create_WithEmptyGuid_ThrowsArgumentException()
+    {
+        // Act
+        var act = () => User.Create(Guid.Empty, "kc-123", "admin@umbral.io", "Admin");
+
+        // Assert
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*User ID*");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Create_WithBlankKeycloakUserId_ThrowsArgumentException(string keycloakUserId)
+    {
+        // Act
+        var act = () => User.Create(Guid.NewGuid(), keycloakUserId, "admin@umbral.io", "Admin");
+
+        // Assert
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*Keycloak user ID*");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Create_WithBlankEmail_ThrowsArgumentException(string email)
+    {
+        // Act
+        var act = () => User.Create(Guid.NewGuid(), "kc-123", email, "Admin");
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Create_WithInvalidEmailFormat_ThrowsArgumentException()
+    {
+        // Act
+        var act = () => User.Create(Guid.NewGuid(), "kc-123", "not-an-email", "Admin");
+
+        // Assert
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*format*");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Create_WithBlankName_ThrowsArgumentException(string name)
+    {
+        // Act
+        var act = () => User.Create(Guid.NewGuid(), "kc-123", "admin@umbral.io", name);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Create_WithNameExceeding200Chars_ThrowsArgumentException()
+    {
+        // Arrange
+        var longName = new string('A', 201);
+
+        // Act
+        var act = () => User.Create(Guid.NewGuid(), "kc-123", "admin@umbral.io", longName);
+
+        // Assert
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*200 characters*");
+    }
+
+    [Theory]
+    [InlineData("admin")]
+    [InlineData("operator")]
+    [InlineData("player")]
+    public void Create_WithExplicitRole_SetsRoleProperty(string role)
+    {
+        // Act
+        var user = User.Create(Guid.NewGuid(), "kc-123", "admin@umbral.io", "Admin", role);
+
+        // Assert
+        user.Role.Should().Be(role);
+    }
+
+    [Fact]
+    public void Create_WithDefaultRole_SetsRoleAsPlayer()
+    {
+        // Act
+        var user = User.Create(Guid.NewGuid(), "kc-123", "admin@umbral.io", "Admin");
+
+        // Assert
+        user.Role.Should().Be("player");
+    }
+
+    // ─── Deactivate ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Deactivate_WhenUserIsActive_SetsIsActiveToFalse()
+    {
+        // Arrange
+        var user = User.Create(Guid.NewGuid(), "kc-123", "admin@umbral.io", "Admin");
+
+        // Act
+        user.Deactivate();
+
+        // Assert
+        user.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Deactivate_WhenUserIsActive_SetsDeactivatedAtUtcToNow()
+    {
+        // Arrange
+        var user = User.Create(Guid.NewGuid(), "kc-123", "admin@umbral.io", "Admin");
+        var before = DateTime.UtcNow;
+
+        // Act
+        user.Deactivate();
+
+        // Assert
+        user.DeactivatedAtUtc.Should().NotBeNull();
+        user.DeactivatedAtUtc!.Value.Should().BeOnOrAfter(before);
+        user.DeactivatedAtUtc.Value.Should().BeOnOrBefore(DateTime.UtcNow);
+    }
+
+    [Fact]
+    public void Deactivate_WhenAlreadyInactive_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var user = User.Create(Guid.NewGuid(), "kc-123", "admin@umbral.io", "Admin");
+        user.Deactivate();
+
+        // Act
+        var act = () => user.Deactivate();
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*already inactive*");
+    }
+
+    [Fact]
+    public void Create_NewUser_IsActiveByDefault()
+    {
+        // Act
+        var user = User.Create(Guid.NewGuid(), "kc-123", "admin@umbral.io", "Admin");
+
+        // Assert
+        user.IsActive.Should().BeTrue();
+        user.DeactivatedAtUtc.Should().BeNull();
+    }
+}

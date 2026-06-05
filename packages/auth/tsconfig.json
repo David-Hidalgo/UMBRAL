@@ -1,0 +1,12 @@
+{
+	"extends": "@umbral/config/tsconfig.base.json",
+	"compilerOptions": {
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"paths": {
+			"@umbral/auth/*": ["./src/*"]
+		},
+		"strictNullChecks": true
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules"]
+}

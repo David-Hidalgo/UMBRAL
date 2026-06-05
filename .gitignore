@@ -108,3 +108,5 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+build_check/*
+**/coveragereport/
