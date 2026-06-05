@@ -261,7 +261,7 @@ namespace UserService.Infrastructure.Authentication
                 if (string.IsNullOrWhiteSpace(name))
                     name = ku.Email;
 
-                return new UserDto(userGuid, ku.Id, ku.Email, name, x.Role, createdAt);
+                return new UserDto(userGuid, ku.Id, ku.Email, name, x.Role, createdAt, ku.Enabled);
             });
 
             return result.OrderByDescending(u => u.CreatedAt).ToList();
@@ -308,7 +308,7 @@ namespace UserService.Infrastructure.Authentication
             if (string.IsNullOrWhiteSpace(name))
                 name = ku.Email;
 
-            return new UserDto(userGuid, ku.Id, ku.Email, name, resolvedRole, createdAt);
+            return new UserDto(userGuid, ku.Id, ku.Email, name, resolvedRole, createdAt, ku.Enabled);
         }
 
         public async Task UpdateUserAsync(string keycloakUserId, string name, CancellationToken cancellationToken = default)
