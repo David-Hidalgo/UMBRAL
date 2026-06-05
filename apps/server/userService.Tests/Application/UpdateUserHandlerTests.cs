@@ -33,7 +33,7 @@ public class UpdateUserHandlerTests
         => new(_id, name, role);
 
     private UserDto Snapshot(string name = "Old Name", string role = "player")
-        => new(_id, _id.ToString(), "user@umbral.io", name, role, DateTime.UtcNow);
+        => new(_id, _id.ToString(), "user@umbral.io", name, role, DateTime.UtcNow, IsEnabled: true);
 
     private void SetupSnapshot(UserDto? dto)
     {
