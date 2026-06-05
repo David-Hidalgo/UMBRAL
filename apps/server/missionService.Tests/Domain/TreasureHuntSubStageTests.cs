@@ -102,5 +102,53 @@ namespace MissionService.Tests.Domain
             // Assert
             act.Should().Throw<ArgumentException>().WithMessage("*must be alphanumeric and can contain hyphens*");
         }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void TreasureHuntSubStage_Should_Throw_ArgumentException_When_Title_Is_Invalid(string? invalidTitle)
+        {
+            // Arrange
+            var clues = new List<Clue> { Clue.Create(Guid.NewGuid(), "Under the table", 0) };
+
+            // Act
+            Action act = () => TreasureHuntSubStage.Create(
+                Guid.NewGuid(), invalidTitle!, 0, 100, "Find the key to escape", "SECRET-123", clues);
+
+            // Assert
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void TreasureHuntSubStage_Should_Throw_ArgumentException_When_Points_Are_Negative()
+        {
+            // Arrange
+            var clues = new List<Clue> { Clue.Create(Guid.NewGuid(), "Under the table", 0) };
+
+            // Act
+            Action act = () => TreasureHuntSubStage.Create(
+                Guid.NewGuid(), "Find the Secret Key", 0, -1, "Find the key to escape", "SECRET-123", clues);
+
+            // Assert
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void TreasureHuntSubStage_Should_Throw_ArgumentException_When_Objective_Is_Invalid(string? invalidObjective)
+        {
+            // Arrange
+            var clues = new List<Clue> { Clue.Create(Guid.NewGuid(), "Under the table", 0) };
+
+            // Act
+            Action act = () => TreasureHuntSubStage.Create(
+                Guid.NewGuid(), "Find the Secret Key", 0, 100, invalidObjective!, "SECRET-123", clues);
+
+            // Assert
+            act.Should().Throw<ArgumentException>();
+        }
     }
 }
