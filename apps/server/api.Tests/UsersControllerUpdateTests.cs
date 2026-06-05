@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using api.Application.Commands;
 using api.Application.DTOs;
+using api.Application.Exceptions;
 using api.Application.Interfaces;
 using api.Infrastructure.Controllers;
 using Xunit;
@@ -93,5 +94,47 @@ public class UsersControllerUpdateTests
 
         result.Should().BeOfType<ForbidResult>();
         _mediatorMock.Verify(m => m.Send(It.IsAny<UpdateUserCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Update_WhenUserServiceExceptionMatchesPattern_ReturnsCustomStatusCode()
+    {
+        // Arrange — el mediator lanza la excepción con el mensaje que parsea el controller
+        var body = "{\"error\":\"User not found\"}";
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<UpdateUserCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new UserServiceException(404, body, $"UserService returned 404: {body}"));
+
+        var controller = BuildController(
+            new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+            new Claim(ClaimTypes.Role, "admin"));
+
+        // Act
+        var result = await controller.Update(Guid.NewGuid(), new UpdateUserRequest("Name", "admin"), CancellationToken.None);
+
+        // Assert
+        var contentResult = result.Should().BeOfType<ContentResult>().Subject;
+        contentResult.StatusCode.Should().Be(404);
+        contentResult.Content.Should().Be(body);
+    }
+
+    [Fact]
+    public async Task Update_WhenUserServiceExceptionDoesNotMatchPattern_Rethrows()
+    {
+        // Arrange — mensaje que NO sigue el patrón "UserService returned {status}: ..."
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<UpdateUserCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new UserServiceException("Unexpected internal error"));
+
+        var controller = BuildController(
+            new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+            new Claim(ClaimTypes.Role, "admin"));
+
+        // Act
+        var act = async () => await controller.Update(Guid.NewGuid(), new UpdateUserRequest("Name", "admin"), CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UserServiceException>()
+            .WithMessage("Unexpected internal error");
     }
 }
