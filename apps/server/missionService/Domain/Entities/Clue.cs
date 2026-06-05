@@ -7,7 +7,7 @@ namespace MissionService.Domain.Entities
         public Guid Id { get; private set; }
         public string Text { get; private set; } = string.Empty;
         public int Order { get; private set; }
-        public Guid TreasureHuntSubStageId { get; private set; }
+        public Guid SubStageId { get; private set; }
 
         private Clue() { }
 

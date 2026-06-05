@@ -34,7 +34,10 @@ interface ApiMission {
 	id: string;
 	name: string;
 	description: string;
-	status: string; // "Active" or "Inactive"
+	state: "Active" | "Inactive";
+	activeSessionCount: number;
+	difficultyLevel: "Beginner" | "Intermediate" | "Advanced";
+	maxTimeMinutes: number;
 	stageCount: number;
 }
 
@@ -53,8 +56,8 @@ const ALL_STATUSES = [
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: string }) {
-	const isActive = status.toLowerCase() === "active";
+function StatusBadge({ state }: { state: ApiMission["state"] }) {
+	const isActive = state === "Active";
 	return (
 		<span
 			className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 font-semibold text-[10px] ring-1 ${
@@ -64,6 +67,26 @@ function StatusBadge({ status }: { status: string }) {
 			}`}
 		>
 			{isActive ? "Activa" : "Inactiva"}
+		</span>
+	);
+}
+
+function DifficultyBadge({ level }: { level: ApiMission["difficultyLevel"] }) {
+	const colors = {
+		Beginner: "bg-cyan-500/15 text-cyan-400 ring-cyan-500/25",
+		Intermediate: "bg-amber-500/15 text-amber-400 ring-amber-500/25",
+		Advanced: "bg-rose-500/15 text-rose-400 ring-rose-500/25",
+	};
+	const labels = {
+		Beginner: "Principiante",
+		Intermediate: "Intermedio",
+		Advanced: "Avanzado",
+	};
+	return (
+		<span
+			className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 font-semibold text-[10px] ring-1 ${colors[level] || colors.Beginner}`}
+		>
+			{labels[level] || level}
 		</span>
 	);
 }
@@ -312,13 +335,16 @@ function MisionesPanelInner() {
 										<CardTitle className="truncate font-semibold text-base">
 											{m.name}
 										</CardTitle>
-										<StatusBadge status={m.status} />
+										<div className="flex flex-col items-end gap-1">
+											<StatusBadge state={m.state} />
+											<DifficultyBadge level={m.difficultyLevel} />
+										</div>
 									</div>
 									<CardDescription className="mt-1 line-clamp-2">
 										{m.description || "Sin descripción."}
 									</CardDescription>
 								</CardHeader>
-								<CardContent className="grid grid-cols-2 gap-2 border-foreground/5 border-t pt-4 text-muted-foreground text-xs">
+								<CardContent className="grid grid-cols-3 gap-2 border-foreground/5 border-t pt-4 text-center text-muted-foreground text-xs">
 									<div className="flex flex-col items-center rounded-lg bg-foreground/5 p-2">
 										<span className="font-semibold text-foreground text-sm">
 											{m.stageCount}
@@ -326,10 +352,16 @@ function MisionesPanelInner() {
 										<span>Etapas</span>
 									</div>
 									<div className="flex flex-col items-center justify-center rounded-lg bg-foreground/5 p-2">
-										<span className="text-center font-semibold text-foreground text-xs">
-											Misión
+										<span className="font-semibold text-foreground text-sm">
+											{m.maxTimeMinutes} min
 										</span>
-										<span>Plantilla</span>
+										<span>Tiempo</span>
+									</div>
+									<div className="flex flex-col items-center justify-center rounded-lg bg-foreground/5 p-2">
+										<span className="font-semibold text-foreground text-sm">
+											{m.activeSessionCount}
+										</span>
+										<span>Sesiones</span>
 									</div>
 								</CardContent>
 								<CardFooter className="flex gap-2 border-foreground/5 border-t px-6 py-3">

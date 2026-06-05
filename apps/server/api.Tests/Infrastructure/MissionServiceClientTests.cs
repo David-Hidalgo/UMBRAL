@@ -61,7 +61,7 @@ public class MissionServiceClientTests
     };
 
     private static readonly CreateMissionRequest ValidCreateRequest =
-        new("Mission Alpha", "Description Alpha", new List<CreateStageRequest>());
+        new("Mission Alpha", "Description Alpha", "Beginner", 60, new List<CreateStageRequest>());
 
     // ─── Tests for GetMissionsAsync ───────────────────────────────────────────
 
@@ -71,8 +71,8 @@ public class MissionServiceClientTests
         // Arrange
         var expectedMissions = new List<MissionSummaryDto>
         {
-            new(Guid.NewGuid(), "Mission 1", "Desc 1", "Active", 3),
-            new(Guid.NewGuid(), "Mission 2", "Desc 2", "Inactive", 1)
+            new(Guid.NewGuid(), "Mission 1", "Desc 1", "Active", 0, "Beginner", 60, 3),
+            new(Guid.NewGuid(), "Mission 2", "Desc 2", "Inactive", 0, "Beginner", 60, 1)
         };
         var handler = new CaptureHandler(OkWithMissions(expectedMissions));
         var sut     = BuildSut(handler, NullContextAccessor());

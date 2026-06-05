@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using MissionService.Domain.Entities;
+using MissionService.Domain.Enums;
 using MissionService.Infrastructure.Persistence;
 using Xunit;
 
@@ -13,12 +14,6 @@ namespace MissionService.Tests.Application
     /// <summary>
     /// Unit tests for MissionRepository.GetAllAsync using the EF Core InMemory provider as a fake.
     /// These tests run without Docker and are fast. They cover structural behavior and LINQ filtering logic.
-    ///
-    /// LIMITATION: InMemory bypasses EF Core value converters and SQL translation. Status filtering
-    /// that relies on value conversions (MissionStatus) is NOT validated here — that is covered
-    /// by MissionRepositoryGetAllTests (Testcontainers + real PostgreSQL).
-    ///
-    /// Use both test classes together: unit tests for fast feedback, integration tests for correctness.
     /// </summary>
     public class MissionRepositoryGetAllUnitTests : IDisposable
     {
@@ -166,7 +161,7 @@ namespace MissionService.Tests.Application
             result.Should().HaveCount(2);
         }
 
-        // ─── Status filter (basic — value converter behavior tested in integration tests) ──
+        // ─── Status filter (basic) ──
 
         [Fact]
         public async Task GetAllAsync_Should_Skip_Status_Filter_When_Status_Is_Null()
@@ -226,6 +221,6 @@ namespace MissionService.Tests.Application
         }
 
         private static Mission CreateMission(string name, string description)
-            => Mission.Create(Guid.NewGuid(), name, description, new List<Stage>());
+            => Mission.Create(Guid.NewGuid(), name, description, DifficultyLevel.Beginner, 60, new List<Stage>());
     }
 }

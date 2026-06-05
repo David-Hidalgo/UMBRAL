@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -25,7 +26,6 @@ namespace MissionService.Infrastructure.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "admin,operator")]
         [ProducesResponseType(typeof(IEnumerable<MissionSummaryDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -58,23 +58,18 @@ namespace MissionService.Infrastructure.Controllers
             var command = new CreateMissionCommand(
                 request.Name,
                 request.Description,
+                request.DifficultyLevel,
+                request.MaxTimeMinutes,
                 (request.Stages ?? []).Select(s => new CreateStageCommand(
-                    s.Name,
-                    s.Description,
-                    s.Order,
+                    s.Name, s.Description, s.Order,
                     (s.SubStages ?? []).Select(ss => new CreateSubStageCommand(
-                        ss.Title,
-                        ss.Order,
-                        ss.Type,
-                        ss.Points,
+                        ss.Title, ss.Order, ss.Type, ss.Points,
                         ss.Question != null
                             ? new CreateQuestionCommand(
                                 ss.Question.Text,
                                 (ss.Question.Answers ?? []).Select(a => new CreateAnswerCommand(a.Text, a.IsCorrect)).ToList()
-                            )
-                            : null,
-                        ss.Objective,
-                        ss.SecretCode,
+                            ) : null,
+                        ss.Objective, ss.SecretCode,
                         ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order)).ToList()
                     )).ToList()
                 )).ToList()
@@ -82,6 +77,120 @@ namespace MissionService.Infrastructure.Controllers
 
             var missionId = await _mediator.Send(command, cancellationToken);
             return Created($"/api/missions/{missionId}", new { id = missionId });
+        }
+
+        [HttpPatch("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMissionRequest request, CancellationToken cancellationToken)
+        {
+            var command = new UpdateMissionCommand(
+                id,
+                request.Name,
+                request.Description,
+                request.State,
+                request.DifficultyLevel,
+                request.MaxTimeMinutes
+            );
+
+            await _mediator.Send(command, cancellationToken);
+            return NoContent();
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+        {
+            await _mediator.Send(new DeleteMissionCommand(id), cancellationToken);
+            return NoContent();
+        }
+
+        [HttpPost("{id:guid}/stages")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> AddStage(Guid id, [FromBody] CreateStageRequest request, CancellationToken cancellationToken)
+        {
+            var command = new AddStageCommand(
+                id,
+                request.Name,
+                request.Description,
+                request.Order,
+                (request.SubStages ?? []).Select(ss => new CreateSubStageCommand(
+                    ss.Title, ss.Order, ss.Type, ss.Points,
+                    ss.Question != null
+                        ? new CreateQuestionCommand(
+                            ss.Question.Text,
+                            (ss.Question.Answers ?? []).Select(a => new CreateAnswerCommand(a.Text, a.IsCorrect)).ToList()
+                        ) : null,
+                    ss.Objective, ss.SecretCode,
+                    ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order)).ToList()
+                )).ToList()
+            );
+
+            var stageId = await _mediator.Send(command, cancellationToken);
+            return Created($"/api/missions/{id}/stages/{stageId}", new { id = stageId });
+        }
+
+        [HttpPut("{id:guid}/stages/{stageId:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> UpdateStage(Guid id, Guid stageId, [FromBody] CreateStageRequest request, CancellationToken cancellationToken)
+        {
+            var command = new UpdateStageCommand(
+                id,
+                stageId,
+                request.Name,
+                request.Description,
+                (request.SubStages ?? []).Select(ss => new CreateSubStageCommand(
+                    ss.Title, ss.Order, ss.Type, ss.Points,
+                    ss.Question != null
+                        ? new CreateQuestionCommand(
+                            ss.Question.Text,
+                            (ss.Question.Answers ?? []).Select(a => new CreateAnswerCommand(a.Text, a.IsCorrect)).ToList()
+                        ) : null,
+                    ss.Objective, ss.SecretCode,
+                    ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order)).ToList()
+                )).ToList()
+            );
+
+            await _mediator.Send(command, cancellationToken);
+            return NoContent();
+        }
+
+        [HttpDelete("{id:guid}/stages/{stageId:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> DeleteStage(Guid id, Guid stageId, CancellationToken cancellationToken)
+        {
+            await _mediator.Send(new DeleteStageCommand(id, stageId), cancellationToken);
+            return NoContent();
+        }
+
+        [HttpPut("{id:guid}/stages/reorder")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> ReorderStages(Guid id, [FromBody] List<Guid> stageIds, CancellationToken cancellationToken)
+        {
+            await _mediator.Send(new ReorderStagesCommand(id, stageIds), cancellationToken);
+            return NoContent();
         }
     }
 }

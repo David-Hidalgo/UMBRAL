@@ -9,8 +9,8 @@ using MissionService.Application.DTOs;
 using MissionService.Application.Handlers;
 using MissionService.Application.Queries;
 using MissionService.Domain.Entities;
+using MissionService.Domain.Enums;
 using MissionService.Domain.RepositoryInterfaces;
-using MissionService.Domain.ValueObjects;
 using Xunit;
 
 namespace MissionService.Tests.Application
@@ -70,7 +70,9 @@ namespace MissionService.Tests.Application
                 dto.Id.Should().NotBeEmpty();
                 dto.Name.Should().NotBeNullOrEmpty();
                 dto.Description.Should().NotBeNullOrEmpty();
-                dto.Status.Should().BeOneOf("Active", "Inactive");
+                dto.State.Should().BeOneOf("Active", "Inactive");
+                dto.DifficultyLevel.Should().Be("Beginner");
+                dto.MaxTimeMinutes.Should().Be(60);
                 dto.StageCount.Should().BeGreaterThanOrEqualTo(0);
             });
         }
@@ -95,7 +97,7 @@ namespace MissionService.Tests.Application
             dto.Id.Should().Be(mission.Id);
             dto.Name.Should().Be("Gamma Mission");
             dto.Description.Should().Be("Gamma Description");
-            dto.Status.Should().Be("Inactive");
+            dto.State.Should().Be("Inactive");
             dto.StageCount.Should().Be(0);
         }
 
@@ -171,7 +173,7 @@ namespace MissionService.Tests.Application
             var result = await _handler.Handle(query, CancellationToken.None);
 
             // Assert
-            result.Single().Status.Should().Be("Inactive");
+            result.Single().State.Should().Be("Inactive");
         }
 
         /// <summary>
@@ -180,7 +182,7 @@ namespace MissionService.Tests.Application
         /// </summary>
         private static Mission CreateMission(string name, string description)
         {
-            return Mission.Create(Guid.NewGuid(), name, description, new List<Stage>());
+            return Mission.Create(Guid.NewGuid(), name, description, DifficultyLevel.Beginner, 60, new List<Stage>());
         }
     }
 }

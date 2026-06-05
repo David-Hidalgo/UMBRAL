@@ -36,7 +36,10 @@ namespace MissionService.Application.Handlers
                 m.Id,
                 m.Name,
                 m.Description,
-                m.Status.Value,
+                m.State.ToString(),
+                m.Status.ActiveSessionCount,
+                m.DifficultyLevel.ToString(),
+                m.MaxTimeMinutes,
                 m.Stages.Count
             ));
         }

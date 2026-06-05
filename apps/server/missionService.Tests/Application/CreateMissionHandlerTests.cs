@@ -7,6 +7,7 @@ using Moq;
 using MissionService.Application.Commands;
 using MissionService.Application.Handlers;
 using MissionService.Domain.Entities;
+using MissionService.Domain.Enums;
 using MissionService.Domain.Exceptions;
 using MissionService.Domain.RepositoryInterfaces;
 using Xunit;
@@ -45,7 +46,12 @@ namespace MissionService.Tests.Application
             // Assert
             result.Should().NotBeEmpty();
             _repositoryMock.Verify(r => r.ExistsByNameAsync(command.Name, It.IsAny<CancellationToken>()), Times.Once);
-            _repositoryMock.Verify(r => r.AddAsync(It.Is<Mission>(m => m.Name == command.Name && m.Description == command.Description), It.IsAny<CancellationToken>()), Times.Once);
+            _repositoryMock.Verify(r => r.AddAsync(It.Is<Mission>(m => 
+                m.Name == command.Name && 
+                m.Description == command.Description &&
+                m.DifficultyLevel == DifficultyLevel.Beginner &&
+                m.MaxTimeMinutes == 60
+            ), It.IsAny<CancellationToken>()), Times.Once);
             _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
@@ -71,6 +77,8 @@ namespace MissionService.Tests.Application
             return new CreateMissionCommand(
                 "Super Mission",
                 "Description of the mission",
+                "Beginner",
+                60,
                 new List<CreateStageCommand>
                 {
                     new CreateStageCommand(

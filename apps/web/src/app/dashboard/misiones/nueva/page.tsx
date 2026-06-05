@@ -76,31 +76,26 @@ interface ClientStage {
 interface MissionForm {
 	name: string;
 	description: string;
+	difficultyLevel: "Beginner" | "Intermediate" | "Advanced";
+	maxTimeMinutes: number;
 	stages: ClientStage[];
 }
 
 // ─── Payload Types (API shape) ────────────────────────────────────────────────
 
-type SubStagePayload =
-	| {
-			title: string;
-			order: number;
-			type: "Trivia";
-			points: number;
-			question: {
-				text: string;
-				answers: { text: string; isCorrect: boolean }[];
-			};
-	  }
-	| {
-			title: string;
-			order: number;
-			type: "TreasureHunt";
-			points: number;
-			objective: string;
-			secretCode: string;
-			clues: { text: string; order: number }[];
-	  };
+interface SubStagePayload {
+	title: string;
+	order: number;
+	type: "Trivia" | "TreasureHunt";
+	points: number;
+	question?: {
+		text: string;
+		answers: { text: string; isCorrect: boolean }[];
+	} | null;
+	objective?: string | null;
+	secretCode?: string | null;
+	clues?: { text: string; order: number }[] | null;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -125,6 +120,8 @@ function CreateMissionForm() {
 	const [mission, setMission] = useState<MissionForm>({
 		name: "",
 		description: "",
+		difficultyLevel: "Beginner",
+		maxTimeMinutes: 60,
 		stages: [],
 	});
 
@@ -154,7 +151,7 @@ function CreateMissionForm() {
 			tempId: crypto.randomUUID(),
 			name: `Etapa ${mission.stages.length + 1}`,
 			description: "",
-			order: mission.stages.length,
+			order: mission.stages.length + 1,
 			subStages: [],
 		};
 		setMission((prev) => ({ ...prev, stages: [...prev.stages, newStage] }));
@@ -163,7 +160,7 @@ function CreateMissionForm() {
 	const removeStage = (stageId: string) => {
 		setMission((prev) => {
 			const filtered = prev.stages.filter((s) => s.tempId !== stageId);
-			const updated = filtered.map((s, index) => ({ ...s, order: index }));
+			const updated = filtered.map((s, index) => ({ ...s, order: index + 1 }));
 			return { ...prev, stages: updated };
 		});
 	};
@@ -507,12 +504,13 @@ function CreateMissionForm() {
 						);
 						return;
 					}
-					if (sub.clues.length === 0) {
-						toast.error(
-							`La búsqueda "${sub.title}" debe tener al menos una pista.`,
-						);
-						return;
+					for (const c of sub.clues) {
+						if (!c.text.trim()) {
+							toast.error("Las pistas no pueden estar vacías.");
+							return;
+						}
 					}
+				} else {
 					for (const c of sub.clues) {
 						if (!c.text.trim()) {
 							toast.error("Las pistas no pueden estar vacías.");
@@ -537,11 +535,14 @@ function CreateMissionForm() {
 			const payload = {
 				name: mission.name,
 				description: mission.description,
+				difficultyLevel: mission.difficultyLevel,
+				maxTimeMinutes: Number(mission.maxTimeMinutes) || 60,
 				stages: mission.stages.map((s) => ({
 					name: s.name,
 					description: s.description,
 					order: s.order,
 					subStages: s.subStages.map((sub): SubStagePayload => {
+						const hasClues = sub.clues && sub.clues.length > 0;
 						if (sub.type === "Trivia") {
 							return {
 								title: sub.title,
@@ -555,6 +556,12 @@ function CreateMissionForm() {
 										isCorrect: a.isCorrect,
 									})),
 								},
+								clues: hasClues
+									? sub.clues.map((c) => ({
+											text: c.text,
+											order: c.order,
+										}))
+									: null,
 							};
 						}
 						return {
@@ -564,10 +571,12 @@ function CreateMissionForm() {
 							points: Number(sub.points) || 0,
 							objective: sub.objective,
 							secretCode: sub.secretCode.trim().toUpperCase(),
-							clues: sub.clues.map((c) => ({
-								text: c.text,
-								order: c.order,
-							})),
+							clues: hasClues
+								? sub.clues.map((c) => ({
+										text: c.text,
+										order: c.order,
+									}))
+								: null,
 						};
 					}),
 				})),
@@ -691,6 +700,50 @@ function CreateMissionForm() {
 									disabled={loading}
 									className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 								/>
+							</div>
+							<div className="grid grid-cols-2 gap-4 border-foreground/5 border-t pt-4">
+								<div className="space-y-1.5">
+									<Label htmlFor="difficultyLevel">Nivel de Dificultad</Label>
+									<select
+										id="difficultyLevel"
+										name="difficultyLevel"
+										value={mission.difficultyLevel}
+										onChange={(e) =>
+											setMission((prev) => ({
+												...prev,
+												difficultyLevel: e.target
+													.value as MissionForm["difficultyLevel"],
+											}))
+										}
+										disabled={loading}
+										className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 font-medium text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+									>
+									<option value="Beginner">Principiante</option>
+									<option value="Intermediate">Intermedio</option>
+									<option value="Advanced">Avanzado</option>
+									</select>
+								</div>
+								<div className="space-y-1.5">
+									<Label htmlFor="maxTimeMinutes">
+										Tiempo Máximo (minutos)
+									</Label>
+									<Input
+										id="maxTimeMinutes"
+										name="maxTimeMinutes"
+										type="number"
+										min="1"
+										placeholder="Ej. 60"
+										value={mission.maxTimeMinutes}
+										onChange={(e) =>
+											setMission((prev) => ({
+												...prev,
+												maxTimeMinutes: Number(e.target.value) || 0,
+											}))
+										}
+										disabled={loading}
+										autoComplete="off"
+									/>
+								</div>
 							</div>
 						</CardContent>
 					</Card>
@@ -1046,71 +1099,79 @@ function CreateMissionForm() {
 																		</div>
 																	</div>
 																</div>
+															</div>
+														)}
 
-																<div className="space-y-2">
-																	<div className="flex items-center justify-between">
-																		<span className="flex items-center gap-1 font-semibold text-[11px] text-muted-foreground">
-																			Pistas Ordenadas
+														{/* CLUES (COMMON FOR BOTH TRIVIA AND TREASURE HUNT) */}
+														<div className="mt-4 space-y-2 border-foreground/5 border-t pt-3">
+															<div className="flex items-center justify-between">
+																<span className="flex items-center gap-1 font-semibold text-[11px] text-muted-foreground">
+																	Pistas Opcionales
+																</span>
+																<Button
+																	type="button"
+																	variant="outline"
+																	size="xs"
+																	className="h-6 gap-1 text-[10px]"
+																	onClick={() =>
+																		addClue(stage.tempId, _sub.tempId)
+																	}
+																	disabled={loading}
+																>
+																	<PlusCircle className="size-3" /> Agregar
+																	Pista
+																</Button>
+															</div>
+
+															{_sub.clues.length === 0 ? (
+																<p className="text-[10px] text-muted-foreground italic">
+																	Sin pistas asignadas (las pistas son
+																	opcionales).
+																</p>
+															) : (
+																_sub.clues.map((clue, clueIdx) => (
+																	<div
+																		key={clue.tempId}
+																		className="flex items-center gap-2 rounded border border-foreground/5 bg-foreground/2 p-2"
+																	>
+																		<span className="font-semibold text-muted-foreground text-xs">
+																			P{clueIdx + 1}:
 																		</span>
+																		<Input
+																			value={clue.text}
+																			onChange={(e) =>
+																				updateClueField(
+																					stage.tempId,
+																					_sub.tempId,
+																					clue.tempId,
+																					"text",
+																					e.target.value,
+																				)
+																			}
+																			placeholder="Descripción de la pista..."
+																			className="h-8 flex-1 bg-background text-xs"
+																			disabled={loading}
+																		/>
 																		<Button
 																			type="button"
-																			variant="outline"
-																			size="xs"
-																			className="h-6 gap-1 text-[10px]"
+																			variant="ghost"
+																			size="icon"
+																			className="size-7 text-muted-foreground hover:text-destructive"
 																			onClick={() =>
-																				addClue(stage.tempId, _sub.tempId)
+																				removeClue(
+																					stage.tempId,
+																					_sub.tempId,
+																					clue.tempId,
+																				)
 																			}
 																			disabled={loading}
 																		>
-																			<PlusCircle className="size-3" /> Agregar
-																			Pista
+																			<Trash className="size-3.5" />
 																		</Button>
 																	</div>
-
-																	{_sub.clues.map((clue, clueIdx) => (
-																		<div
-																			key={clue.tempId}
-																			className="flex items-center gap-2 rounded border border-foreground/5 bg-foreground/2 p-2"
-																		>
-																			<span className="font-semibold text-muted-foreground text-xs">
-																				P{clueIdx + 1}:
-																			</span>
-																			<Input
-																				value={clue.text}
-																				onChange={(e) =>
-																					updateClueField(
-																						stage.tempId,
-																						_sub.tempId,
-																						clue.tempId,
-																						"text",
-																						e.target.value,
-																					)
-																				}
-																				placeholder="Descripción de la pista..."
-																				className="h-8 flex-1 bg-background text-xs"
-																				disabled={loading}
-																			/>
-																			<Button
-																				type="button"
-																				variant="ghost"
-																				size="icon"
-																				className="size-7 text-muted-foreground hover:text-destructive"
-																				onClick={() =>
-																					removeClue(
-																						stage.tempId,
-																						_sub.tempId,
-																						clue.tempId,
-																					)
-																				}
-																				disabled={loading}
-																			>
-																				<Trash className="size-3.5" />
-																			</Button>
-																		</div>
-																	))}
-																</div>
-															</div>
-														)}
+																))
+															)}
+														</div>
 													</div>
 												))
 											)}

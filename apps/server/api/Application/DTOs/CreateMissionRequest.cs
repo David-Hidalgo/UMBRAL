@@ -5,6 +5,8 @@ namespace api.Application.DTOs;
 public sealed record CreateMissionRequest(
     string Name,
     string Description,
+    string DifficultyLevel,
+    int MaxTimeMinutes,
     List<CreateStageRequest> Stages
 );
 

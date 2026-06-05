@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using MediatR;
 
@@ -6,6 +7,8 @@ namespace MissionService.Application.Commands
     public sealed record CreateMissionCommand(
         string Name,
         string Description,
+        string DifficultyLevel,
+        int MaxTimeMinutes,
         List<CreateStageCommand> Stages
     ) : IRequest<Guid>;
 
@@ -26,7 +29,7 @@ namespace MissionService.Application.Commands
         // Campos para TreasureHunt
         string? Objective,
         string? SecretCode,
-        List<CreateClueCommand>? Clues
+        List<CreateClueCommand>? Clues // Opcionales en ambos ahora
     );
 
     public sealed record CreateQuestionCommand(

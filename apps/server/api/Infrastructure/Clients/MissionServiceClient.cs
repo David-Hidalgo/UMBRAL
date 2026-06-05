@@ -136,6 +136,142 @@ public sealed class MissionServiceClient : IMissionServiceClient
         }
     }
 
+    public async Task UpdateMissionAsync(Guid id, UpdateMissionRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+            throw new InvalidOperationException("MissionService:BaseUrl is not configured.");
+
+        using var message = new HttpRequestMessage(HttpMethod.Patch, $"{_options.BaseUrl.TrimEnd('/')}/api/missions/{id}")
+        {
+            Content = JsonContent.Create(request)
+        };
+
+        var rawHeader = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(rawHeader) && AuthenticationHeaderValue.TryParse(rawHeader, out var parsedHeader))
+            message.Headers.Authorization = parsedHeader;
+
+        using var response = await _httpClient.SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new MissionServiceException((int)response.StatusCode, body, $"MissionService returned {(int)response.StatusCode}: {body}");
+    }
+
+    public async Task DeleteMissionAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+            throw new InvalidOperationException("MissionService:BaseUrl is not configured.");
+
+        using var message = new HttpRequestMessage(HttpMethod.Delete, $"{_options.BaseUrl.TrimEnd('/')}/api/missions/{id}");
+
+        var rawHeader = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(rawHeader) && AuthenticationHeaderValue.TryParse(rawHeader, out var parsedHeader))
+            message.Headers.Authorization = parsedHeader;
+
+        using var response = await _httpClient.SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new MissionServiceException((int)response.StatusCode, body, $"MissionService returned {(int)response.StatusCode}: {body}");
+    }
+
+    public async Task<Guid> AddStageAsync(Guid id, CreateStageRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+            throw new InvalidOperationException("MissionService:BaseUrl is not configured.");
+
+        using var message = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl.TrimEnd('/')}/api/missions/{id}/stages")
+        {
+            Content = JsonContent.Create(request)
+        };
+
+        var rawHeader = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(rawHeader) && AuthenticationHeaderValue.TryParse(rawHeader, out var parsedHeader))
+            message.Headers.Authorization = parsedHeader;
+
+        using var response = await _httpClient.SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new MissionServiceException((int)response.StatusCode, body, $"MissionService returned {(int)response.StatusCode}: {body}");
+
+        if (string.IsNullOrWhiteSpace(body))
+            throw new MissionServiceException("MissionService returned an empty response.");
+
+        try
+        {
+            var payload = JsonSerializer.Deserialize<MissionCreatedResponse>(body, SerializerOptions);
+            if (payload is not null)
+                return payload.Id;
+        }
+        catch (JsonException ex)
+        {
+            throw new MissionServiceException($"MissionService returned a non-JSON response: {body}", ex);
+        }
+
+        throw new MissionServiceException("MissionService returned an unexpected response payload.");
+    }
+
+    public async Task UpdateStageAsync(Guid id, Guid stageId, CreateStageRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+            throw new InvalidOperationException("MissionService:BaseUrl is not configured.");
+
+        using var message = new HttpRequestMessage(HttpMethod.Put, $"{_options.BaseUrl.TrimEnd('/')}/api/missions/{id}/stages/{stageId}")
+        {
+            Content = JsonContent.Create(request)
+        };
+
+        var rawHeader = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(rawHeader) && AuthenticationHeaderValue.TryParse(rawHeader, out var parsedHeader))
+            message.Headers.Authorization = parsedHeader;
+
+        using var response = await _httpClient.SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new MissionServiceException((int)response.StatusCode, body, $"MissionService returned {(int)response.StatusCode}: {body}");
+    }
+
+    public async Task DeleteStageAsync(Guid id, Guid stageId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+            throw new InvalidOperationException("MissionService:BaseUrl is not configured.");
+
+        using var message = new HttpRequestMessage(HttpMethod.Delete, $"{_options.BaseUrl.TrimEnd('/')}/api/missions/{id}/stages/{stageId}");
+
+        var rawHeader = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(rawHeader) && AuthenticationHeaderValue.TryParse(rawHeader, out var parsedHeader))
+            message.Headers.Authorization = parsedHeader;
+
+        using var response = await _httpClient.SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new MissionServiceException((int)response.StatusCode, body, $"MissionService returned {(int)response.StatusCode}: {body}");
+    }
+
+    public async Task ReorderStagesAsync(Guid id, List<Guid> stageIds, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+            throw new InvalidOperationException("MissionService:BaseUrl is not configured.");
+
+        using var message = new HttpRequestMessage(HttpMethod.Put, $"{_options.BaseUrl.TrimEnd('/')}/api/missions/{id}/stages/reorder")
+        {
+            Content = JsonContent.Create(stageIds)
+        };
+
+        var rawHeader = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(rawHeader) && AuthenticationHeaderValue.TryParse(rawHeader, out var parsedHeader))
+            message.Headers.Authorization = parsedHeader;
+
+        using var response = await _httpClient.SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new MissionServiceException((int)response.StatusCode, body, $"MissionService returned {(int)response.StatusCode}: {body}");
+    }
+
     private sealed record MissionCreatedResponse(Guid Id);
 }
 
