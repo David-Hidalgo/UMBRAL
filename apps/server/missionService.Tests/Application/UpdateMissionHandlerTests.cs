@@ -133,5 +133,23 @@ namespace MissionService.Tests.Application
             // Assert
             mission.State.Should().Be(MissionState.Inactive);
         }
+
+        [Fact]
+        public async Task Handle_Should_Throw_ArgumentException_When_State_Is_Invalid()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var mission = Mission.Create(missionId, "Name", "Desc", DifficultyLevel.Beginner, 30, new List<Stage>());
+            var command = new UpdateMissionCommand(missionId, null, null, "Published", null, null);
+
+            _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mission);
+
+            // Act
+            Func<Task> act = async () => await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>();
+        }
     }
 }
