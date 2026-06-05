@@ -18,6 +18,8 @@ namespace MissionService.Tests.Application
             var command = new CreateMissionCommand(
                 "Mission 1",
                 "Mission description",
+                "Beginner",
+                60,
                 new List<CreateStageCommand>
                 {
                     new CreateStageCommand(
@@ -62,6 +64,8 @@ namespace MissionService.Tests.Application
             var command = new CreateMissionCommand(
                 "",
                 "Description",
+                "Beginner",
+                60,
                 new List<CreateStageCommand>()
             );
 
@@ -74,12 +78,54 @@ namespace MissionService.Tests.Application
         }
 
         [Fact]
+        public void Should_Be_Invalid_When_DifficultyLevel_Is_Invalid()
+        {
+            // Arrange
+            var command = new CreateMissionCommand(
+                "Mission 1",
+                "Description",
+                "InvalidLevel",
+                60,
+                new List<CreateStageCommand>()
+            );
+
+            // Act
+            var result = _validator.Validate(command);
+
+            // Assert
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().Contain(e => e.PropertyName == "DifficultyLevel");
+        }
+
+        [Fact]
+        public void Should_Be_Invalid_When_MaxTimeMinutes_Is_Zero_Or_Negative()
+        {
+            // Arrange
+            var command = new CreateMissionCommand(
+                "Mission 1",
+                "Description",
+                "Beginner",
+                0,
+                new List<CreateStageCommand>()
+            );
+
+            // Act
+            var result = _validator.Validate(command);
+
+            // Assert
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().Contain(e => e.PropertyName == "MaxTimeMinutes");
+        }
+
+        [Fact]
         public void Should_Be_Invalid_When_Trivia_Question_Has_No_Correct_Answers()
         {
             // Arrange
             var command = new CreateMissionCommand(
                 "Mission 1",
                 "Description",
+                "Beginner",
+                60,
                 new List<CreateStageCommand>
                 {
                     new CreateStageCommand(
@@ -125,6 +171,8 @@ namespace MissionService.Tests.Application
             var command = new CreateMissionCommand(
                 "Mission 1",
                 "Description",
+                "Beginner",
+                60,
                 new List<CreateStageCommand>
                 {
                     new CreateStageCommand(
@@ -169,6 +217,8 @@ namespace MissionService.Tests.Application
             var command = new CreateMissionCommand(
                 "Mission 1",
                 "Description",
+                "Beginner",
+                60,
                 new List<CreateStageCommand>
                 {
                     new CreateStageCommand(

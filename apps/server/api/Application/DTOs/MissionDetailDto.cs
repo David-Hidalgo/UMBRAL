@@ -4,7 +4,10 @@ public sealed record MissionDetailDto(
     Guid Id,
     string Name,
     string Description,
-    string Status,
+    string State,
+    int ActiveSessionCount,
+    string DifficultyLevel,
+    int MaxTimeMinutes,
     IReadOnlyList<StageDetailDto> Stages
 );
 
@@ -13,6 +16,7 @@ public sealed record StageDetailDto(
     string Name,
     string Description,
     int Order,
+    int ActiveSessionCount,
     IReadOnlyList<SubStageDetailDto> SubStages
 );
 
@@ -21,6 +25,7 @@ public sealed record SubStageDetailDto(
     string Title,
     int Order,
     int Points,
+    int ActiveSessionCount,
     QuestionDetailDto? Question,
     string? Objective,
     string? SecretCode,

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MissionService.Domain.Entities;
-using MissionService.Domain.ValueObjects;
+using MissionService.Domain.Enums;
 
 namespace MissionService.Infrastructure.Persistence.Configurations
 {
@@ -11,24 +11,30 @@ namespace MissionService.Infrastructure.Persistence.Configurations
         {
             builder.ToTable("Missions");
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+            builder.HasIndex(x => x.Name).IsUnique();
+            builder.Property(x => x.Description).HasMaxLength(1000).IsRequired();
 
-            builder.Property(x => x.Name)
-                .HasMaxLength(150)
-                .IsRequired();
-
-            builder.HasIndex(x => x.Name)
-                .IsUnique();
-
-            builder.Property(x => x.Description)
-                .HasMaxLength(1000)
-                .IsRequired();
-
-            builder.Property(x => x.Status)
-                .HasConversion(
-                    s => s.Value,
-                    v => MissionStatus.FromString(v))
+            builder.Property(x => x.State)
+                .HasConversion<string>()
                 .HasMaxLength(50)
                 .IsRequired();
+
+            builder.Property(x => x.DifficultyLevel)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            builder.Property(x => x.MaxTimeMinutes)
+                .IsRequired();
+
+            builder.OwnsOne(x => x.Status, status =>
+            {
+                status.Property(p => p.ActiveSessionCount)
+                    .HasColumnName("ActiveSessionCount")
+                    .HasDefaultValue(0)
+                    .IsRequired();
+            });
 
             builder.HasMany(x => x.Stages)
                 .WithOne()

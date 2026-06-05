@@ -17,6 +17,14 @@ namespace MissionService.Application.Validators
                 .NotEmpty().WithMessage("Mission description is required.")
                 .MaximumLength(1000).WithMessage("Mission description must not exceed 1000 characters.");
 
+            RuleFor(x => x.DifficultyLevel)
+                .NotEmpty().WithMessage("Difficulty level is required.")
+                .Must(d => d == "Beginner" || d == "Intermediate" || d == "Advanced")
+                .WithMessage("Difficulty level must be one of: Beginner, Intermediate, Advanced.");
+
+            RuleFor(x => x.MaxTimeMinutes)
+                .GreaterThan(0).WithMessage("Max time minutes must be greater than zero.");
+
             RuleFor(x => x.Stages)
                 .NotEmpty().WithMessage("Mission must contain at least one stage.");
 
@@ -65,6 +73,10 @@ namespace MissionService.Application.Validators
                 .Must(type => type == "Trivia" || type == "TreasureHunt")
                 .WithMessage("Sub-stage type must be either 'Trivia' or 'TreasureHunt'.");
 
+            RuleForEach(x => x.Clues)
+                .SetValidator(new ClueCommandValidator())
+                .When(x => x.Clues != null);
+
             // Conditional validation for Trivia
             When(x => x.Type == "Trivia", () =>
             {
@@ -87,11 +99,6 @@ namespace MissionService.Application.Validators
                     .NotEmpty().WithMessage("Treasure hunt secret code is required.")
                     .MaximumLength(100).WithMessage("Treasure hunt secret code must not exceed 100 characters.")
                     .Matches("^[a-zA-Z0-9-]+$").WithMessage("Treasure hunt secret code must be alphanumeric and can contain hyphens.");
-
-                RuleFor(x => x.Clues)
-                    .NotEmpty().WithMessage("Treasure hunt must contain at least one clue.");
-
-                RuleForEach(x => x.Clues).SetValidator(new ClueCommandValidator());
             });
         }
     }

@@ -11,6 +11,8 @@ using MissionService.Application.Validators;
 using MissionService.Domain.Exceptions;
 using MissionService.Domain.RepositoryInterfaces;
 using MissionService.Infrastructure.Persistence;
+using MissionService.Application.Interfaces;
+using MissionService.Infrastructure.Messaging;
 using shared.Authentication;
 using shared.Extensions;
 
@@ -73,9 +75,14 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.AddTransient<IValidator<MissionService.Application.Commands.CreateMissionCommand>, CreateMissionCommandValidator>();
 builder.Services.AddTransient<IValidator<MissionService.Application.Queries.GetMissionsQuery>, GetMissionsQueryValidator>();
 builder.Services.AddTransient<IValidator<MissionService.Application.Queries.GetMissionByIdQuery>, GetMissionByIdQueryValidator>();
+builder.Services.AddTransient<IValidator<MissionService.Application.Commands.UpdateMissionCommand>, UpdateMissionCommandValidator>();
+builder.Services.AddTransient<IValidator<MissionService.Application.Commands.AddStageCommand>, AddStageCommandValidator>();
+builder.Services.AddTransient<IValidator<MissionService.Application.Commands.UpdateStageCommand>, UpdateStageCommandValidator>();
+builder.Services.AddTransient<IValidator<MissionService.Application.Commands.ReorderStagesCommand>, ReorderStagesCommandValidator>();
 
 // Infrastructure
 builder.Services.AddScoped<IMissionRepository, MissionRepository>();
+builder.Services.AddScoped<IEventBus, NullEventBus>();
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<MissionDbContext>();
 
@@ -120,10 +127,31 @@ app.UseExceptionHandler(exceptionApp =>
             return;
         }
 
+        if (exception is StageActiveException stageActiveEx)
+        {
+            context.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = stageActiveEx.Message }));
+            return;
+        }
+
+        if (exception is MissionHasActiveSessionsException hasSessionsEx)
+        {
+            context.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = hasSessionsEx.Message }));
+            return;
+        }
+
         if (exception is MissionNotFoundException notFoundEx)
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;
             await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = notFoundEx.Message }));
+            return;
+        }
+
+        if (exception is StageNotFoundException stageNotFoundEx)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = stageNotFoundEx.Message }));
             return;
         }
 

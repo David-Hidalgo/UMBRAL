@@ -55,17 +55,17 @@ namespace missionService.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("SubStageId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<Guid>("TreasureHuntSubStageId")
-                        .HasColumnType("uuid");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("TreasureHuntSubStageId");
+                    b.HasIndex("SubStageId");
 
                     b.ToTable("Clues", (string)null);
                 });
@@ -81,12 +81,20 @@ namespace missionService.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("DifficultyLevel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("MaxTimeMinutes")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
-                    b.Property<string>("Status")
+                    b.Property<string>("State")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -214,10 +222,35 @@ namespace missionService.Migrations
 
             modelBuilder.Entity("MissionService.Domain.Entities.Clue", b =>
                 {
-                    b.HasOne("MissionService.Domain.Entities.TreasureHuntSubStage", null)
+                    b.HasOne("MissionService.Domain.Entities.SubStage", null)
                         .WithMany("Clues")
-                        .HasForeignKey("TreasureHuntSubStageId")
+                        .HasForeignKey("SubStageId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MissionService.Domain.Entities.Mission", b =>
+                {
+                    b.OwnsOne("MissionService.Domain.ValueObjects.Status", "Status", b1 =>
+                        {
+                            b1.Property<Guid>("MissionId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("ActiveSessionCount")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer")
+                                .HasDefaultValue(0)
+                                .HasColumnName("ActiveSessionCount");
+
+                            b1.HasKey("MissionId");
+
+                            b1.ToTable("Missions");
+
+                            b1.WithOwner()
+                                .HasForeignKey("MissionId");
+                        });
+
+                    b.Navigation("Status")
                         .IsRequired();
                 });
 
@@ -237,6 +270,28 @@ namespace missionService.Migrations
                         .HasForeignKey("MissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.OwnsOne("MissionService.Domain.ValueObjects.Status", "Status", b1 =>
+                        {
+                            b1.Property<Guid>("StageId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("ActiveSessionCount")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer")
+                                .HasDefaultValue(0)
+                                .HasColumnName("ActiveSessionCount");
+
+                            b1.HasKey("StageId");
+
+                            b1.ToTable("Stages");
+
+                            b1.WithOwner()
+                                .HasForeignKey("StageId");
+                        });
+
+                    b.Navigation("Status")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("MissionService.Domain.Entities.SubStage", b =>
@@ -245,6 +300,28 @@ namespace missionService.Migrations
                         .WithMany("SubStages")
                         .HasForeignKey("StageId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("MissionService.Domain.ValueObjects.Status", "Status", b1 =>
+                        {
+                            b1.Property<Guid>("SubStageId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("ActiveSessionCount")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer")
+                                .HasDefaultValue(0)
+                                .HasColumnName("ActiveSessionCount");
+
+                            b1.HasKey("SubStageId");
+
+                            b1.ToTable("SubStages");
+
+                            b1.WithOwner()
+                                .HasForeignKey("SubStageId");
+                        });
+
+                    b.Navigation("Status")
                         .IsRequired();
                 });
 
@@ -281,7 +358,7 @@ namespace missionService.Migrations
                     b.Navigation("SubStages");
                 });
 
-            modelBuilder.Entity("MissionService.Domain.Entities.TreasureHuntSubStage", b =>
+            modelBuilder.Entity("MissionService.Domain.Entities.SubStage", b =>
                 {
                     b.Navigation("Clues");
                 });

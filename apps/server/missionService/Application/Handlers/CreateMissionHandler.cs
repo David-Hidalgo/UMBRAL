@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using MediatR;
 using MissionService.Application.Commands;
 using MissionService.Domain.Entities;
+using MissionService.Domain.Enums;
 using MissionService.Domain.Exceptions;
 using MissionService.Domain.RepositoryInterfaces;
 
@@ -37,6 +38,16 @@ namespace MissionService.Application.Handlers
 
                 foreach (var ssc in sc.SubStages)
                 {
+                    var domainClues = new List<Clue>();
+                    if (ssc.Clues != null)
+                    {
+                        foreach (var cc in ssc.Clues)
+                        {
+                            var clue = Clue.Create(Guid.NewGuid(), cc.Text, cc.Order);
+                            domainClues.Add(clue);
+                        }
+                    }
+
                     if (ssc.Type.Equals("Trivia", StringComparison.OrdinalIgnoreCase))
                     {
                         if (ssc.Question == null)
@@ -53,23 +64,13 @@ namespace MissionService.Application.Handlers
                             ssc.Title,
                             ssc.Order,
                             ssc.Points,
-                            question
+                            question,
+                            domainClues
                         );
                         domainSubStages.Add(triviaSubStage);
                     }
                     else if (ssc.Type.Equals("TreasureHunt", StringComparison.OrdinalIgnoreCase))
                     {
-                        var domainClues = new List<Clue>();
-
-                        if (ssc.Clues != null)
-                        {
-                            foreach (var cc in ssc.Clues)
-                            {
-                                var clue = Clue.Create(Guid.NewGuid(), cc.Text, cc.Order);
-                                domainClues.Add(clue);
-                            }
-                        }
-
                         var treasureHuntSubStage = TreasureHuntSubStage.Create(
                             Guid.NewGuid(),
                             ssc.Title,
@@ -87,10 +88,13 @@ namespace MissionService.Application.Handlers
                 domainStages.Add(stage);
             }
 
-            // 3. Crear el Agregado de Misión
-            var mission = Mission.Create(Guid.NewGuid(), request.Name, request.Description, domainStages);
+            // 3. Parsear dificultad
+            var difficulty = DifficultyLevelExtensions.FromString(request.DifficultyLevel);
 
-            // 4. Persistir a la base de datos
+            // 4. Crear el Agregado de Misión
+            var mission = Mission.Create(Guid.NewGuid(), request.Name, request.Description, difficulty, request.MaxTimeMinutes, domainStages);
+
+            // 5. Persistir a la base de datos
             await _repository.AddAsync(mission, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
 

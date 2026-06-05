@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { env } from "@umbral/env/native";
 import * as Network from "expo-network";
 import {
-	Button,
 	Chip,
 	Separator,
 	Spinner,
@@ -44,7 +43,7 @@ export default function Home() {
 				if (isMounted) {
 					setIsConnected(response.ok);
 				}
-			} catch (error) {
+			} catch (_error) {
 				if (isMounted) {
 					setIsConnected(false);
 				}
