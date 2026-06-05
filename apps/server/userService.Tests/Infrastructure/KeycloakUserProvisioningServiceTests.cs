@@ -485,6 +485,163 @@ public class KeycloakUserProvisioningServiceTests
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*remove*");
     }
 
+    // ─── SetUserEnabledAsync ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SetUserEnabledAsync_WhenKeycloakReturns204_Succeeds()
+    {
+        // Arrange — token + PUT 204 NoContent
+        var sut = BuildSut(new SequentialHandler(
+            TokenOk(),
+            new HttpResponseMessage(HttpStatusCode.NoContent)));
+
+        // Act & Assert — no exception expected
+        var act = async () => await sut.SetUserEnabledAsync(Guid.NewGuid().ToString(), enabled: false);
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task SetUserEnabledAsync_WhenUserNotFound_ThrowsKeyNotFoundException()
+    {
+        // Arrange — token + PUT 404
+        var sut = BuildSut(new SequentialHandler(
+            TokenOk(),
+            new HttpResponseMessage(HttpStatusCode.NotFound)
+            {
+                Content = new StringContent("User not found")
+            }));
+
+        // Act
+        var act = async () => await sut.SetUserEnabledAsync("missing-user-id", enabled: true);
+
+        // Assert
+        await act.Should().ThrowAsync<KeyNotFoundException>()
+            .WithMessage("*missing-user-id*");
+    }
+
+    [Fact]
+    public async Task SetUserEnabledAsync_WhenKeycloakReturnsError_ThrowsInvalidOperationException()
+    {
+        // Arrange — token + PUT 500
+        var sut = BuildSut(new SequentialHandler(
+            TokenOk(),
+            new HttpResponseMessage(HttpStatusCode.InternalServerError)
+            {
+                Content = new StringContent("Internal error")
+            }));
+
+        // Act
+        var act = async () => await sut.SetUserEnabledAsync(Guid.NewGuid().ToString(), enabled: true);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Failed to set enabled*");
+    }
+
+    // ─── GetUsersAsync — filter and name-fallback branches ───────────────────
+
+    [Fact]
+    public async Task GetUsersAsync_WhenRoleFilterProvided_ReturnsOnlyMatchingUsers()
+    {
+        // Arrange — two users, filter by role="admin" → should return only the admin
+        var adminId = Guid.NewGuid().ToString();
+        var playerId = Guid.NewGuid().ToString();
+        var usersResponse = UsersListOk(
+            (adminId,  "admin1",  "admin@umbral.io",  "Admin User",  1780361722000),
+            (playerId, "player1", "player@umbral.io", "Player User", 1780361721000));
+        var adminRoleResponse  = RoleOk("admin");
+        var playerRoleResponse = RoleOk("player");
+
+        var sut = BuildSut(new SequentialHandler(
+            TokenOk(), usersResponse, adminRoleResponse, playerRoleResponse));
+
+        // Act
+        var result = await sut.GetUsersAsync(role: "admin");
+
+        // Assert
+        result.Should().HaveCount(1);
+        result.First().KeycloakUserId.Should().Be(adminId);
+        result.First().Role.Should().Be("admin");
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_WhenSearchTermProvided_ReturnsOnlyMatchingUsers()
+    {
+        // Arrange — two users, search "Alice" matches only first user by firstName
+        var aliceId = Guid.NewGuid().ToString();
+        var bobId   = Guid.NewGuid().ToString();
+        var usersResponse = UsersListOk(
+            (aliceId, "alice123", "alice@umbral.io", "Alice",  1780361722000),
+            (bobId,   "bob456",   "bob@umbral.io",   "Bob",    1780361721000));
+
+        var sut = BuildSut(new SequentialHandler(
+            TokenOk(), usersResponse, RoleOk("player"), RoleOk("player")));
+
+        // Act
+        var result = await sut.GetUsersAsync(searchTerm: "Alice");
+
+        // Assert
+        result.Should().HaveCount(1);
+        result.First().KeycloakUserId.Should().Be(aliceId);
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_WhenUserHasNoFirstName_UsesUsernameAsName()
+    {
+        // Arrange — firstName empty → should fall back to username
+        var userId = Guid.NewGuid().ToString();
+        var usersResponse = UsersListOk(
+            (userId, "john_player", "john@umbral.io", "", 1780361721000));
+
+        var sut = BuildSut(new SequentialHandler(
+            TokenOk(), usersResponse, RoleOk("player")));
+
+        // Act
+        var result = await sut.GetUsersAsync();
+
+        // Assert
+        result.Should().HaveCount(1);
+        result.First().Name.Should().Be("john_player");
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_WhenUserHasNoFirstNameOrUsername_UsesEmailAsName()
+    {
+        // Arrange — firstName and username both empty → should fall back to email
+        var userId = Guid.NewGuid().ToString();
+        var usersResponse = UsersListOk(
+            (userId, "", "onlyemail@umbral.io", "", 1780361721000));
+
+        var sut = BuildSut(new SequentialHandler(
+            TokenOk(), usersResponse, RoleOk("player")));
+
+        // Act
+        var result = await sut.GetUsersAsync();
+
+        // Assert
+        result.Should().HaveCount(1);
+        result.First().Name.Should().Be("onlyemail@umbral.io");
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_WhenUserHasOperatorRole_ResolvesRoleAsOperator()
+    {
+        // Arrange — role-mappings returns "operator"
+        var userId = Guid.NewGuid().ToString();
+        var usersResponse = UsersListOk(
+            (userId, "op_user", "op@umbral.io", "Op User", 1780361721000));
+
+        var sut = BuildSut(new SequentialHandler(
+            TokenOk(), usersResponse, RoleOk("operator")));
+
+        // Act
+        var result = await sut.GetUsersAsync();
+
+        // Assert
+        result.Should().HaveCount(1);
+        result.First().Role.Should().Be("operator");
+    }
+
     // ─── SequentialHandler test double ────────────────────────────────────────
 
     private sealed class SequentialHandler : HttpMessageHandler
