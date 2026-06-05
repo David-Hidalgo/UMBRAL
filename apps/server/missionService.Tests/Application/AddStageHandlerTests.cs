@@ -72,6 +72,88 @@ namespace MissionService.Tests.Application
         }
 
         [Fact]
+        public async Task Handle_Should_Add_Stage_With_TreasureHunt_And_Clues_Successfully()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var stage = Stage.Create(Guid.NewGuid(), "Stage 1", "Desc", 1, new List<SubStage>());
+            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+
+            var command = new AddStageCommand(
+                missionId,
+                "Stage 2",
+                "Stage 2 Desc",
+                2,
+                new List<CreateSubStageCommand>
+                {
+                    new CreateSubStageCommand(
+                        "Treasure SubStage",
+                        0,
+                        "TreasureHunt",
+                        20,
+                        null,
+                        "Find secret code",
+                        "SECRET-123",
+                        new List<CreateClueCommand>
+                        {
+                            new CreateClueCommand("Clue text", 1)
+                        }
+                    )
+                }
+            );
+
+            _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mission);
+
+            _repositoryMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var stageId = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            stageId.Should().NotBeEmpty();
+            mission.Stages.Should().HaveCount(2);
+            var addedStage = mission.Stages.Single(s => s.Id == stageId);
+            addedStage.SubStages.Should().HaveCount(1);
+            var subStage = addedStage.SubStages.Single() as TreasureHuntSubStage;
+            subStage.Should().NotBeNull();
+            subStage!.Title.Should().Be("Treasure SubStage");
+            subStage.SecretCode.Should().Be("SECRET-123");
+            subStage.Clues.Should().HaveCount(1);
+            subStage.Clues.Single().Text.Should().Be("Clue text");
+            _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_Should_Throw_ArgumentException_When_TriviaSubStage_Has_No_Question()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage>());
+            var command = new AddStageCommand(
+                missionId,
+                "Stage 1",
+                "Desc",
+                1,
+                new List<CreateSubStageCommand>
+                {
+                    new CreateSubStageCommand("Trivia", 0, "Trivia", 10, null, null, null, null)
+                }
+            );
+
+            _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mission);
+
+            // Act
+            Func<Task> act = async () => await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>().WithMessage("*must have a question*");
+        }
+
+
+        [Fact]
         public async Task Handle_Should_Throw_MissionNotFoundException_When_Mission_DoesNotExist()
         {
             // Arrange

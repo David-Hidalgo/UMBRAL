@@ -235,7 +235,121 @@ public class UserServiceClientTests
         handler.CapturedBody.Should().Contain("\"role\":\"admin\"");
     }
 
+    // ─── Tests for GetUsersAsync ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetUsersAsync_WithValidConfig_ReturnsUsersFromResponse()
+    {
+        // Arrange
+        var createdTime = new DateTime(2026, 6, 4, 12, 0, 0, DateTimeKind.Utc);
+        var expectedUsers = new List<UserDto>
+        {
+            new UserDto(Guid.NewGuid(), "key1", "user1@umbral.io", "User One", "operator", createdTime),
+            new UserDto(Guid.NewGuid(), "key2", "user2@umbral.io", "User Two", "admin", createdTime)
+        };
+        var handler = new CaptureHandler(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create(expectedUsers)
+        });
+        var sut = BuildSut(handler, NullContextAccessor());
+
+        // Act
+        var result = await sut.GetUsersAsync(null, null);
+
+        // Assert
+        result.Should().BeEquivalentTo(expectedUsers);
+        handler.CapturedRequest!.Method.Should().Be(HttpMethod.Get);
+        handler.CapturedRequest.RequestUri!.ToString().Should().Be("http://userservice:5020/api/users");
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_ConstructsQueryStringCorrectly_WithBothFilters()
+    {
+        // Arrange
+        var handler = new CaptureHandler(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create(new List<UserDto>())
+        });
+        var sut = BuildSut(handler, NullContextAccessor());
+
+        // Act
+        await sut.GetUsersAsync("search-val", "admin");
+
+        // Assert
+        handler.CapturedRequest!.RequestUri!.Query.Should().Contain("search=search-val");
+        handler.CapturedRequest.RequestUri.Query.Should().Contain("role=admin");
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_WhenServiceReturnsEmptyBody_ReturnsEmptyCollection()
+    {
+        // Arrange
+        var handler = new CaptureHandler(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("")
+        });
+        var sut = BuildSut(handler, NullContextAccessor());
+
+        // Act
+        var result = await sut.GetUsersAsync(null, null);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_WhenResponseBodyIsNotJson_ThrowsUserServiceException()
+    {
+        // Arrange
+        var handler = new CaptureHandler(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("not-json")
+        });
+        var sut = BuildSut(handler, NullContextAccessor());
+
+        // Act
+        var act = async () => await sut.GetUsersAsync(null, null);
+
+        // Assert
+        await act.Should().ThrowAsync<UserServiceException>().WithMessage("*non-JSON*");
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_WhenUserServiceReturnsError_ThrowsUserServiceException()
+    {
+        // Arrange
+        var errorResponse = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent("Error")
+        };
+        var sut = BuildSut(new CaptureHandler(errorResponse), NullContextAccessor());
+
+        // Act
+        var act = async () => await sut.GetUsersAsync(null, null);
+
+        // Assert
+        await act.Should().ThrowAsync<UserServiceException>().WithMessage("*500*");
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_WithEmptyBaseUrl_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var handler = new CaptureHandler(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create(new List<UserDto>())
+        });
+        var sut = BuildSut(handler, NullContextAccessor(), new UserServiceOptions { BaseUrl = "" });
+
+        // Act
+        var act = async () => await sut.GetUsersAsync(null, null);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*BaseUrl*");
+    }
+
     // ─── Test double ──────────────────────────────────────────────────────────
+
 
     private sealed class CaptureHandler : HttpMessageHandler
     {
