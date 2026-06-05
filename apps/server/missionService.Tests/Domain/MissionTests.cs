@@ -115,5 +115,81 @@ namespace MissionService.Tests.Domain
             // Assert
             act.Should().Throw<ArgumentException>().WithMessage("*already exists in this mission*");
         }
+
+        [Fact]
+        public void Create_Should_Throw_ArgumentException_When_Id_Is_Empty()
+        {
+            // Act
+            Action act = () => Mission.Create(Guid.Empty, "Escape Room", "Solve mysteries.", DifficultyLevel.Beginner, 60, new List<Stage>());
+
+            // Assert
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void Create_Should_Throw_ArgumentException_When_Name_Is_Invalid(string? invalidName)
+        {
+            // Act
+            Action act = () => Mission.Create(Guid.NewGuid(), invalidName!, "Solve mysteries.", DifficultyLevel.Beginner, 60, new List<Stage>());
+
+            // Assert
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void Create_Should_Throw_ArgumentException_When_Description_Is_Invalid(string? invalidDescription)
+        {
+            // Act
+            Action act = () => Mission.Create(Guid.NewGuid(), "Escape Room", invalidDescription!, DifficultyLevel.Beginner, 60, new List<Stage>());
+
+            // Assert
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        public void Create_Should_Throw_ArgumentException_When_MaxTimeMinutes_Is_Not_Positive(int invalidTime)
+        {
+            // Act
+            Action act = () => Mission.Create(Guid.NewGuid(), "Escape Room", "Solve mysteries.", DifficultyLevel.Beginner, invalidTime, new List<Stage>());
+
+            // Assert
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Deactivate_Should_Set_State_To_Inactive()
+        {
+            // Arrange
+            var mission = Mission.Create(Guid.NewGuid(), "Escape Room", "Solve mysteries.", DifficultyLevel.Beginner, 60, new List<Stage>());
+            mission.Activate();
+
+            // Act
+            mission.Deactivate();
+
+            // Assert
+            mission.State.Should().Be(MissionState.Inactive);
+        }
+
+        [Fact]
+        public void Deactivate_Should_Throw_When_Mission_Has_Active_Sessions()
+        {
+            // Arrange
+            var mission = Mission.Create(Guid.NewGuid(), "Escape Room", "Solve mysteries.", DifficultyLevel.Beginner, 60, new List<Stage>());
+            mission.IncrementSessionCount();
+
+            // Act
+            Action act = () => mission.Deactivate();
+
+            // Assert
+            act.Should().Throw<MissionHasActiveSessionsException>();
+        }
     }
 }
