@@ -92,5 +92,35 @@ namespace MissionService.Tests.Domain
             // Assert
             subStage.Clues.Should().HaveCount(1);
         }
+
+        [Fact]
+        public void Create_Should_Throw_ArgumentNullException_When_Clues_Contains_Null()
+        {
+            // Arrange
+            var clues = new List<Clue> { null! };
+
+            // Act
+            Action act = () => TriviaSubStage.Create(Guid.NewGuid(), "Trivia Round 1", 0, 10, ValidQuestion(), clues);
+
+            // Assert
+            act.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact]
+        public void SessionCount_Operations_Should_Modify_Status_Correctly()
+        {
+            // Arrange
+            var subStage = TriviaSubStage.Create(Guid.NewGuid(), "Trivia Round 1", 0, 10, ValidQuestion());
+
+            // Act & Assert
+            subStage.Status.ActiveSessionCount.Should().Be(0);
+            
+            subStage.IncrementSessionCount();
+            subStage.Status.ActiveSessionCount.Should().Be(1);
+
+            subStage.DecrementSessionCount();
+            subStage.Status.ActiveSessionCount.Should().Be(0);
+        }
     }
 }
+

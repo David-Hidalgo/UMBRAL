@@ -150,5 +150,39 @@ namespace MissionService.Tests.Domain
             // Assert
             act.Should().Throw<ArgumentException>();
         }
+
+        [Fact]
+        public void TreasureHuntSubStage_Should_Throw_ArgumentException_When_SecretCode_Exceeds_100_Characters()
+        {
+            // Arrange
+            var longCode = new string('A', 101);
+            var clues = new List<Clue> { Clue.Create(Guid.NewGuid(), "Under the table", 0) };
+
+            // Act
+            Action act = () => TreasureHuntSubStage.Create(
+                Guid.NewGuid(), "Find the Secret Key", 0, 100, "Find the key", longCode, clues);
+
+            // Assert
+            act.Should().Throw<ArgumentException>().WithMessage("*Secret code cannot exceed 100 characters*");
+        }
+
+        [Fact]
+        public void SessionCount_Operations_Should_Modify_Status_Correctly()
+        {
+            // Arrange
+            var clues = new List<Clue> { Clue.Create(Guid.NewGuid(), "Under the table", 0) };
+            var subStage = TreasureHuntSubStage.Create(
+                Guid.NewGuid(), "Find the Secret Key", 0, 100, "Find the key", "SECRET-123", clues);
+
+            // Act & Assert
+            subStage.Status.ActiveSessionCount.Should().Be(0);
+            
+            subStage.IncrementSessionCount();
+            subStage.Status.ActiveSessionCount.Should().Be(1);
+
+            subStage.DecrementSessionCount();
+            subStage.Status.ActiveSessionCount.Should().Be(0);
+        }
     }
 }
+
