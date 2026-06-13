@@ -19,18 +19,17 @@ services:
       dockerfile: ./apps/server/api/Dockerfile
     restart: always
     depends_on:
-      - userservice
-      - missionservice
-      - rabbitmq
+      userservice:
+        condition: service_healthy
+      missionservice:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env}
       # Keycloak__BaseUrl must match the public issuer URL minted in client tokens (localhost:8080).
       # Keycloak__InternalBaseUrl is the container/podman internal hostname (keycloak:8080) for JWT validation backchannel queries.
-      Keycloak__BaseUrl: http://localhost:8080
+      Keycloak__BaseUrl: ${SERVICE_URL_KEYCLOAK:-http://localhost:8080}
       Keycloak__InternalBaseUrl: http://keycloak:8080
       Keycloak__Realm: umbral
       Keycloak__Audience: account
@@ -59,15 +58,16 @@ services:
       dockerfile: ./apps/server/userService/Dockerfile
     restart: always
     depends_on:
-      - keycloak
-      - postgres
-      - rabbitmq
+      keycloak:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:5020
       # Keycloak__BaseUrl must match the public issuer URL minted in client tokens (localhost:8080).
       # Keycloak__InternalBaseUrl is the container/podman internal hostname (keycloak:8080) for JWT validation backchannel queries.
-      Keycloak__BaseUrl: http://localhost:8080
+      Keycloak__BaseUrl: ${SERVICE_URL_KEYCLOAK:-http://localhost:8080}
       Keycloak__InternalBaseUrl: http://keycloak:8080
       Keycloak__Realm: umbral
       Keycloak__Audience: account
@@ -75,8 +75,8 @@ services:
       Keycloak__AdminClientSecret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:?set KEYCLOAK_ADMIN_CLIENT_SECRET in .env}
       RabbitMq__Host: rabbitmq
       RabbitMq__Port: 5672
-      RabbitMq__Username: ${RABBITMQ_DEFAULT_USER:-guest}
-      RabbitMq__Password: ${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env}
+      RabbitMq__Username: ${SERVICE_USER_RABBITMQ:-${RABBITMQ_DEFAULT_USER:-guest}}
+      RabbitMq__Password: ${SERVICE_PASSWORD_RABBITMQ:-${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env}}
       RabbitMq__ExchangeName: umbral.users
     ports:
       - 5020:5020
@@ -100,16 +100,18 @@ services:
       dockerfile: ./apps/server/missionService/Dockerfile
     restart: always
     depends_on:
-      - postgres
-      - keycloak
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:5022
-      Keycloak__BaseUrl: http://localhost:8080
+      Keycloak__BaseUrl: ${SERVICE_URL_KEYCLOAK:-http://localhost:8080}
       Keycloak__InternalBaseUrl: http://keycloak:8080
       Keycloak__Realm: umbral
       Keycloak__Audience: account
-      ConnectionStrings__DefaultConnection: Host=postgres;Database=missionservice_db;Username=${POSTGRES_USER:-umbral_db_user};Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=missionservice_db;Username=${SERVICE_USER_POSTGRES:-${POSTGRES_USER:-umbral_db_user}};Password=${SERVICE_PASSWORD_POSTGRES:-${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}}
     ports:
       - 5022:5022
     healthcheck:
@@ -138,21 +140,23 @@ services:
       - 5672:5672
       - 15672:15672
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env}
+      RABBITMQ_DEFAULT_USER: ${SERVICE_USER_RABBITMQ:-${RABBITMQ_DEFAULT_USER:-guest}}
+      RABBITMQ_DEFAULT_PASS: ${SERVICE_PASSWORD_RABBITMQ:-${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env}}
     networks:
       - app_network
 
   keycloak:
     container_name: umbral-keycloak
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.1
     command: start-dev
     environment:
       KC_HEALTH_ENABLED: true
-      KC_HOSTNAME: http://localhost:8080
-      KC_HOSTNAME_ADMIN: http://localhost:8080
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD in .env}
+      KC_HOSTNAME: ${SERVICE_URL_KEYCLOAK:-localhost}
+      KC_HTTP_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${SERVICE_USER_ADMIN:-${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${SERVICE_PASSWORD_ADMIN:-${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD in .env}}
+      KC_PROXY_HEADERS: xforwarded
+      TZ: ${TIMEZONE:-UTC}
     ports:
       - 8080:8080
     restart: always
@@ -160,6 +164,15 @@ services:
       - app_network
     volumes:
       - keycloak-data:/opt/keycloak/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/9000; echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost:9000\\r\\nConnection: close\\r\\n\\r\\n' >&3;cat <&3 | grep -q '\"status\": \"UP\"' && exit 0 || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres:
     image: postgres:18
@@ -167,8 +180,8 @@ services:
     restart: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-umbral_db}
-      POSTGRES_USER: ${POSTGRES_USER:-umbral_db_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_USER: ${SERVICE_USER_POSTGRES:-${POSTGRES_USER:-umbral_db_user}}
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES:-${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}}
       POSTGRES_MULTIPLE_DATABASES: userservice_db,missionservice_db
     ports:
       - 5432:5432
@@ -177,22 +190,11 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql
       - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
-
-  # native:
-  #   container_name: umbral-native
-  #   build:
-  #     context: .
-  #     dockerfile: ./apps/native/Dockerfile
-  #   env_file:
-  #   - ./apps/native/.env
-  #   restart: always
-  #   ports:
-  #     - 8081:8081
-  #     - 19000:19000
-  #     - 19001:19001
-  #     - 19002:19002
-  #   networks:
-  #     - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-umbral_db_user} -d $${POSTGRES_DB:-umbral_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   keycloak-data:
