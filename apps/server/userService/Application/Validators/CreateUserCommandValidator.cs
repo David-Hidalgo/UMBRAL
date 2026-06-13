@@ -15,13 +15,9 @@ namespace UserService.Application.Validators
                 .NotEmpty().WithMessage("Name is required.")
                 .MaximumLength(200).WithMessage("Name cannot exceed 200 characters.");
 
-            RuleFor(x => x.Password)
-                .NotEmpty().WithMessage("Password is required.")
-                .MinimumLength(8).WithMessage("Password must be at least 8 characters.");
-
             RuleFor(x => x.Role)
-                .Must(r => r is "admin" or "operator" or "player")
-                .WithMessage("Role must be 'admin', 'operator', or 'player'.");
+                .Must(r => r is "admin" or "operator")
+                .WithMessage("Role must be 'admin' or 'operator'. Players self-register via the mobile app.");
         }
     }
 }

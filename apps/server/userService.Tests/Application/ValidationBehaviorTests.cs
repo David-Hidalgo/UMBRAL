@@ -16,7 +16,7 @@ namespace UserService.Tests.Application;
 public class ValidationBehaviorTests
 {
     private static readonly CreateUserCommand ValidCommand =
-        new("test@umbral.io", "Test User", "Password123!");
+        new("test@umbral.io", "Test User");
 
     // MediatR 14: RequestHandlerDelegate<TResponse> toma CancellationToken = default
     private static Task<Guid> NextDelegate(CancellationToken ct = default)
@@ -141,8 +141,8 @@ public class ValidationBehaviorTests
         // Arrange
         var failures = new List<ValidationFailure>
         {
-            new(nameof(CreateUserCommand.Email),    "Email is required."),
-            new(nameof(CreateUserCommand.Password), "Password is required.")
+            new(nameof(CreateUserCommand.Email), "Email is required."),
+            new(nameof(CreateUserCommand.Name), "Name is required.")
         };
 
         var validatorMock = new Mock<IValidator<CreateUserCommand>>(MockBehavior.Strict);

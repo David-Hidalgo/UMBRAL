@@ -56,7 +56,7 @@ public class UserServiceClientTests
     };
 
     private static readonly CreateUserRequest ValidRequest =
-        new("admin@umbral.io", "Admin UMBRAL", "Password123!");
+        new("admin@umbral.io", "Admin UMBRAL");
 
     // ─── Happy path ───────────────────────────────────────────────────────────
 
@@ -223,7 +223,7 @@ public class UserServiceClientTests
     public async Task CreateUserAsync_WithRole_SerializesRoleInBody()
     {
         // Arrange
-        var request = new CreateUserRequest("admin@umbral.io", "Admin UMBRAL", "Password123!", "admin");
+        var request = new CreateUserRequest("admin@umbral.io", "Admin UMBRAL", "admin");
         var handler = new CaptureHandler(OkWithId(Guid.NewGuid()));
         var sut     = BuildSut(handler, NullContextAccessor());
 

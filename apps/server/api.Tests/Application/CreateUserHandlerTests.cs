@@ -28,7 +28,7 @@ public class CreateUserHandlerTests
     }
 
     private static CreateUserRequest ValidRequest() =>
-        new("admin@umbral.io", "Admin UMBRAL", "Password123!");
+        new("admin@umbral.io", "Admin UMBRAL");
 
     private static CreateUserCommand ValidCommand() =>
         new(ValidRequest());
@@ -88,7 +88,6 @@ public class CreateUserHandlerTests
         captured.Should().NotBeNull();
         captured!.Email.Should().Be(command.Request.Email);
         captured.Name.Should().Be(command.Request.Name);
-        captured.Password.Should().Be(command.Request.Password);
         captured.Role.Should().BeNull();
     }
 
@@ -96,7 +95,7 @@ public class CreateUserHandlerTests
     public async Task Handle_WithRoleInRequest_PassesRoleToClient()
     {
         // Arrange
-        var command = new CreateUserCommand(new CreateUserRequest("operator@umbral.io", "Operator UMBRAL", "Password123!", "operator"));
+        var command = new CreateUserCommand(new CreateUserRequest("operator@umbral.io", "Operator UMBRAL", "operator"));
         CreateUserRequest? captured = null;
 
         _clientMock

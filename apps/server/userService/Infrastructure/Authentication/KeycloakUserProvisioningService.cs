@@ -28,7 +28,7 @@ namespace UserService.Infrastructure.Authentication
             _options = options.Value;
         }
 
-        public async Task<string> CreateUserAsync(string email, string name, string password, string role, CancellationToken cancellationToken = default)
+        public async Task<string> CreateUserAsync(string email, string name, string role, CancellationToken cancellationToken = default)
         {
             EnsureConfigured();
 
@@ -41,15 +41,7 @@ namespace UserService.Infrastructure.Authentication
                 firstName = name,
                 enabled = true,
                 emailVerified = false,
-                credentials = new[]
-                {
-                    new
-                    {
-                        type = "password",
-                        value = password,
-                        temporary = false
-                    }
-                }
+                requiredActions = new[] { "UPDATE_PASSWORD", "VERIFY_EMAIL" }
             };
 
             using var request = new HttpRequestMessage(HttpMethod.Post, requestUri)
@@ -78,6 +70,7 @@ namespace UserService.Infrastructure.Authentication
             }
 
             await AssignRealmRoleAsync(accessToken, keycloakUserId, role, cancellationToken);
+            await SendActionEmailAsync(accessToken, keycloakUserId, cancellationToken);
 
             return keycloakUserId;
         }
@@ -183,6 +176,28 @@ namespace UserService.Infrastructure.Authentication
         private static string NormalizeBaseUrl(string baseUrl)
         {
             return baseUrl.TrimEnd('/');
+        }
+
+        private async Task SendActionEmailAsync(string accessToken, string userId, CancellationToken cancellationToken)
+        {
+            var baseUrl = NormalizeBaseUrl(_options.EffectiveInternalBaseUrl);
+            var uri = $"{baseUrl}/admin/realms/{_options.Realm}/users/{userId}/execute-actions-email";
+
+            using var request = new HttpRequestMessage(HttpMethod.Put, uri)
+            {
+                Content = new StringContent(
+                    "[\"UPDATE_PASSWORD\",\"VERIFY_EMAIL\"]",
+                    System.Text.Encoding.UTF8,
+                    "application/json")
+            };
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new InvalidOperationException($"Failed to send action email to user '{userId}': {(int)response.StatusCode}: {body}");
+            }
         }
 
         public async Task<IEnumerable<UserDto>> GetUsersAsync(string? searchTerm = null, string? role = null, CancellationToken cancellationToken = default)

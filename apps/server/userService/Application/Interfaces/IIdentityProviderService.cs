@@ -7,7 +7,7 @@ namespace UserService.Application.Interfaces
 {
     public interface IIdentityProviderService
     {
-        Task<string> CreateUserAsync(string email, string name, string password, string role, CancellationToken cancellationToken = default);
+        Task<string> CreateUserAsync(string email, string name, string role, CancellationToken cancellationToken = default);
         Task<IEnumerable<UserDto>> GetUsersAsync(string? searchTerm = null, string? role = null, CancellationToken cancellationToken = default);
         Task SetUserEnabledAsync(string keycloakUserId, bool enabled, CancellationToken cancellationToken = default);
         Task<UserDto?> GetUserByIdAsync(string keycloakUserId, CancellationToken cancellationToken = default);
