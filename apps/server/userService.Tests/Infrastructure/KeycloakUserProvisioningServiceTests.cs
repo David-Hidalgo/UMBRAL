@@ -54,6 +54,8 @@ public class KeycloakUserProvisioningServiceTests
 
     private static HttpResponseMessage RoleAssigned() => new(HttpStatusCode.NoContent);
 
+    private static HttpResponseMessage ActionEmailOk() => new(HttpStatusCode.NoContent);
+
     // ─── Happy path ───────────────────────────────────────────────────────────
 
     [Fact]
@@ -61,27 +63,27 @@ public class KeycloakUserProvisioningServiceTests
     {
         // Arrange
         const string expectedId = "created-user-guid-abc";
-        var sut = BuildSut(new SequentialHandler(TokenOk(), UserCreated(expectedId), RoleOk(), RoleAssigned()));
+        var sut = BuildSut(new SequentialHandler(TokenOk(), UserCreated(expectedId), RoleOk(), RoleAssigned(), ActionEmailOk()));
 
         // Act
-        var result = await sut.CreateUserAsync("user@umbral.io", "Test User", "Password1!", "player");
+        var result = await sut.CreateUserAsync("user@umbral.io", "Test User", "player");
 
         // Assert
         result.Should().Be(expectedId);
     }
 
     [Fact]
-    public async Task CreateUserAsync_WithValidConfig_MakesFourHttpCalls()
+    public async Task CreateUserAsync_WithValidConfig_MakesFiveHttpCalls()
     {
         // Arrange
-        var handler = new SequentialHandler(TokenOk(), UserCreated(), RoleOk(), RoleAssigned());
+        var handler = new SequentialHandler(TokenOk(), UserCreated(), RoleOk(), RoleAssigned(), ActionEmailOk());
         var sut = BuildSut(handler);
 
         // Act
-        await sut.CreateUserAsync("user@umbral.io", "Test User", "Password1!", "player");
+        await sut.CreateUserAsync("user@umbral.io", "Test User", "player");
 
         // Assert
-        handler.CallCount.Should().Be(4);
+        handler.CallCount.Should().Be(5);
     }
 
     // ─── EnsureConfigured ────────────────────────────────────────────────────
@@ -103,7 +105,7 @@ public class KeycloakUserProvisioningServiceTests
         var sut = BuildSut(new SequentialHandler(), opts);
 
         // Act
-        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "Password1!", "player");
+        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "player");
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -123,7 +125,7 @@ public class KeycloakUserProvisioningServiceTests
         var sut = BuildSut(new SequentialHandler(tokenFailed));
 
         // Act
-        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "Password1!", "player");
+        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "player");
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -141,7 +143,7 @@ public class KeycloakUserProvisioningServiceTests
         var sut = BuildSut(new SequentialHandler(emptyToken));
 
         // Act
-        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "Password1!", "player");
+        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "player");
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -161,7 +163,7 @@ public class KeycloakUserProvisioningServiceTests
         var sut = BuildSut(new SequentialHandler(TokenOk(), conflict));
 
         // Act
-        var act = async () => await sut.CreateUserAsync("existing@umbral.io", "Test", "Password1!", "player");
+        var act = async () => await sut.CreateUserAsync("existing@umbral.io", "Test", "player");
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -176,7 +178,7 @@ public class KeycloakUserProvisioningServiceTests
         var sut = BuildSut(new SequentialHandler(TokenOk(), noLocation));
 
         // Act
-        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "Password1!", "player");
+        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "player");
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -188,15 +190,33 @@ public class KeycloakUserProvisioningServiceTests
     [Fact]
     public async Task CreateUserAsync_WithRole_CallsKeycloakRoleAssignmentApi()
     {
-        // Arrange — token, create user, get role, assign role
-        var handler = new SequentialHandler(TokenOk(), UserCreated(), RoleOk("admin"), RoleAssigned());
+        // Arrange — token, create user, get role, assign role, action email
+        var handler = new SequentialHandler(TokenOk(), UserCreated(), RoleOk("admin"), RoleAssigned(), ActionEmailOk());
         var sut = BuildSut(handler);
 
         // Act
-        await sut.CreateUserAsync("user@umbral.io", "Test User", "Password1!", "admin");
+        await sut.CreateUserAsync("user@umbral.io", "Test User", "admin");
 
-        // Assert — 4 calls: token + create user + get role + assign role
-        handler.CallCount.Should().Be(4);
+        // Assert — 5 calls: token + create user + get role + assign role + action email
+        handler.CallCount.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_WhenActionEmailFails_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var emailFailed = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent("SMTP not configured")
+        };
+        var sut = BuildSut(new SequentialHandler(TokenOk(), UserCreated(), RoleOk(), RoleAssigned(), emailFailed));
+
+        // Act
+        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "operator");
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*action email*");
     }
 
     [Fact]
@@ -210,7 +230,7 @@ public class KeycloakUserProvisioningServiceTests
         var sut = BuildSut(new SequentialHandler(TokenOk(), UserCreated(), roleFailed));
 
         // Act
-        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "Password1!", "nonexistent");
+        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "nonexistent");
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -228,7 +248,7 @@ public class KeycloakUserProvisioningServiceTests
         var sut = BuildSut(new SequentialHandler(TokenOk(), UserCreated(), RoleOk("admin"), assignFailed));
 
         // Act
-        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "Password1!", "admin");
+        var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "admin");
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
