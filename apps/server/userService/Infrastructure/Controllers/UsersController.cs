@@ -30,7 +30,7 @@ namespace UserService.Infrastructure.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
         {
-            var userId = await _mediator.Send(new CreateUserCommand(request.Email, request.Name, request.Password, request.Role ?? "player"), cancellationToken);
+            var userId = await _mediator.Send(new CreateUserCommand(request.Email, request.Name, request.Role ?? "operator"), cancellationToken);
             return Created($"/api/users/{userId}", new { id = userId });
         }
 

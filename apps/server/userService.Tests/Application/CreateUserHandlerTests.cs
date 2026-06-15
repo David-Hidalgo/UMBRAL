@@ -26,13 +26,13 @@ public class CreateUserHandlerTests
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    private static CreateUserCommand ValidCommand(string role = "player") =>
-        new("admin@umbral.io", "Admin UMBRAL", "Password123!", role);
+    private static CreateUserCommand ValidCommand(string role = "operator") =>
+        new("admin@umbral.io", "Admin UMBRAL", role);
 
     private void SetupHappyPath(CreateUserCommand cmd, string externalId = "kc-abc-123")
     {
         _identityMock
-            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Password, cmd.Role, It.IsAny<CancellationToken>()))
+            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Role, It.IsAny<CancellationToken>()))
             .ReturnsAsync(externalId);
 
         _eventBusMock
@@ -64,7 +64,7 @@ public class CreateUserHandlerTests
         UserCreated? capturedEvent = null;
 
         _identityMock
-            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Password, cmd.Role, It.IsAny<CancellationToken>()))
+            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Role, It.IsAny<CancellationToken>()))
             .ReturnsAsync("kc-abc-123");
 
         _eventBusMock
@@ -91,7 +91,7 @@ public class CreateUserHandlerTests
 
         // Assert
         _identityMock.Verify(
-            s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Password, cmd.Role, It.IsAny<CancellationToken>()),
+            s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Role, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -104,7 +104,7 @@ public class CreateUserHandlerTests
         UserCreated? capturedEvent = null;
 
         _identityMock
-            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Password, cmd.Role, It.IsAny<CancellationToken>()))
+            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Role, It.IsAny<CancellationToken>()))
             .ReturnsAsync(externalId);
 
         _eventBusMock
@@ -132,7 +132,7 @@ public class CreateUserHandlerTests
         UserCreated? capturedEvent = null;
 
         _identityMock
-            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Password, cmd.Role, It.IsAny<CancellationToken>()))
+            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Role, It.IsAny<CancellationToken>()))
             .ReturnsAsync(externalId);
 
         _eventBusMock
@@ -174,7 +174,7 @@ public class CreateUserHandlerTests
         var cmd = ValidCommand();
 
         _identityMock
-            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Password, cmd.Role, It.IsAny<CancellationToken>()))
+            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Role, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Keycloak unavailable"));
 
         // Act
@@ -190,7 +190,6 @@ public class CreateUserHandlerTests
     [Theory]
     [InlineData("admin")]
     [InlineData("operator")]
-    [InlineData("player")]
     public async Task Handle_WithExplicitRole_PublishesEventWithThatRole(string role)
     {
         // Arrange
@@ -198,7 +197,7 @@ public class CreateUserHandlerTests
         UserCreated? capturedEvent = null;
 
         _identityMock
-            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Password, cmd.Role, It.IsAny<CancellationToken>()))
+            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Role, It.IsAny<CancellationToken>()))
             .ReturnsAsync("kc-abc-123");
 
         _eventBusMock
@@ -214,34 +213,9 @@ public class CreateUserHandlerTests
         capturedEvent!.Role.Should().Be(role);
     }
 
-    [Fact]
-    public async Task Handle_WithDefaultRole_PublishesEventAsPlayer()
-    {
-        // Arrange
-        var cmd = ValidCommand();
-        UserCreated? capturedEvent = null;
-
-        _identityMock
-            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Password, "player", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("kc-abc-123");
-
-        _eventBusMock
-            .Setup(e => e.PublishAsync(It.IsAny<UserCreated>(), It.IsAny<CancellationToken>()))
-            .Callback<UserCreated, CancellationToken>((evt, _) => capturedEvent = evt)
-            .Returns(Task.CompletedTask);
-
-        // Act
-        await _sut.Handle(cmd, CancellationToken.None);
-
-        // Assert
-        capturedEvent.Should().NotBeNull();
-        capturedEvent!.Role.Should().Be("player");
-    }
-
     [Theory]
     [InlineData("admin")]
     [InlineData("operator")]
-    [InlineData("player")]
     public async Task Handle_WithRole_PublishesEventWithThatRole(string role)
     {
         // Arrange
@@ -249,7 +223,7 @@ public class CreateUserHandlerTests
         UserCreated? capturedEvent = null;
 
         _identityMock
-            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Password, cmd.Role, It.IsAny<CancellationToken>()))
+            .Setup(s => s.CreateUserAsync(cmd.Email, cmd.Name, cmd.Role, It.IsAny<CancellationToken>()))
             .ReturnsAsync("kc-abc-123");
 
         _eventBusMock

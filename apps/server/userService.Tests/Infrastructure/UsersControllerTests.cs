@@ -98,7 +98,7 @@ public class UsersControllerTests
     {
         // Arrange
         var newId = Guid.NewGuid();
-        var request = new CreateUserRequest("test@umbral.io", "Test User", "Password123!");
+        var request = new CreateUserRequest("test@umbral.io", "Test User");
 
         _mediatorMock
             .Setup(m => m.Send(It.IsAny<CreateUserCommand>(), It.IsAny<CancellationToken>()))
@@ -116,7 +116,7 @@ public class UsersControllerTests
     {
         // Arrange
         var newId = Guid.NewGuid();
-        var request = new CreateUserRequest("test@umbral.io", "Test User", "Password123!");
+        var request = new CreateUserRequest("test@umbral.io", "Test User");
 
         _mediatorMock
             .Setup(m => m.Send(It.IsAny<CreateUserCommand>(), It.IsAny<CancellationToken>()))
@@ -134,7 +134,7 @@ public class UsersControllerTests
     {
         // Arrange
         var newId = Guid.NewGuid();
-        var request = new CreateUserRequest("test@umbral.io", "Test User", "Password123!");
+        var request = new CreateUserRequest("test@umbral.io", "Test User");
 
         _mediatorMock
             .Setup(m => m.Send(It.IsAny<CreateUserCommand>(), It.IsAny<CancellationToken>()))
@@ -151,7 +151,7 @@ public class UsersControllerTests
     public async Task Create_SendsCommandWithCorrectData()
     {
         // Arrange
-        var request = new CreateUserRequest("test@umbral.io", "Test User", "Password123!");
+        var request = new CreateUserRequest("test@umbral.io", "Test User");
         CreateUserCommand? captured = null;
 
         _mediatorMock
@@ -166,15 +166,14 @@ public class UsersControllerTests
         captured.Should().NotBeNull();
         captured!.Email.Should().Be(request.Email);
         captured.Name.Should().Be(request.Name);
-        captured.Password.Should().Be(request.Password);
-        captured.Role.Should().Be("player");
+        captured.Role.Should().Be("operator");
     }
 
     [Fact]
     public async Task Create_CallsMediatorExactlyOnce()
     {
         // Arrange
-        var request = new CreateUserRequest("test@umbral.io", "Test User", "Password123!");
+        var request = new CreateUserRequest("test@umbral.io", "Test User");
 
         _mediatorMock
             .Setup(m => m.Send(It.IsAny<CreateUserCommand>(), It.IsAny<CancellationToken>()))
@@ -301,7 +300,7 @@ public class UsersControllerTests
     public async Task Create_WhenMediatorThrows_PropagatesException()
     {
         // Arrange
-        var request = new CreateUserRequest("test@umbral.io", "Test User", "Password123!");
+        var request = new CreateUserRequest("test@umbral.io", "Test User");
 
         _mediatorMock
             .Setup(m => m.Send(It.IsAny<CreateUserCommand>(), It.IsAny<CancellationToken>()))
@@ -320,11 +319,10 @@ public class UsersControllerTests
     [Theory]
     [InlineData("admin")]
     [InlineData("operator")]
-    [InlineData("player")]
     public async Task Create_WithExplicitRole_PassesRoleToCommand(string role)
     {
         // Arrange
-        var request = new CreateUserRequest("test@umbral.io", "Test User", "Password123!", role);
+        var request = new CreateUserRequest("test@umbral.io", "Test User", role);
         CreateUserCommand? captured = null;
 
         _mediatorMock
@@ -341,10 +339,10 @@ public class UsersControllerTests
     }
 
     [Fact]
-    public async Task Create_WithNullRole_DefaultsToPlayer()
+    public async Task Create_WithNullRole_DefaultsToOperator()
     {
         // Arrange
-        var request = new CreateUserRequest("test@umbral.io", "Test User", "Password123!");
+        var request = new CreateUserRequest("test@umbral.io", "Test User");
         CreateUserCommand? captured = null;
 
         _mediatorMock
@@ -357,7 +355,7 @@ public class UsersControllerTests
 
         // Assert
         captured.Should().NotBeNull();
-        captured!.Role.Should().Be("player");
+        captured!.Role.Should().Be("operator");
     }
 
     [Fact]

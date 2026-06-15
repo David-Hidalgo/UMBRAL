@@ -22,7 +22,7 @@ namespace UserService.Application.Handlers
         public async Task<Guid> Handle(CreateUserCommand request, CancellationToken cancellationToken)
         {
             var externalId = await _identityProvider.CreateUserAsync(
-                request.Email, request.Name, request.Password, request.Role, cancellationToken);
+                request.Email, request.Name, request.Role, cancellationToken);
 
             var userId = Guid.NewGuid();
             await _eventBus.PublishAsync(

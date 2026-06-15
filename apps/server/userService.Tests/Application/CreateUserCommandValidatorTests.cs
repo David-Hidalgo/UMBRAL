@@ -15,7 +15,7 @@ public class CreateUserCommandValidatorTests
     public void Validate_WithValidCommand_ReturnsNoErrors()
     {
         // Arrange
-        var command = new CreateUserCommand("valid@umbral.io", "Valid User", "Password123!");
+        var command = new CreateUserCommand("valid@umbral.io", "Valid User");
 
         // Act
         var result = _sut.Validate(command);
@@ -33,7 +33,7 @@ public class CreateUserCommandValidatorTests
     public void Validate_WithEmptyEmail_ReturnsEmailError(string email)
     {
         // Arrange
-        var command = new CreateUserCommand(email, "Valid User", "Password123!");
+        var command = new CreateUserCommand(email, "Valid User");
 
         // Act
         var result = _sut.Validate(command);
@@ -49,7 +49,7 @@ public class CreateUserCommandValidatorTests
     public void Validate_WithInvalidEmailFormat_ReturnsEmailError(string email)
     {
         // Arrange
-        var command = new CreateUserCommand(email, "Valid User", "Password123!");
+        var command = new CreateUserCommand(email, "Valid User");
 
         // Act
         var result = _sut.Validate(command);
@@ -67,7 +67,7 @@ public class CreateUserCommandValidatorTests
     public void Validate_WithEmptyName_ReturnsNameError(string name)
     {
         // Arrange
-        var command = new CreateUserCommand("valid@umbral.io", name, "Password123!");
+        var command = new CreateUserCommand("valid@umbral.io", name);
 
         // Act
         var result = _sut.Validate(command);
@@ -82,7 +82,7 @@ public class CreateUserCommandValidatorTests
     {
         // Arrange
         var longName = new string('A', 201);
-        var command = new CreateUserCommand("valid@umbral.io", longName, "Password123!");
+        var command = new CreateUserCommand("valid@umbral.io", longName);
 
         // Act
         var result = _sut.Validate(command);
@@ -97,7 +97,7 @@ public class CreateUserCommandValidatorTests
     {
         // Arrange
         var maxName = new string('A', 200);
-        var command = new CreateUserCommand("valid@umbral.io", maxName, "Password123!");
+        var command = new CreateUserCommand("valid@umbral.io", maxName);
 
         // Act
         var result = _sut.Validate(command);
@@ -106,65 +106,20 @@ public class CreateUserCommandValidatorTests
         result.Errors.Should().NotContain(e => e.PropertyName == nameof(CreateUserCommand.Name));
     }
 
-    // ─── Password validation ──────────────────────────────────────────────────
-
-    [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Validate_WithEmptyPassword_ReturnsPasswordError(string password)
-    {
-        // Arrange
-        var command = new CreateUserCommand("valid@umbral.io", "Valid User", password);
-
-        // Act
-        var result = _sut.Validate(command);
-
-        // Assert
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateUserCommand.Password));
-    }
-
-    [Fact]
-    public void Validate_WithPasswordShorterThan8Chars_ReturnsPasswordError()
-    {
-        // Arrange
-        var command = new CreateUserCommand("valid@umbral.io", "Valid User", "Short1");
-
-        // Act
-        var result = _sut.Validate(command);
-
-        // Assert
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateUserCommand.Password));
-    }
-
-    [Fact]
-    public void Validate_WithPasswordOf8Chars_ReturnsNoPasswordError()
-    {
-        // Arrange
-        var command = new CreateUserCommand("valid@umbral.io", "Valid User", "Pass123!");
-
-        // Act
-        var result = _sut.Validate(command);
-
-        // Assert
-        result.Errors.Should().NotContain(e => e.PropertyName == nameof(CreateUserCommand.Password));
-    }
-
     // ─── Multiple errors ──────────────────────────────────────────────────────
 
     [Fact]
     public void Validate_WithAllFieldsInvalid_ReturnsMultipleErrors()
     {
         // Arrange
-        var command = new CreateUserCommand("", "", "");
+        var command = new CreateUserCommand("", "");
 
         // Act
         var result = _sut.Validate(command);
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().HaveCountGreaterThanOrEqualTo(3);
+        result.Errors.Should().HaveCountGreaterThanOrEqualTo(2);
     }
 
     // ─── Role validation ──────────────────────────────────────────────────────
@@ -172,11 +127,10 @@ public class CreateUserCommandValidatorTests
     [Theory]
     [InlineData("admin")]
     [InlineData("operator")]
-    [InlineData("player")]
     public void Validate_WithValidRole_ReturnsNoRoleError(string role)
     {
         // Arrange
-        var command = new CreateUserCommand("valid@umbral.io", "Valid User", "Password123!", role);
+        var command = new CreateUserCommand("valid@umbral.io", "Valid User", role);
 
         // Act
         var result = _sut.Validate(command);
@@ -193,7 +147,21 @@ public class CreateUserCommandValidatorTests
     public void Validate_WithInvalidRole_ReturnsRoleError(string role)
     {
         // Arrange
-        var command = new CreateUserCommand("valid@umbral.io", "Valid User", "Password123!", role);
+        var command = new CreateUserCommand("valid@umbral.io", "Valid User", role);
+
+        // Act
+        var result = _sut.Validate(command);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateUserCommand.Role));
+    }
+
+    [Fact]
+    public void Validate_WithPlayerRole_ReturnsRoleError()
+    {
+        // Arrange
+        var command = new CreateUserCommand("valid@umbral.io", "Valid User", "player");
 
         // Act
         var result = _sut.Validate(command);
@@ -206,8 +174,8 @@ public class CreateUserCommandValidatorTests
     [Fact]
     public void Validate_WithDefaultRole_ReturnsNoRoleError()
     {
-        // Arrange — default role is "player"
-        var command = new CreateUserCommand("valid@umbral.io", "Valid User", "Password123!");
+        // Arrange — default role is "operator"
+        var command = new CreateUserCommand("valid@umbral.io", "Valid User");
 
         // Act
         var result = _sut.Validate(command);

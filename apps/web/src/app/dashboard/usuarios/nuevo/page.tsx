@@ -20,20 +20,18 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/auth-provider";
 import { RoleGuard } from "@/components/role-guard";
 
-type AppRole = "admin" | "operator" | "player";
+type AppRole = "admin" | "operator";
 
 interface FormState {
 	name: string;
 	email: string;
-	password: string;
 	role: AppRole;
 }
 
 const EMPTY_FORM: FormState = {
 	name: "",
 	email: "",
-	password: "",
-	role: "player",
+	role: "operator",
 };
 
 function CreateUserForm() {
@@ -51,7 +49,7 @@ function CreateUserForm() {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
+		if (!form.name.trim() || !form.email.trim()) {
 			toast.error("Completa todos los campos obligatorios.");
 			return;
 		}
@@ -76,7 +74,6 @@ function CreateUserForm() {
 				body: JSON.stringify({
 					name: form.name,
 					email: form.email,
-					password: form.password,
 					role: form.role,
 				}),
 			});
@@ -126,7 +123,10 @@ function CreateUserForm() {
 						<UserPlus className="size-4 text-primary" />
 						Datos del usuario
 					</CardTitle>
-					<CardDescription>Todos los campos son obligatorios.</CardDescription>
+					<CardDescription>
+						La contraseña temporal se genera automáticamente y el usuario deberá
+						cambiarla en su primer acceso.
+					</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
@@ -158,19 +158,6 @@ function CreateUserForm() {
 						</div>
 
 						<div className="space-y-1.5">
-							<Label htmlFor="password">Contraseña temporal</Label>
-							<Input
-								id="password"
-								name="password"
-								type="password"
-								placeholder="••••••••"
-								value={form.password}
-								onChange={handleChange}
-								disabled={loading}
-							/>
-						</div>
-
-						<div className="space-y-1.5">
 							<Label htmlFor="role">Rol</Label>
 							<select
 								id="role"
@@ -182,7 +169,6 @@ function CreateUserForm() {
 							>
 								<option value="admin">Administrador</option>
 								<option value="operator">Operador</option>
-								<option value="player">Jugador</option>
 							</select>
 						</div>
 
