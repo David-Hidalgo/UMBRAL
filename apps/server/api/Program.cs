@@ -65,17 +65,27 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("WebClient", policy =>
     {
-        var allowedOrigins =
-            builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-            ?? [];
+        if (builder.Environment.IsDevelopment())
+        {
+            policy
+                .AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+        else
+        {
+            var allowedOrigins =
+                builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                ?? [];
 
-        if (allowedOrigins.Length == 0)
-            allowedOrigins = ["http://localhost:3000"];
+            if (allowedOrigins.Length == 0)
+                allowedOrigins = ["http://localhost:3000"];
 
-        policy
-            .WithOrigins(allowedOrigins)
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+            policy
+                .WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
     });
 });
 
