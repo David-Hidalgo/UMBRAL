@@ -209,7 +209,7 @@ public class KeycloakUserProvisioningServiceTests
         {
             Content = new StringContent("SMTP not configured")
         };
-        var sut = BuildSut(new SequentialHandler(TokenOk(), UserCreated(), RoleOk(), RoleAssigned(), emailFailed));
+        var sut = BuildSut(new SequentialHandler(TokenOk(), UserCreated(), RoleOk("operator"), RoleAssigned(), emailFailed));
 
         // Act
         var act = async () => await sut.CreateUserAsync("u@u.io", "Test", "operator");

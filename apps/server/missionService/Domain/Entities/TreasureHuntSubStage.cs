@@ -47,5 +47,20 @@ namespace MissionService.Domain.Entities
 
             return th;
         }
+
+        public void UpdateDetails(string objective, string secretCode)
+        {
+            if (string.IsNullOrWhiteSpace(objective))
+                throw new ArgumentException("Treasure hunt objective cannot be empty.", nameof(objective));
+            if (string.IsNullOrWhiteSpace(secretCode))
+                throw new ArgumentException("Secret code cannot be empty.", nameof(secretCode));
+            if (secretCode.Length > 100)
+                throw new ArgumentException("Secret code cannot exceed 100 characters.", nameof(secretCode));
+            if (!System.Text.RegularExpressions.Regex.IsMatch(secretCode, "^[a-zA-Z0-9-]+$"))
+                throw new ArgumentException("Secret code must be alphanumeric and can contain hyphens.", nameof(secretCode));
+
+            Objective = objective;
+            SecretCode = secretCode.Trim().ToUpperInvariant();
+        }
     }
 }

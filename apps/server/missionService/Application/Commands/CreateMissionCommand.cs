@@ -25,25 +25,29 @@ namespace MissionService.Application.Commands
         string Type, // "Trivia" o "TreasureHunt"
         int Points,
         // Campos para Trivia (exactamente 1 pregunta)
-        CreateQuestionCommand? Question,
+        CreateQuestionCommand? Question = null,
         // Campos para TreasureHunt
-        string? Objective,
-        string? SecretCode,
-        List<CreateClueCommand>? Clues // Opcionales en ambos ahora
+        string? Objective = null,
+        string? SecretCode = null,
+        List<CreateClueCommand>? Clues = null,
+        Guid? Id = null
     );
 
     public sealed record CreateQuestionCommand(
         string Text,
-        List<CreateAnswerCommand> Answers
+        List<CreateAnswerCommand> Answers,
+        Guid? Id = null
     );
 
     public sealed record CreateAnswerCommand(
         string Text,
-        bool IsCorrect
+        bool IsCorrect,
+        Guid? Id = null
     );
 
     public sealed record CreateClueCommand(
         string Text,
-        int Order
+        int Order,
+        Guid? Id = null
     );
 }

@@ -25,5 +25,13 @@ namespace MissionService.Domain.Entities
                 IsCorrect = isCorrect
             };
         }
+
+        public void Update(string text, bool isCorrect)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                throw new ArgumentException("Answer text cannot be empty.", nameof(text));
+            Text = text;
+            IsCorrect = isCorrect;
+        }
     }
 }

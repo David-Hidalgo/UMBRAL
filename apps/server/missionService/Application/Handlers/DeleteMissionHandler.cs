@@ -26,8 +26,8 @@ namespace MissionService.Application.Handlers
                 throw new MissionNotFoundException(request.Id);
             }
 
-            // Guard: Cannot delete mission if it or any of its stages have active sessions
-            if (mission.Status.IsInUse || mission.Stages.Any(s => s.Status.IsInUse))
+            // Guard: No se puede eliminar la misión si ella o alguna de sus etapas tienen sesiones activas
+            if (mission.IsInUse)
             {
                 throw new MissionHasActiveSessionsException(request.Id);
             }

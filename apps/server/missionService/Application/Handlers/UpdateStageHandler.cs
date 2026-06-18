@@ -28,57 +28,103 @@ namespace MissionService.Application.Handlers
                 throw new MissionNotFoundException(request.MissionId);
             }
 
-            var domainSubStages = new List<SubStage>();
+            var stage = mission.Stages.FirstOrDefault(s => s.Id == request.StageId);
+            if (stage == null)
+            {
+                throw new StageNotFoundException(request.StageId);
+            }
 
+            stage.Update(request.Name, request.Description);
+
+            // 1. Eliminar las subetapas (substages) que no estén presentes en la lista de actualización entrante
+            var incomingIds = request.SubStages.Where(s => s.Id.HasValue).Select(s => s.Id!.Value).ToHashSet();
+            var subStagesToRemove = stage.SubStages.Where(s => !incomingIds.Contains(s.Id)).ToList();
+            foreach (var subStageToRemove in subStagesToRemove)
+            {
+                stage.RemoveSubStage(subStageToRemove.Id);
+            }
+
+            // 2. Procesar las subetapas entrantes (actualizar o agregar)
             foreach (var ssc in request.SubStages)
             {
+                SubStage? existingSubStage = null;
+                if (ssc.Id.HasValue)
+                {
+                    existingSubStage = stage.SubStages.FirstOrDefault(s => s.Id == ssc.Id.Value);
+                }
+
                 var domainClues = new List<Clue>();
                 if (ssc.Clues != null)
                 {
                     foreach (var cc in ssc.Clues)
                     {
-                        var clue = Clue.Create(Guid.NewGuid(), cc.Text, cc.Order);
-                        domainClues.Add(clue);
+                        var clueId = cc.Id ?? Guid.NewGuid();
+                        domainClues.Add(Clue.Create(clueId, cc.Text, cc.Order));
                     }
                 }
 
-                if (ssc.Type.Equals("Trivia", StringComparison.OrdinalIgnoreCase))
+                if (existingSubStage != null)
                 {
-                    if (ssc.Question == null)
-                        throw new ArgumentException("Trivia sub-stage must have a question.");
+                    // Actualizar existente
+                    existingSubStage.Update(ssc.Title, ssc.Order, ssc.Points);
+                    existingSubStage.UpdateClues(domainClues);
 
-                    var domainAnswers = (ssc.Question.Answers ?? [])
-                        .Select(ac => Answer.Create(Guid.NewGuid(), ac.Text, ac.IsCorrect))
-                        .ToList();
+                    if (existingSubStage is TriviaSubStage triviaSubStage)
+                    {
+                        if (ssc.Question == null)
+                            throw new ArgumentException("Trivia sub-stage must have a question.");
 
-                    var question = Question.Create(Guid.NewGuid(), ssc.Question.Text, domainAnswers);
+                        var domainAnswers = (ssc.Question.Answers ?? [])
+                            .Select(ac => Answer.Create(ac.Id ?? Guid.NewGuid(), ac.Text, ac.IsCorrect))
+                            .ToList();
 
-                    var triviaSubStage = TriviaSubStage.Create(
-                        Guid.NewGuid(),
-                        ssc.Title,
-                        ssc.Order,
-                        ssc.Points,
-                        question,
-                        domainClues
-                    );
-                    domainSubStages.Add(triviaSubStage);
+                        triviaSubStage.UpdateQuestion(ssc.Question.Text, domainAnswers);
+                    }
+                    else if (existingSubStage is TreasureHuntSubStage treasureHuntSubStage)
+                    {
+                        treasureHuntSubStage.UpdateDetails(ssc.Objective ?? string.Empty, ssc.SecretCode ?? string.Empty);
+                    }
                 }
-                else if (ssc.Type.Equals("TreasureHunt", StringComparison.OrdinalIgnoreCase))
+                else
                 {
-                    var treasureHuntSubStage = TreasureHuntSubStage.Create(
-                        Guid.NewGuid(),
-                        ssc.Title,
-                        ssc.Order,
-                        ssc.Points,
-                        ssc.Objective ?? string.Empty,
-                        ssc.SecretCode ?? string.Empty,
-                        domainClues
-                    );
-                    domainSubStages.Add(treasureHuntSubStage);
+                    // Agregar nueva
+                    var newSubStageId = ssc.Id ?? Guid.NewGuid();
+                    if (ssc.Type.Equals("Trivia", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (ssc.Question == null)
+                            throw new ArgumentException("Trivia sub-stage must have a question.");
+
+                        var domainAnswers = (ssc.Question.Answers ?? [])
+                            .Select(ac => Answer.Create(ac.Id ?? Guid.NewGuid(), ac.Text, ac.IsCorrect))
+                            .ToList();
+
+                        var question = Question.Create(ssc.Question.Id ?? Guid.NewGuid(), ssc.Question.Text, domainAnswers);
+
+                        var triviaSubStage = TriviaSubStage.Create(
+                            newSubStageId,
+                            ssc.Title,
+                            ssc.Order,
+                            ssc.Points,
+                            question,
+                            domainClues
+                        );
+                        stage.AddSubStage(triviaSubStage);
+                    }
+                    else if (ssc.Type.Equals("TreasureHunt", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var treasureHuntSubStage = TreasureHuntSubStage.Create(
+                            newSubStageId,
+                            ssc.Title,
+                            ssc.Order,
+                            ssc.Points,
+                            ssc.Objective ?? string.Empty,
+                            ssc.SecretCode ?? string.Empty,
+                            domainClues
+                        );
+                        stage.AddSubStage(treasureHuntSubStage);
+                    }
                 }
             }
-
-            mission.UpdateStage(request.StageId, request.Name, request.Description, domainSubStages);
 
             await _repository.SaveChangesAsync(cancellationToken);
 

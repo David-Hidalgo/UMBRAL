@@ -13,12 +13,13 @@ namespace MissionService.Domain.Entities
         public string Name { get; private set; } = string.Empty;
         public string Description { get; private set; } = string.Empty;
         public MissionState State { get; private set; } = MissionState.Inactive;
-        public Status Status { get; private set; } = new Status(0);
+
         public DifficultyLevel DifficultyLevel { get; private set; }
         public int MaxTimeMinutes { get; private set; }
 
         private readonly List<Stage> _stages = new();
         public IReadOnlyCollection<Stage> Stages => _stages.AsReadOnly();
+        public bool IsInUse => Stages.Any(s => s.IsInUse);
 
         private Mission() { }
 
@@ -44,7 +45,7 @@ namespace MissionService.Domain.Entities
                 Name = trimmedName,
                 Description = description,
                 State = MissionState.Inactive,
-                Status = new Status(0),
+
                 DifficultyLevel = difficultyLevel,
                 MaxTimeMinutes = maxTimeMinutes
             };
@@ -101,21 +102,17 @@ namespace MissionService.Domain.Entities
 
         public void Deactivate()
         {
-            if (Status.IsInUse)
-                throw new MissionHasActiveSessionsException(Id);
-
-            if (_stages.Any(s => s.Status.IsInUse))
+            if (IsInUse)
                 throw new MissionHasActiveSessionsException(Id);
 
             State = MissionState.Inactive;
         }
 
-        public void IncrementSessionCount() => Status = Status.Increment();
-        public void DecrementSessionCount() => Status = Status.Decrement();
+
 
         public void EnsureCanModify()
         {
-            if (Status.IsInUse)
+            if (IsInUse)
             {
                 throw new MissionActiveException(Id);
             }
@@ -128,7 +125,7 @@ namespace MissionService.Domain.Entities
 
             EnsureCanModify();
 
-            // Validate uniqueness of stage name and order
+            // Validar unicidad del nombre y orden de la etapa
             if (_stages.Any(s => s.Name.Equals(stage.Name, StringComparison.OrdinalIgnoreCase)))
                 throw new ArgumentException($"A stage with the name '{stage.Name}' already exists in this mission.");
             if (_stages.Any(s => s.Order == stage.Order))
@@ -139,13 +136,13 @@ namespace MissionService.Domain.Entities
 
         public void RemoveStage(Guid stageId)
         {
-            EnsureCanModify();
-
             var stage = _stages.FirstOrDefault(s => s.Id == stageId);
             if (stage == null)
                 throw new StageNotFoundException(stageId);
 
             stage.EnsureCanModify();
+
+            EnsureCanModify();
 
             if (_stages.Count <= 1)
                 throw new CannotRemoveLastStageException(Id);
@@ -160,19 +157,19 @@ namespace MissionService.Domain.Entities
             if (stageIdsInOrder == null || stageIdsInOrder.Count != _stages.Count)
                 throw new ArgumentException("Provided stage IDs do not match the stages of this mission.", nameof(stageIdsInOrder));
 
-            // Verify all IDs belong to this mission
+            // Verificar que todos los IDs pertenezcan a esta misión
             foreach (var id in stageIdsInOrder)
             {
                 if (!_stages.Any(s => s.Id == id))
                     throw new ArgumentException($"Stage with ID '{id}' does not belong to this mission.", nameof(stageIdsInOrder));
             }
 
-            // Reorder
+            // Reordenar
             for (int i = 0; i < stageIdsInOrder.Count; i++)
             {
                 var id = stageIdsInOrder[i];
                 var stage = _stages.First(s => s.Id == id);
-                stage.SetOrder(i + 1); // 1-based ordering
+                stage.SetOrder(i + 1); // Ordenamiento basado en 1
             }
         }
 

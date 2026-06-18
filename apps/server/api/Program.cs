@@ -17,6 +17,7 @@ builder.Services.AddSwaggerGenWithAuthSupport(builder.Configuration);
 builder.Services.Configure<KeycloakOptions>(builder.Configuration.GetSection("Keycloak"));
 builder.Services.Configure<UserServiceOptions>(builder.Configuration.GetSection("UserService"));
 builder.Services.Configure<MissionServiceOptions>(builder.Configuration.GetSection("MissionService"));
+builder.Services.Configure<LiveSessionServiceOptions>(builder.Configuration.GetSection("LiveSessionService"));
 
 var keycloakOptions = builder.Configuration.GetSection("Keycloak").Get<KeycloakOptions>() ?? new KeycloakOptions();
 
@@ -34,9 +35,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         if (!string.IsNullOrWhiteSpace(keycloakOptions.Audience))
             options.Audience = keycloakOptions.Audience;
 
-        // Accept both the internal container issuer and the public localhost issuer.
-        // Tokens are minted with the public KC_HOSTNAME (localhost:8080) as issuer,
-        // but in some configs the discovery doc may advertise the internal hostname.
+        // Acepta tanto el emisor del contenedor interno como el emisor público de localhost.
+        // Los tokens se emiten con el KC_HOSTNAME público (localhost:8080) como emisor,
+        // pero en algunas configuraciones el documento de descubrimiento puede anunciar el nombre de host interno.
         if (!string.IsNullOrWhiteSpace(keycloakOptions.BaseUrl) && !string.IsNullOrWhiteSpace(keycloakOptions.Realm))
         {
             var publicIssuer   = $"{keycloakOptions.BaseUrl.TrimEnd('/')}/realms/{keycloakOptions.Realm}";
@@ -44,10 +45,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             options.TokenValidationParameters.ValidIssuers = [publicIssuer, internalIssuer];
         }
 
-        // When running inside Docker, the gateway cannot reach localhost:8080 for
-        // backchannel calls (discovery doc + JWKS fetch). Replace the host with the
-        // internal container name (keycloak:8080) transparently at the HTTP level so
-        // the normal two-step flow (discover → fetch JWKS → populate SigningKeys) works.
+        // Al ejecutar dentro de Docker, el gateway no puede alcanzar localhost:8080 para las
+        // llamadas de backchannel (documento de descubrimiento + obtención de JWKS). Reemplaza el host con el
+        // nombre del contenedor interno (keycloak:8080) de forma transparente a nivel de HTTP para que
+        // el flujo normal de dos pasos (descubrir → obtener JWKS → poblar SigningKeys) funcione.
         var internalBase = keycloakOptions.EffectiveInternalBaseUrl;
         var publicBase   = keycloakOptions.BaseUrl;
 
@@ -65,29 +66,26 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("WebClient", policy =>
     {
-        if (builder.Environment.IsDevelopment())
-        {
-            policy
-                .AllowAnyOrigin()
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-        }
-        else
-        {
-            var allowedOrigins =
-                builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                ?? [];
+        var allowedOrigins =
+            builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? [];
 
-            if (allowedOrigins.Length == 0)
-                allowedOrigins = ["http://localhost:3000"];
-
-            policy
-                .WithOrigins(allowedOrigins)
-                .AllowAnyHeader()
-                .AllowAnyMethod();
+        if (allowedOrigins.Length == 0)
+        {
+            // Fallback por si no hay config: web (3000) y Expo web (8081)
+            allowedOrigins = builder.Environment.IsDevelopment()
+                ? ["http://localhost:3000", "http://localhost:8081"]
+                : ["http://localhost:3000"];
         }
+
+        policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // Requerido por SignalR — incompatible con AllowAnyOrigin()
     });
 });
+
 
 builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>((sp, client) =>
 {
@@ -102,6 +100,16 @@ builder.Services.AddHttpClient<IMissionServiceClient, MissionServiceClient>((sp,
     if (!string.IsNullOrWhiteSpace(opts.BaseUrl))
         client.BaseAddress = new Uri(opts.BaseUrl);
 });
+
+builder.Services.AddHttpClient<ILiveSessionServiceClient, LiveSessionServiceClient>((sp, client) =>
+{
+    var opts = sp.GetRequiredService<IOptions<LiveSessionServiceOptions>>().Value;
+    if (!string.IsNullOrWhiteSpace(opts.BaseUrl))
+        client.BaseAddress = new Uri(opts.BaseUrl);
+});
+
+builder.Services.AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddHealthChecks();
@@ -154,15 +162,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapHealthChecks("/health");
 app.MapControllers();
+app.MapReverseProxy();
 
 app.Run();
 
 /// <summary>
-/// HTTP handler that rewrites backchannel requests from the public Keycloak URL
-/// (e.g. http://localhost:8080) to the internal container hostname
-/// (e.g. http://keycloak:8080). This allows the JWT middleware's standard
-/// two-step flow (fetch discovery doc → fetch JWKS) to work inside Docker
-/// without requiring a custom IConfigurationRetriever.
+/// Handler HTTP que reescribe las solicitudes de backchannel desde la URL pública de Keycloak
+/// (ej. http://localhost:8080) al nombre de host del contenedor interno (ej. http://keycloak:8080).
+/// Esto permite que el flujo estándar de dos pasos del middleware JWT (obtener documento de
+/// descubrimiento → obtener JWKS) funcione dentro de Docker sin requerir un IConfigurationRetriever personalizado.
 /// </summary>
 public class KeycloakInternalRedirectHandler(string publicBaseUrl, string internalBaseUrl) : HttpClientHandler
 {

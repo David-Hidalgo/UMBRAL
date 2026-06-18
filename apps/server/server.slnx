@@ -6,4 +6,6 @@
   <Project Path="userService.Tests/userService.Tests.csproj" />
   <Project Path="missionService/missionService.csproj" />
   <Project Path="missionService.Tests/missionService.Tests.csproj" />
+  <Project Path="liveSessionService/liveSessionService.csproj" />
+  <Project Path="liveSessionService.Tests/liveSessionService.Tests.csproj" />
 </Solution>

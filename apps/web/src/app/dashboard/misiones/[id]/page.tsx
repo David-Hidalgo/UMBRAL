@@ -203,19 +203,23 @@ function mapFormToRequest(form: StageForm, order: number): CreateStageRequest {
 			const hasClues = sub.clues && sub.clues.length > 0;
 			if (sub.type === "Trivia") {
 				return {
+					id: sub.id,
 					title: sub.title,
 					order: sub.order,
 					type: "Trivia",
 					points: Number(sub.points) || 0,
 					question: {
+						id: sub.question.id,
 						text: sub.question.text,
 						answers: sub.question.answers.map((a) => ({
+							id: a.id,
 							text: a.text,
 							isCorrect: a.isCorrect,
 						})),
 					},
 					clues: hasClues
 						? sub.clues.map((c) => ({
+								id: c.id,
 								text: c.text,
 								order: c.order,
 							}))
@@ -223,6 +227,7 @@ function mapFormToRequest(form: StageForm, order: number): CreateStageRequest {
 				};
 			}
 			return {
+				id: sub.id,
 				title: sub.title,
 				order: sub.order,
 				type: "TreasureHunt",
@@ -231,6 +236,7 @@ function mapFormToRequest(form: StageForm, order: number): CreateStageRequest {
 				secretCode: sub.secretCode.trim().toUpperCase(),
 				clues: hasClues
 					? sub.clues.map((c) => ({
+							id: c.id,
 							text: c.text,
 							order: c.order,
 						}))

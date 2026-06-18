@@ -70,8 +70,10 @@ namespace MissionService.Tests.Application
         {
             // Arrange
             var missionId = Guid.NewGuid();
-            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage>());
-            mission.IncrementSessionCount();
+            var subStage = TreasureHuntSubStage.Create(Guid.NewGuid(), "SubStage", 1, 10, "Objective", "CODE-1", null);
+            var stage = Stage.Create(Guid.NewGuid(), "Stage 1", "Description", 0, new List<SubStage> { subStage });
+            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+            subStage.IncrementSessionCount();
             var command = new DeleteMissionCommand(missionId);
 
             _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
@@ -89,9 +91,10 @@ namespace MissionService.Tests.Application
         {
             // Arrange
             var missionId = Guid.NewGuid();
-            var stage = Stage.Create(Guid.NewGuid(), "Stage 1", "Description", 0, new List<SubStage>());
-            stage.IncrementSessionCount();
+            var subStage = TreasureHuntSubStage.Create(Guid.NewGuid(), "SubStage", 1, 10, "Objective", "CODE-1", null);
+            var stage = Stage.Create(Guid.NewGuid(), "Stage 1", "Description", 0, new List<SubStage> { subStage });
             var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+            subStage.IncrementSessionCount();
             var command = new DeleteMissionCommand(missionId);
 
             _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))

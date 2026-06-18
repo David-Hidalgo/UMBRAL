@@ -39,5 +39,17 @@ namespace MissionService.Domain.Entities
 
             return trivia;
         }
+
+        public void UpdateQuestion(string text, List<Answer> newAnswers)
+        {
+            if (Question == null)
+            {
+                Question = Question.Create(Guid.NewGuid(), text, newAnswers);
+            }
+            else
+            {
+                Question.Update(text, newAnswers);
+            }
+        }
     }
 }

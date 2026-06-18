@@ -37,7 +37,7 @@ namespace MissionService.Application.Handlers
                 mission.Name,
                 mission.Description,
                 mission.State.ToString(),
-                mission.Status.ActiveSessionCount,
+                mission.Stages.SelectMany(s => s.SubStages).Sum(ss => ss.Status.ActiveSessionCount),
                 mission.DifficultyLevel.ToString(),
                 mission.MaxTimeMinutes,
                 mission.Stages
@@ -53,7 +53,7 @@ namespace MissionService.Application.Handlers
                 stage.Name,
                 stage.Description,
                 stage.Order,
-                stage.Status.ActiveSessionCount,
+                stage.SubStages.Sum(ss => ss.Status.ActiveSessionCount),
                 stage.SubStages
                     .OrderBy(ss => ss.Order)
                     .Select(MapSubStage)

@@ -82,7 +82,9 @@ builder.Services.AddTransient<IValidator<MissionService.Application.Commands.Reo
 
 // Infrastructure
 builder.Services.AddScoped<IMissionRepository, MissionRepository>();
-builder.Services.AddScoped<IEventBus, NullEventBus>();
+builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"));
+builder.Services.AddSingleton<IEventBus, RabbitMqEventBus>();
+builder.Services.AddHostedService<SessionEventsConsumer>();
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<MissionDbContext>();
 

@@ -25,7 +25,7 @@ namespace MissionService.Domain.Entities
             if (answers == null || answers.Count == 0)
                 throw new ArgumentException("Question must have at least one answer.", nameof(answers));
 
-            // Validate that at least one answer is marked correct
+            // Validar que al menos una respuesta esté marcada como correcta
             if (!answers.Any(a => a.IsCorrect))
                 throw new TriviaRequiresCorrectAnswerException(text);
 
@@ -41,6 +41,40 @@ namespace MissionService.Domain.Entities
             }
 
             return question;
+        }
+
+        public void Update(string text, List<Answer> newAnswers)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                throw new ArgumentException("Question text cannot be empty.", nameof(text));
+            if (newAnswers == null || newAnswers.Count == 0)
+                throw new ArgumentException("Question must have at least one answer.", nameof(newAnswers));
+
+            if (!newAnswers.Any(a => a.IsCorrect))
+                throw new TriviaRequiresCorrectAnswerException(text);
+
+            Text = text;
+
+            // Eliminar las respuestas que no estén en la nueva lista
+            var answersToRemove = _answers.Where(a => !newAnswers.Any(na => na.Id == a.Id)).ToList();
+            foreach (var answer in answersToRemove)
+            {
+                _answers.Remove(answer);
+            }
+
+            // Actualizar existente o agregar nueva
+            foreach (var newAnswer in newAnswers)
+            {
+                var existing = _answers.FirstOrDefault(a => a.Id == newAnswer.Id);
+                if (existing != null)
+                {
+                    existing.Update(newAnswer.Text, newAnswer.IsCorrect);
+                }
+                else
+                {
+                    AddAnswer(newAnswer);
+                }
+            }
         }
 
         private void AddAnswer(Answer answer)

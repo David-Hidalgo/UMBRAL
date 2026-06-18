@@ -18,6 +18,7 @@ public sealed record CreateStageRequest(
 );
 
 public sealed record CreateSubStageRequest(
+    Guid? Id,
     string Title,
     int Order,
     string Type, // "Trivia" o "TreasureHunt"
@@ -29,16 +30,19 @@ public sealed record CreateSubStageRequest(
 );
 
 public sealed record CreateQuestionRequest(
+    Guid? Id,
     string Text,
     List<CreateAnswerRequest> Answers
 );
 
 public sealed record CreateAnswerRequest(
+    Guid? Id,
     string Text,
     bool IsCorrect
 );
 
 public sealed record CreateClueRequest(
+    Guid? Id,
     string Text,
     int Order
 );

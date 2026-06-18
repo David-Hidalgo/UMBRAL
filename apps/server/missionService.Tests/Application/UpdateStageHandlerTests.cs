@@ -168,9 +168,10 @@ namespace MissionService.Tests.Application
             // Arrange
             var missionId = Guid.NewGuid();
             var stageId = Guid.NewGuid();
-            var stage = Stage.Create(stageId, "Name", "Desc", 1, new List<SubStage>());
-            stage.IncrementSessionCount(); // Lock it
+            var subStage = TreasureHuntSubStage.Create(Guid.NewGuid(), "SubStage", 1, 10, "Objective", "CODE-1", null);
+            var stage = Stage.Create(stageId, "Name", "Desc", 1, new List<SubStage> { subStage });
             var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+            subStage.IncrementSessionCount(); // Lock it
             var command = new UpdateStageCommand(missionId, stageId, "New Name", "New Desc", new List<CreateSubStageCommand>());
 
             _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
@@ -211,6 +212,86 @@ namespace MissionService.Tests.Application
 
             // Assert
             await act.Should().ThrowAsync<ArgumentException>().WithMessage("*must have a question*");
+        }
+
+        [Fact]
+        public async Task Handle_Should_Update_SubStage_InPlace_Successfully()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var stageId = Guid.NewGuid();
+            var subStageId = Guid.NewGuid();
+            var questionId = Guid.NewGuid();
+            var answerId = Guid.NewGuid();
+            var clueId = Guid.NewGuid();
+
+            var answer = Answer.Create(answerId, "Old Answer", true);
+            var question = Question.Create(questionId, "Old Question?", new List<Answer> { answer });
+            var clue = Clue.Create(clueId, "Old Clue", 1);
+            var subStage = TriviaSubStage.Create(subStageId, "Old Title", 1, 10, question, new List<Clue> { clue });
+            
+            var stage = Stage.Create(stageId, "Old Stage Name", "Old Stage Desc", 1, new List<SubStage> { subStage });
+            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+
+            var command = new UpdateStageCommand(
+                missionId,
+                stageId,
+                "New Stage Name",
+                "New Stage Desc",
+                new List<CreateSubStageCommand>
+                {
+                    new CreateSubStageCommand(
+                        "New Title",
+                        1,
+                        "Trivia",
+                        20,
+                        new CreateQuestionCommand(
+                            "New Question?",
+                            new List<CreateAnswerCommand> { new CreateAnswerCommand("New Answer", true, answerId) },
+                            questionId
+                        ),
+                        null,
+                        null,
+                        new List<CreateClueCommand>
+                        {
+                            new CreateClueCommand("New Clue", 1, clueId)
+                        },
+                        subStageId
+                    )
+                }
+            );
+
+            _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mission);
+
+            _repositoryMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            stage.Name.Should().Be("New Stage Name");
+            stage.Description.Should().Be("New Stage Desc");
+            stage.SubStages.Should().HaveCount(1);
+            
+            var updatedSubStage = stage.SubStages.Single() as TriviaSubStage;
+            updatedSubStage.Should().NotBeNull();
+            updatedSubStage!.Id.Should().Be(subStageId); // ID preserved
+            updatedSubStage.Title.Should().Be("New Title");
+            updatedSubStage.Points.Should().Be(20);
+            
+            updatedSubStage.Clues.Should().HaveCount(1);
+            updatedSubStage.Clues.Single().Id.Should().Be(clueId); // ID preserved
+            updatedSubStage.Clues.Single().Text.Should().Be("New Clue");
+
+            updatedSubStage.Question.Id.Should().Be(questionId); // ID preserved
+            updatedSubStage.Question.Text.Should().Be("New Question?");
+            updatedSubStage.Question.Answers.Should().HaveCount(1);
+            updatedSubStage.Question.Answers.Single().Id.Should().Be(answerId); // ID preserved
+            updatedSubStage.Question.Answers.Single().Text.Should().Be("New Answer");
+            
+            _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

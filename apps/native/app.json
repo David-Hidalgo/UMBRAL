@@ -1,20 +1,17 @@
 {
-  "expo": {
-    "scheme": "umbral",
-    "userInterfaceStyle": "automatic",
-    "orientation": "default",
-    "web": {
-      "bundler": "metro"
-    },
-    "name": "umbral",
-    "slug": "umbral",
-    "plugins": [
-      "expo-font",
-      "expo-router"
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    }
-  }
+	"expo": {
+		"scheme": "umbral",
+		"userInterfaceStyle": "automatic",
+		"orientation": "default",
+		"web": {
+			"bundler": "metro"
+		},
+		"name": "umbral",
+		"slug": "umbral",
+		"plugins": ["expo-font", "expo-router"],
+		"experiments": {
+			"typedRoutes": true,
+			"reactCompiler": true
+		}
+	}
 }

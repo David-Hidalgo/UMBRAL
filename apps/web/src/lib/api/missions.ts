@@ -70,6 +70,7 @@ export interface CreateStageRequest {
 }
 
 export interface CreateSubStageRequest {
+	id?: string;
 	title: string;
 	order: number;
 	type: "Trivia" | "TreasureHunt";
@@ -81,16 +82,19 @@ export interface CreateSubStageRequest {
 }
 
 export interface CreateQuestionRequest {
+	id?: string;
 	text: string;
 	answers: CreateAnswerRequest[];
 }
 
 export interface CreateAnswerRequest {
+	id?: string;
 	text: string;
 	isCorrect: boolean;
 }
 
 export interface CreateClueRequest {
+	id?: string;
 	text: string;
 	order: number;
 }

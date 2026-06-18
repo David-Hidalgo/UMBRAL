@@ -10,9 +10,9 @@ using MissionService.Domain.RepositoryInterfaces;
 namespace MissionService.Application.Handlers
 {
     /// <summary>
-    /// Handles the read-side GetMissionsQuery.
-    /// Delegates filtering to the repository and maps domain entities to summary DTOs.
-    /// Does not modify state — no SaveChanges call.
+    /// Maneja el lado de lectura de GetMissionsQuery.
+    /// Delega el filtrado al repositorio y mapea las entidades de dominio a DTOs de resumen.
+    /// No modifica el estado — sin llamadas a SaveChanges.
     /// </summary>
     public sealed class GetMissionsHandler : IRequestHandler<GetMissionsQuery, IEnumerable<MissionSummaryDto>>
     {
@@ -37,7 +37,7 @@ namespace MissionService.Application.Handlers
                 m.Name,
                 m.Description,
                 m.State.ToString(),
-                m.Status.ActiveSessionCount,
+                m.Stages.SelectMany(s => s.SubStages).Sum(ss => ss.Status.ActiveSessionCount),
                 m.DifficultyLevel.ToString(),
                 m.MaxTimeMinutes,
                 m.Stages.Count

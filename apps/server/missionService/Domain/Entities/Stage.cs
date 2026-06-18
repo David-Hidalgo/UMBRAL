@@ -12,10 +12,11 @@ namespace MissionService.Domain.Entities
         public string Description { get; private set; } = string.Empty;
         public int Order { get; private set; }
         public Guid MissionId { get; private set; }
-        public Status Status { get; private set; } = new Status(0);
+
 
         private readonly List<SubStage> _subStages = new();
         public IReadOnlyCollection<SubStage> SubStages => _subStages.AsReadOnly();
+        public bool IsInUse => SubStages.Any(ss => ss.Status.IsInUse);
 
         private Stage() { }
 
@@ -71,6 +72,19 @@ namespace MissionService.Domain.Entities
             }
         }
 
+        public void Update(string name, string description)
+        {
+            EnsureCanModify();
+
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Stage name cannot be empty.", nameof(name));
+            if (string.IsNullOrWhiteSpace(description))
+                throw new ArgumentException("Stage description cannot be empty.", nameof(description));
+
+            Name = name;
+            Description = description;
+        }
+
         public void SetOrder(int order)
         {
             if (order < 0)
@@ -78,22 +92,32 @@ namespace MissionService.Domain.Entities
             Order = order;
         }
 
-        public void IncrementSessionCount() => Status = Status.Increment();
-        public void DecrementSessionCount() => Status = Status.Decrement();
+
 
         public void EnsureCanModify()
         {
-            if (Status.IsInUse)
+            if (IsInUse)
             {
                 throw new StageActiveException(Id);
             }
         }
 
-        private void AddSubStage(SubStage subStage)
+        public void AddSubStage(SubStage subStage)
         {
             if (subStage == null)
                 throw new ArgumentNullException(nameof(subStage));
+            EnsureCanModify();
             _subStages.Add(subStage);
+        }
+
+        public void RemoveSubStage(Guid subStageId)
+        {
+            EnsureCanModify();
+            var subStage = _subStages.FirstOrDefault(s => s.Id == subStageId);
+            if (subStage != null)
+            {
+                _subStages.Remove(subStage);
+            }
         }
     }
 }

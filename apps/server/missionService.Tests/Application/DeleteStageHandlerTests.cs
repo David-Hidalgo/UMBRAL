@@ -93,10 +93,11 @@ namespace MissionService.Tests.Application
             var missionId = Guid.NewGuid();
             var stageId1 = Guid.NewGuid();
             var stageId2 = Guid.NewGuid();
-            var stage1 = Stage.Create(stageId1, "Stage 1", "Desc", 1, new List<SubStage>());
-            stage1.IncrementSessionCount(); // Lock it
+            var subStage = TreasureHuntSubStage.Create(Guid.NewGuid(), "SubStage", 1, 10, "Objective", "CODE-1", null);
+            var stage1 = Stage.Create(stageId1, "Stage 1", "Desc", 1, new List<SubStage> { subStage });
             var stage2 = Stage.Create(stageId2, "Stage 2", "Desc", 2, new List<SubStage>());
             var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage1, stage2 });
+            subStage.IncrementSessionCount(); // Lock it
             var command = new DeleteStageCommand(missionId, stageId1);
 
             _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))

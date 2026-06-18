@@ -5,7 +5,8 @@
 		"dev:api": "dotnet watch --project ./api/api.csproj",
 		"dev:userService": "dotnet watch --project ./userService/userService.csproj",
 		"dev:missionService": "dotnet watch --project ./missionService/missionService.csproj",
-		"dev": "bun x concurrently -k -n api,userService,missionService \"bun run dev:api\" \"bun run dev:userService\" \"bun run dev:missionService\"",
+		"dev:liveSessionService": "dotnet watch --project ./liveSessionService/liveSessionService.csproj",
+		"dev": "bun x concurrently -k -n api,userService,missionService,liveSessionService \"bun run dev:api\" \"bun run dev:userService\" \"bun run dev:missionService\" \"bun run dev:liveSessionService\"",
 		"build": "dotnet build ./server.slnx",
 		"test": "dotnet test --settings coverlet.runsettings --collect:\"XPlat Code Coverage\"",
 		"coverage:report": "reportgenerator -reports:\"./*.Tests/TestResults/*/coverage.cobertura.xml\" -targetdir:\"./coveragereport\" \"-reporttypes:TextSummary;Html\"",
@@ -13,6 +14,7 @@
 		"start": "dotnet run --project ./api/api.csproj",
 		"start:api": "dotnet run --project ./api/api.csproj",
 		"start:userService": "dotnet run --project ./userService/userService.csproj",
-		"start:missionService": "dotnet run --project ./missionService/missionService.csproj"
+		"start:missionService": "dotnet run --project ./missionService/missionService.csproj",
+		"start:liveSessionService": "dotnet run --project ./liveSessionService/liveSessionService.csproj"
 	}
 }
