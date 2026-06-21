@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using LiveSessionService.Application.DTOs;
 
-namespace LiveSessionService.Application.Interfaces
+namespace LiveSessionService.Application.Abstractions
 {
     public interface IMissionServiceClient
     {

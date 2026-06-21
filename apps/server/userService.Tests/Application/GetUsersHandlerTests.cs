@@ -6,7 +6,7 @@ using FluentAssertions;
 using Moq;
 using UserService.Application.DTOs;
 using UserService.Application.Handlers;
-using UserService.Application.Interfaces;
+using UserService.Application.Abstractions;
 using UserService.Application.Queries;
 using Xunit;
 

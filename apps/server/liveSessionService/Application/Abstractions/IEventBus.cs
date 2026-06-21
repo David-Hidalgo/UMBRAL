@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace LiveSessionService.Application.Interfaces
+namespace LiveSessionService.Application.Abstractions
 {
     public interface IEventBus
     {

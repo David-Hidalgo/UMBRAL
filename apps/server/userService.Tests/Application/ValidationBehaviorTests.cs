@@ -7,7 +7,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using MediatR;
 using Moq;
-using UserService.Application.Behaviors;
+using UserService.Application.Common;
 using UserService.Application.Commands;
 using Xunit;
 

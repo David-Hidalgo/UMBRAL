@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MissionService.Domain.Entities;
 using MissionService.Domain.Enums;
-using MissionService.Domain.RepositoryInterfaces;
+using MissionService.Domain.Repositories;
 
 namespace MissionService.Infrastructure.Persistence
 {

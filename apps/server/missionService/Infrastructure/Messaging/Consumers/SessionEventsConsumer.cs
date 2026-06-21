@@ -13,7 +13,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using MissionService.Infrastructure.Persistence;
 
-namespace MissionService.Infrastructure.Messaging
+namespace MissionService.Infrastructure.Messaging.Consumers
 {
     public sealed class SessionEventsConsumer : BackgroundService
     {

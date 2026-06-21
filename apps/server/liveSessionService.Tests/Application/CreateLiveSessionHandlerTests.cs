@@ -8,11 +8,11 @@ using Xunit;
 using LiveSessionService.Application.Commands;
 using LiveSessionService.Application.DTOs;
 using LiveSessionService.Application.Handlers;
-using LiveSessionService.Application.Interfaces;
+using LiveSessionService.Application.Abstractions;
 using LiveSessionService.Application.IntegrationEvents;
 using LiveSessionService.Domain.Entities;
 using LiveSessionService.Domain.Exceptions;
-using LiveSessionService.Domain.RepositoryInterfaces;
+using LiveSessionService.Domain.Repositories;
 
 namespace LiveSessionService.Tests.Application
 {

@@ -5,14 +5,15 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
-using MissionService.Application.Behaviors;
+using MissionService.Application.Common;
 using MissionService.Application.Handlers;
 using MissionService.Application.Validators;
 using MissionService.Domain.Exceptions;
-using MissionService.Domain.RepositoryInterfaces;
+using MissionService.Domain.Repositories;
 using MissionService.Infrastructure.Persistence;
-using MissionService.Application.Interfaces;
+using MissionService.Application.Abstractions;
 using MissionService.Infrastructure.Messaging;
+using MissionService.Infrastructure.Messaging.Consumers;
 using shared.Authentication;
 using shared.Extensions;
 

@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UserService.Application.DTOs;
 
-namespace UserService.Application.Interfaces
+namespace UserService.Application.Abstractions
 {
     public interface IIdentityProviderService
     {

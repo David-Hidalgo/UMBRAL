@@ -8,7 +8,7 @@ using UserService.Application.Commands;
 using UserService.Application.DTOs;
 using UserService.Application.Handlers;
 using UserService.Application.IntegrationEvents;
-using UserService.Application.Interfaces;
+using UserService.Application.Abstractions;
 using Xunit;
 
 namespace UserService.Tests.Application;

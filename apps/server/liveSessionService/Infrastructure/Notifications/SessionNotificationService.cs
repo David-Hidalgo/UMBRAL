@@ -2,10 +2,10 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
-using LiveSessionService.Application.Interfaces;
-using LiveSessionService.Infrastructure.Hubs;
+using LiveSessionService.Application.Abstractions;
+using LiveSessionService.Infrastructure.Notifications.Hubs;
 
-namespace LiveSessionService.Infrastructure.Services
+namespace LiveSessionService.Infrastructure.Notifications
 {
     public class SessionNotificationService : ISessionNotificationService
     {

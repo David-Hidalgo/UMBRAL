@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
-namespace LiveSessionService.Infrastructure.Hubs
+namespace LiveSessionService.Infrastructure.Notifications.Hubs
 {
     [Authorize]
     public class LiveSessionHub : Hub

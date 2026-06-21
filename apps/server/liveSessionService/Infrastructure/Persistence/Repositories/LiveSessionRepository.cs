@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using LiveSessionService.Domain.Entities;
 using LiveSessionService.Domain.Enums;
-using LiveSessionService.Domain.RepositoryInterfaces;
+using LiveSessionService.Domain.Repositories;
 
 namespace LiveSessionService.Infrastructure.Persistence
 {

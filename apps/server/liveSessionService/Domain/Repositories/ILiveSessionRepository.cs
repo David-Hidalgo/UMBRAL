@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using LiveSessionService.Domain.Entities;
 
-namespace LiveSessionService.Domain.RepositoryInterfaces
+namespace LiveSessionService.Domain.Repositories
 {
     public interface ILiveSessionRepository
     {

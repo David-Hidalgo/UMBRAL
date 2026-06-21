@@ -6,7 +6,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using UserService.Application.Commands;
 using UserService.Application.IntegrationEvents;
-using UserService.Application.Interfaces;
+using UserService.Application.Abstractions;
 
 namespace UserService.Application.Handlers
 {

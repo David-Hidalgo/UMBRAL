@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using MissionService.Application.Interfaces;
+using MissionService.Application.Abstractions;
 
 namespace MissionService.Infrastructure.Messaging
 {

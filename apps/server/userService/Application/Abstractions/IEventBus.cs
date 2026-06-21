@@ -1,7 +1,6 @@
-using System.Threading;
 using System.Threading.Tasks;
 
-namespace MissionService.Application.Interfaces
+namespace UserService.Application.Abstractions
 {
     public interface IEventBus
     {

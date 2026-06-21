@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MissionService.Domain.Entities;
 
-namespace MissionService.Domain.RepositoryInterfaces
+namespace MissionService.Domain.Repositories
 {
     public interface IMissionRepository
     {

@@ -2,7 +2,7 @@ using System;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using UserService.Application.Interfaces;
+using UserService.Application.Abstractions;
 
 namespace UserService.Infrastructure.Messaging
 {
