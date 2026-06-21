@@ -3,8 +3,8 @@ using System;
 namespace api.Application.DTOs;
 
 /// <summary>
-/// Mirror DTO used by the API Gateway to deserialize the mission list
-/// returned by the MissionService upstream.
+/// DTO espejo utilizado por el API Gateway para deserializar la lista de misiones
+/// devuelta por el MissionService ascendente (upstream).
 /// </summary>
 public sealed record MissionSummaryDto(
     Guid Id,

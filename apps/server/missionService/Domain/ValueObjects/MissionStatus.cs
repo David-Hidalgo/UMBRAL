@@ -1,1 +1,1 @@
-// This file is obsolete. Mission status is now managed by MissionState enum and Status value object.
+// Este archivo está obsoleto. El estado de la misión ahora se maneja mediante el enum MissionState y el objeto de valor Status.

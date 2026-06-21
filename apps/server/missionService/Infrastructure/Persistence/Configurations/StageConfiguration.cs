@@ -14,13 +14,7 @@ namespace MissionService.Infrastructure.Persistence.Configurations
             builder.Property(x => x.Description).HasMaxLength(500).IsRequired();
             builder.Property(x => x.Order).IsRequired();
 
-            builder.OwnsOne(x => x.Status, status =>
-            {
-                status.Property(p => p.ActiveSessionCount)
-                    .HasColumnName("ActiveSessionCount")
-                    .HasDefaultValue(0)
-                    .IsRequired();
-            });
+
 
             builder.HasMany(x => x.SubStages)
                 .WithOne()

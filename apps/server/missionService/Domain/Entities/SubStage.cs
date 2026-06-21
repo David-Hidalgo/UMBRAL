@@ -21,7 +21,43 @@ namespace MissionService.Domain.Entities
         public void IncrementSessionCount() => Status = Status.Increment();
         public void DecrementSessionCount() => Status = Status.Decrement();
 
-        protected void AddClue(Clue clue)
+        public void Update(string title, int order, int points)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                throw new ArgumentException("Substage title cannot be empty.", nameof(title));
+            if (points < 0)
+                throw new ArgumentException("Substage points cannot be negative.", nameof(points));
+
+            Title = title;
+            Order = order;
+            Points = points;
+        }
+
+        public void UpdateClues(List<Clue> newClues)
+        {
+            // Eliminar las pistas que no estén en la nueva lista
+            var cluesToRemove = _clues.Where(c => !newClues.Any(nc => nc.Id == c.Id)).ToList();
+            foreach (var clue in cluesToRemove)
+            {
+                _clues.Remove(clue);
+            }
+
+            // Actualizar existente o agregar nueva
+            foreach (var newClue in newClues)
+            {
+                var existing = _clues.FirstOrDefault(c => c.Id == newClue.Id);
+                if (existing != null)
+                {
+                    existing.Update(newClue.Text, newClue.Order);
+                }
+                else
+                {
+                    AddClue(newClue);
+                }
+            }
+        }
+
+        public void AddClue(Clue clue)
         {
             if (clue == null)
                 throw new ArgumentNullException(nameof(clue));

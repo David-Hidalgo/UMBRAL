@@ -26,7 +26,7 @@ namespace MissionService.Tests.Domain
             // Assert
             mission.Should().NotBeNull();
             mission.State.Should().Be(MissionState.Inactive);
-            mission.Status.ActiveSessionCount.Should().Be(0);
+            mission.IsInUse.Should().BeFalse();
             mission.DifficultyLevel.Should().Be(DifficultyLevel.Beginner);
             mission.MaxTimeMinutes.Should().Be(60);
         }
@@ -54,16 +54,17 @@ namespace MissionService.Tests.Domain
         [Fact]
         public void AddStage_Should_Throw_MissionActiveException_When_Mission_Has_Active_Sessions()
         {
-            // Arrange
+            var subStage = TreasureHuntSubStage.Create(Guid.NewGuid(), "SubStage", 1, 10, "Objective", "CODE-1", null);
+            var activeStage = Stage.Create(Guid.NewGuid(), "Stage 1", "First room", 0, new List<SubStage> { subStage });
             var mission = Mission.Create(
                 Guid.NewGuid(), 
                 "Escape Room", 
                 "Solve mysteries to escape.", 
                 DifficultyLevel.Beginner, 
                 60, 
-                new List<Stage>());
-            mission.IncrementSessionCount();
-            var stage = Stage.Create(Guid.NewGuid(), "Stage 1", "First room", 0, new List<SubStage>());
+                new List<Stage> { activeStage });
+            subStage.IncrementSessionCount();
+            var stage = Stage.Create(Guid.NewGuid(), "Stage 2", "Second room", 1, new List<SubStage>());
 
             // Act
             Action act = () => mission.AddStage(stage);
@@ -181,9 +182,10 @@ namespace MissionService.Tests.Domain
         [Fact]
         public void Deactivate_Should_Throw_When_Mission_Has_Active_Sessions()
         {
-            // Arrange
-            var mission = Mission.Create(Guid.NewGuid(), "Escape Room", "Solve mysteries.", DifficultyLevel.Beginner, 60, new List<Stage>());
-            mission.IncrementSessionCount();
+            var subStage = TreasureHuntSubStage.Create(Guid.NewGuid(), "SubStage", 1, 10, "Objective", "CODE-1", null);
+            var stage = Stage.Create(Guid.NewGuid(), "Stage 1", "First room", 0, new List<SubStage> { subStage });
+            var mission = Mission.Create(Guid.NewGuid(), "Escape Room", "Solve mysteries.", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+            subStage.IncrementSessionCount();
 
             // Act
             Action act = () => mission.Deactivate();

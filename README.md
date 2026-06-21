@@ -102,7 +102,7 @@ umbral/
 - `bun run check`: Run Biome formatting and linting
 
 ## Start
-
+```
  ╭───────────────────────────────────────────────────────────────────────────╮
  │                                                                           │
  │  Next steps                                                               │
@@ -131,3 +131,4 @@ umbral/
  │  https://github.com/AmanVarshney01/create-better-t-stack                  │
  │                                                                           │
  ╰───────────────────────────────────────────────────────────────────────────╯
+ ```

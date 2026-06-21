@@ -229,31 +229,6 @@ namespace missionService.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("MissionService.Domain.Entities.Mission", b =>
-                {
-                    b.OwnsOne("MissionService.Domain.ValueObjects.Status", "Status", b1 =>
-                        {
-                            b1.Property<Guid>("MissionId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<int>("ActiveSessionCount")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("integer")
-                                .HasDefaultValue(0)
-                                .HasColumnName("ActiveSessionCount");
-
-                            b1.HasKey("MissionId");
-
-                            b1.ToTable("Missions");
-
-                            b1.WithOwner()
-                                .HasForeignKey("MissionId");
-                        });
-
-                    b.Navigation("Status")
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("MissionService.Domain.Entities.Question", b =>
                 {
                     b.HasOne("MissionService.Domain.Entities.TriviaSubStage", null)
@@ -269,28 +244,6 @@ namespace missionService.Migrations
                         .WithMany("Stages")
                         .HasForeignKey("MissionId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.OwnsOne("MissionService.Domain.ValueObjects.Status", "Status", b1 =>
-                        {
-                            b1.Property<Guid>("StageId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<int>("ActiveSessionCount")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("integer")
-                                .HasDefaultValue(0)
-                                .HasColumnName("ActiveSessionCount");
-
-                            b1.HasKey("StageId");
-
-                            b1.ToTable("Stages");
-
-                            b1.WithOwner()
-                                .HasForeignKey("StageId");
-                        });
-
-                    b.Navigation("Status")
                         .IsRequired();
                 });
 

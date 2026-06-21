@@ -174,9 +174,11 @@ namespace MissionService.Tests.Application
         {
             // Arrange
             var missionId = Guid.NewGuid();
-            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage>());
-            mission.IncrementSessionCount(); // Lock it
-            var command = new AddStageCommand(missionId, "Stage", "Desc", 1, new List<CreateSubStageCommand>());
+            var subStage = TreasureHuntSubStage.Create(Guid.NewGuid(), "SubStage", 1, 10, "Objective", "CODE-1", null);
+            var stage = Stage.Create(Guid.NewGuid(), "Stage", "Desc", 1, new List<SubStage> { subStage });
+            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+            subStage.IncrementSessionCount(); // Lock it
+            var command = new AddStageCommand(missionId, "New Stage", "Desc", 2, new List<CreateSubStageCommand>());
 
             _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mission);

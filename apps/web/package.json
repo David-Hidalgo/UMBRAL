@@ -8,6 +8,7 @@
 		"start": "next start"
 	},
 	"dependencies": {
+		"@microsoft/signalr": "catalog:",
 		"@umbral/auth": "workspace:*",
 		"@umbral/env": "workspace:*",
 		"@umbral/ui": "workspace:*",

@@ -77,7 +77,7 @@ namespace MissionService.Application.Validators
                 .SetValidator(new ClueCommandValidator())
                 .When(x => x.Clues != null);
 
-            // Conditional validation for Trivia
+            // Validación condicional para Trivia
             When(x => x.Type == "Trivia", () =>
             {
                 RuleFor(x => x.Question)
@@ -88,7 +88,7 @@ namespace MissionService.Application.Validators
                     .When(x => x.Question != null);
             });
 
-            // Conditional validation for Treasure Hunt
+            // Validación condicional para Treasure Hunt
             When(x => x.Type == "TreasureHunt", () =>
             {
                 RuleFor(x => x.Objective)

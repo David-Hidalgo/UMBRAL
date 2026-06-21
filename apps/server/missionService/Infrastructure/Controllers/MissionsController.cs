@@ -67,10 +67,12 @@ namespace MissionService.Infrastructure.Controllers
                         ss.Question != null
                             ? new CreateQuestionCommand(
                                 ss.Question.Text,
-                                (ss.Question.Answers ?? []).Select(a => new CreateAnswerCommand(a.Text, a.IsCorrect)).ToList()
+                                (ss.Question.Answers ?? []).Select(a => new CreateAnswerCommand(a.Text, a.IsCorrect, a.Id)).ToList(),
+                                ss.Question.Id
                             ) : null,
                         ss.Objective, ss.SecretCode,
-                        ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order)).ToList()
+                        ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order, c.Id)).ToList(),
+                        ss.Id
                     )).ToList()
                 )).ToList()
             );
@@ -130,10 +132,12 @@ namespace MissionService.Infrastructure.Controllers
                     ss.Question != null
                         ? new CreateQuestionCommand(
                             ss.Question.Text,
-                            (ss.Question.Answers ?? []).Select(a => new CreateAnswerCommand(a.Text, a.IsCorrect)).ToList()
+                            (ss.Question.Answers ?? []).Select(a => new CreateAnswerCommand(a.Text, a.IsCorrect, a.Id)).ToList(),
+                            ss.Question.Id
                         ) : null,
                     ss.Objective, ss.SecretCode,
-                    ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order)).ToList()
+                    ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order, c.Id)).ToList(),
+                    ss.Id
                 )).ToList()
             );
 
@@ -159,10 +163,12 @@ namespace MissionService.Infrastructure.Controllers
                     ss.Question != null
                         ? new CreateQuestionCommand(
                             ss.Question.Text,
-                            (ss.Question.Answers ?? []).Select(a => new CreateAnswerCommand(a.Text, a.IsCorrect)).ToList()
+                            (ss.Question.Answers ?? []).Select(a => new CreateAnswerCommand(a.Text, a.IsCorrect, a.Id)).ToList(),
+                            ss.Question.Id
                         ) : null,
                     ss.Objective, ss.SecretCode,
-                    ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order)).ToList()
+                    ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order, c.Id)).ToList(),
+                    ss.Id
                 )).ToList()
             );
 

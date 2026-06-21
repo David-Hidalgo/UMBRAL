@@ -23,6 +23,8 @@ services:
         condition: service_healthy
       missionservice:
         condition: service_healthy
+      livesessionservice:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     environment:
@@ -33,9 +35,12 @@ services:
       Keycloak__InternalBaseUrl: http://keycloak:8080
       Keycloak__Realm: umbral
       Keycloak__Audience: account
-      Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+      Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN_0:-http://localhost:3000}
+      Cors__AllowedOrigins__1: ${CORS_ALLOWED_ORIGIN_1:-http://localhost:8081}
       UserService__BaseUrl: http://userservice:5020
       MissionService__BaseUrl: http://missionservice:5022
+      LiveSessionService__BaseUrl: http://livesessionservice:5026
+      ReverseProxy__Clusters__livesessioncluster__Destinations__destination1__Address: http://livesessionservice:5026
     ports:
       - 5018:5018
     healthcheck:
@@ -127,6 +132,48 @@ services:
     networks:
       - app_network
 
+  livesessionservice:
+    container_name: umbral-livesessionservice
+    build:
+      context: .
+      dockerfile: ./apps/server/liveSessionService/Dockerfile
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5026
+      Keycloak__BaseUrl: ${SERVICE_URL_KEYCLOAK:-http://localhost:8080}
+      Keycloak__InternalBaseUrl: http://keycloak:8080
+      Keycloak__Realm: umbral
+      Keycloak__Audience: account
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=livesessionservice_db;Username=${SERVICE_USER_POSTGRES:-${POSTGRES_USER:-umbral_db_user}};Password=${SERVICE_PASSWORD_POSTGRES:-${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}}
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__Username: ${SERVICE_USER_RABBITMQ:-${RABBITMQ_DEFAULT_USER:-guest}}
+      RabbitMq__Password: ${SERVICE_PASSWORD_RABBITMQ:-${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env}}
+      RabbitMq__ExchangeName: umbral.livesessions
+      MissionService__BaseUrl: http://missionservice:5022
+    ports:
+      - 5026:5026
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:5026/health > /dev/null || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - app_network
+
   rabbitmq:
     container_name: umbral-rabbitmq
     image: rabbitmq:3-management
@@ -147,7 +194,7 @@ services:
 
   keycloak:
     container_name: umbral-keycloak
-    image: quay.io/keycloak/keycloak:26.1
+    image: quay.io/keycloak/keycloak:26.6
     command: start-dev
     environment:
       KC_HEALTH_ENABLED: true
@@ -182,7 +229,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-umbral_db}
       POSTGRES_USER: ${SERVICE_USER_POSTGRES:-${POSTGRES_USER:-umbral_db_user}}
       POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES:-${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}}
-      POSTGRES_MULTIPLE_DATABASES: userservice_db,missionservice_db
+      POSTGRES_MULTIPLE_DATABASES: userservice_db,missionservice_db,livesessionservice_db
     ports:
       - 5432:5432
     networks:
@@ -191,7 +238,11 @@ services:
       - postgres-data:/var/lib/postgresql
       - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-umbral_db_user} -d $${POSTGRES_DB:-umbral_db}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER:-umbral_db_user} -d $${POSTGRES_DB:-umbral_db}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -75,6 +75,7 @@ namespace MissionService.Infrastructure.Persistence
             var query = _context.Missions
                 .AsNoTracking()
                 .Include(m => m.Stages)
+                    .ThenInclude(s => s.SubStages)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(searchTerm))

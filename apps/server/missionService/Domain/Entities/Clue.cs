@@ -27,5 +27,16 @@ namespace MissionService.Domain.Entities
                 Order = order
             };
         }
+
+        public void Update(string text, int order)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                throw new ArgumentException("Clue text cannot be empty.", nameof(text));
+            if (order < 0)
+                throw new ArgumentException("Clue order cannot be negative.", nameof(order));
+
+            Text = text;
+            Order = order;
+        }
     }
 }
