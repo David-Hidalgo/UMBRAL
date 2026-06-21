@@ -12,7 +12,7 @@ using LiveSessionService.Application.DTOs;
 using LiveSessionService.Application.Queries;
 using LiveSessionService.Domain.Enums;
 
-namespace LiveSessionService.Infrastructure.Controllers
+namespace LiveSessionService.Presentation.Controllers
 {
     [ApiController]
     [Route("api/sessions")]

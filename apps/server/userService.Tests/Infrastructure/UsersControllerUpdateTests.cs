@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using UserService.Application.Commands;
 using UserService.Application.DTOs;
-using UserService.Infrastructure.Controllers;
+using UserService.Presentation.Controllers;
 using Xunit;
 
 namespace UserService.Tests.Infrastructure;

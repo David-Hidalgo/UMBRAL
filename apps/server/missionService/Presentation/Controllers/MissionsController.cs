@@ -11,7 +11,7 @@ using MissionService.Application.Commands;
 using MissionService.Application.DTOs;
 using MissionService.Application.Queries;
 
-namespace MissionService.Infrastructure.Controllers
+namespace MissionService.Presentation.Controllers
 {
     [ApiController]
     [Route("api/missions")]

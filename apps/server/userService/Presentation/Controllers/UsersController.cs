@@ -10,7 +10,7 @@ using UserService.Application.Commands;
 using UserService.Application.DTOs;
 using UserService.Application.Queries;
 
-namespace UserService.Infrastructure.Controllers
+namespace UserService.Presentation.Controllers
 {
     [ApiController]
     [Route("api/users")]
