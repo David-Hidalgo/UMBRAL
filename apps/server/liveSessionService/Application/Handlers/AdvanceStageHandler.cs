@@ -5,10 +5,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using LiveSessionService.Application.Commands;
-using LiveSessionService.Application.Interfaces;
+using LiveSessionService.Application.Abstractions;
 using LiveSessionService.Application.IntegrationEvents;
 using LiveSessionService.Domain.Exceptions;
-using LiveSessionService.Domain.RepositoryInterfaces;
+using LiveSessionService.Domain.Repositories;
 
 namespace LiveSessionService.Application.Handlers
 {

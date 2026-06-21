@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using MediatR;
 using LiveSessionService.Application.DTOs;
 using LiveSessionService.Application.Queries;
-using LiveSessionService.Domain.RepositoryInterfaces;
+using LiveSessionService.Domain.Repositories;
 
 namespace LiveSessionService.Application.Handlers
 {

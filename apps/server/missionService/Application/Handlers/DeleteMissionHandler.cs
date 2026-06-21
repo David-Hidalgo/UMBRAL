@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using MediatR;
 using MissionService.Application.Commands;
 using MissionService.Domain.Exceptions;
-using MissionService.Domain.RepositoryInterfaces;
+using MissionService.Domain.Repositories;
 
 namespace MissionService.Application.Handlers
 {

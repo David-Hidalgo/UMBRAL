@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
-using LiveSessionService.Application.Interfaces;
+using LiveSessionService.Application.Abstractions;
 
 namespace LiveSessionService.Infrastructure.Messaging
 {

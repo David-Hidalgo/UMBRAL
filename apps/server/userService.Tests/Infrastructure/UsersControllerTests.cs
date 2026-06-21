@@ -11,7 +11,7 @@ using Moq;
 using UserService.Application.Commands;
 using UserService.Application.DTOs;
 using UserService.Application.Queries;
-using UserService.Infrastructure.Controllers;
+using UserService.Presentation.Controllers;
 using Xunit;
 using Unit = MediatR.Unit;
 

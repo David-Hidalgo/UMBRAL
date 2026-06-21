@@ -8,7 +8,7 @@ using MissionService.Application.Commands;
 using MissionService.Domain.Entities;
 using MissionService.Domain.Enums;
 using MissionService.Domain.Exceptions;
-using MissionService.Domain.RepositoryInterfaces;
+using MissionService.Domain.Repositories;
 
 namespace MissionService.Application.Handlers
 {

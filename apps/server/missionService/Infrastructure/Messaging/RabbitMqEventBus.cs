@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
-using MissionService.Application.Interfaces;
+using MissionService.Application.Abstractions;
 
 namespace MissionService.Infrastructure.Messaging
 {

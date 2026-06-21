@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using UserService.Application.DTOs;
-using UserService.Application.Interfaces;
+using UserService.Application.Abstractions;
 using UserService.Application.Queries;
 
 namespace UserService.Application.Handlers

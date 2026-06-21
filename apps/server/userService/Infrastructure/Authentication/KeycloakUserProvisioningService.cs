@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using UserService.Application.DTOs;
-using UserService.Application.Interfaces;
+using UserService.Application.Abstractions;
 using shared.Authentication;
 
 namespace UserService.Infrastructure.Authentication

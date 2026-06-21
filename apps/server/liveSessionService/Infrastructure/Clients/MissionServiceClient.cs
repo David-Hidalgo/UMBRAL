@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using LiveSessionService.Application.DTOs;
-using LiveSessionService.Application.Interfaces;
+using LiveSessionService.Application.Abstractions;
 using LiveSessionService.Domain.Exceptions;
 
 namespace LiveSessionService.Infrastructure.Clients

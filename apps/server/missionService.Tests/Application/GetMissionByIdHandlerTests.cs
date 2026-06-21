@@ -10,7 +10,7 @@ using MissionService.Application.Queries;
 using MissionService.Domain.Entities;
 using MissionService.Domain.Enums;
 using MissionService.Domain.Exceptions;
-using MissionService.Domain.RepositoryInterfaces;
+using MissionService.Domain.Repositories;
 using Xunit;
 
 namespace MissionService.Tests.Application

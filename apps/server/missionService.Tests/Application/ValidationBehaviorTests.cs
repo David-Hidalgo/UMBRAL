@@ -6,7 +6,7 @@ using FluentAssertions;
 using FluentValidation;
 using FluentValidation.Results;
 using MediatR;
-using MissionService.Application.Behaviors;
+using MissionService.Application.Common;
 using MissionService.Application.Commands;
 using Moq;
 using Xunit;

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using MediatR;
 using MissionService.Application.DTOs;
 using MissionService.Application.Queries;
-using MissionService.Domain.RepositoryInterfaces;
+using MissionService.Domain.Repositories;
 
 namespace MissionService.Application.Handlers
 {
