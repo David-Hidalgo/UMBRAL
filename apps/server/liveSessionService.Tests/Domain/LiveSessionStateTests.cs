@@ -137,6 +137,38 @@ namespace LiveSessionService.Tests.Domain
         }
 
         [Fact]
+        public void Cancel_FromScheduled_ShouldTransitionToCancelled()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+
+            // Act
+            session.Cancel();
+
+            // Assert
+            session.Status.Should().Be(LiveSessionStatus.Cancelada);
+            session.State.Should().BeOfType<CancelledState>();
+        }
+
+        [Fact]
+        public void Finish_FromPaused_ShouldTransitionToFinished()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+            session.StartPreparation();
+            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.Activate();
+            session.Pause();
+
+            // Act
+            session.Finish();
+
+            // Assert
+            session.Status.Should().Be(LiveSessionStatus.Finalizada);
+            session.State.Should().BeOfType<FinishedState>();
+        }
+
+        [Fact]
         public void InvalidTransitions_ShouldThrowBusinessException()
         {
             // Arrange
@@ -145,6 +177,117 @@ namespace LiveSessionService.Tests.Domain
             // Act & Assert (Intentar pausar antes de activar)
             Action act = () => session.Pause();
             act.Should().Throw<BusinessException>();
+        }
+
+        [Fact]
+        public void Activate_FromScheduled_ShouldThrowBusinessException()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+
+            // Act & Assert
+            Action act = () => session.Activate();
+            act.Should().Throw<BusinessException>()
+                .WithMessage($"No se puede activar la partida desde el estado {LiveSessionStatus.Programada}.");
+        }
+
+        [Fact]
+        public void RegisterTeam_FromActiveState_ShouldThrowBusinessException()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+            session.StartPreparation();
+            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.Activate();
+
+            // Act & Assert
+            Action act = () => session.RegisterTeam(Team.Create(Guid.NewGuid(), "Otro", session.Id));
+            act.Should().Throw<BusinessException>()
+                .WithMessage($"No se puede registrar equipos en el estado {LiveSessionStatus.Activa}.");
+        }
+
+        [Fact]
+        public void Finish_FromScheduled_ShouldThrowBusinessException()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+
+            // Act & Assert
+            Action act = () => session.Finish();
+            act.Should().Throw<BusinessException>()
+                .WithMessage($"No se puede finalizar la partida desde el estado {LiveSessionStatus.Programada}.");
+        }
+
+        [Fact]
+        public void Resume_FromScheduled_ShouldThrowBusinessException()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+
+            // Act & Assert
+            Action act = () => session.Resume();
+            act.Should().Throw<BusinessException>()
+                .WithMessage($"No se puede reanudar la partida desde el estado {LiveSessionStatus.Programada}.");
+        }
+
+        [Fact]
+        public void StartPreparation_FromActive_ShouldThrowBusinessException()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+            session.StartPreparation();
+            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.Activate();
+
+            // Act & Assert
+            Action act = () => session.StartPreparation();
+            act.Should().Throw<BusinessException>()
+                .WithMessage($"No se puede iniciar preparación desde el estado {LiveSessionStatus.Activa}.");
+        }
+
+        [Fact]
+        public void RegisterTeam_FromPaused_ShouldThrowBusinessException()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+            session.StartPreparation();
+            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.Activate();
+            session.Pause();
+
+            // Act & Assert
+            Action act = () => session.RegisterTeam(Team.Create(Guid.NewGuid(), "Otro", session.Id));
+            act.Should().Throw<BusinessException>()
+                .WithMessage($"No se puede registrar equipos en el estado {LiveSessionStatus.Pausada}.");
+        }
+
+        [Fact]
+        public void StartPreparation_FromFinished_ShouldThrowBusinessException()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+            session.StartPreparation();
+            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.Activate();
+            session.Finish();
+
+            // Act & Assert
+            Action act = () => session.StartPreparation();
+            act.Should().Throw<BusinessException>()
+                .WithMessage($"No se puede iniciar preparación desde el estado {LiveSessionStatus.Finalizada}.");
+        }
+
+        [Fact]
+        public void Cancel_FromCancelled_ShouldThrowBusinessException()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+            session.Cancel();
+
+            // Act & Assert
+            Action act = () => session.Cancel();
+            act.Should().Throw<BusinessException>()
+                .WithMessage($"No se puede cancelar la partida desde el estado {LiveSessionStatus.Cancelada}.");
         }
     }
 }
