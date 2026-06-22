@@ -2,11 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
-using api.Application.Exceptions;
-using api.Application.Interfaces;
-using api.Infrastructure.Clients;
-using MediatR;
-using Microsoft.Extensions.Options;
+// Removed obsolete gateway imports
 using shared.Authentication;
 using shared.Extensions;
 
@@ -15,9 +11,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGenWithAuthSupport(builder.Configuration);
 builder.Services.Configure<KeycloakOptions>(builder.Configuration.GetSection("Keycloak"));
-builder.Services.Configure<UserServiceOptions>(builder.Configuration.GetSection("UserService"));
-builder.Services.Configure<MissionServiceOptions>(builder.Configuration.GetSection("MissionService"));
-builder.Services.Configure<LiveSessionServiceOptions>(builder.Configuration.GetSection("LiveSessionService"));
 
 var keycloakOptions = builder.Configuration.GetSection("Keycloak").Get<KeycloakOptions>() ?? new KeycloakOptions();
 
@@ -59,7 +52,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         }
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
+    options.AddPolicy("AdminOrOperator", policy => policy.RequireRole("admin", "operator"));
+    options.AddPolicy("Authenticated", policy => policy.RequireAuthenticatedUser());
+});
 builder.Services.AddTransient<IClaimsTransformation, KeycloakRoleClaimsTransformation>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddCors(options =>
@@ -87,63 +85,18 @@ builder.Services.AddCors(options =>
 });
 
 
-builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>((sp, client) =>
-{
-    var opts = sp.GetRequiredService<IOptions<UserServiceOptions>>().Value;
-    if (!string.IsNullOrWhiteSpace(opts.BaseUrl))
-        client.BaseAddress = new Uri(opts.BaseUrl);
-});
-
-builder.Services.AddHttpClient<IMissionServiceClient, MissionServiceClient>((sp, client) =>
-{
-    var opts = sp.GetRequiredService<IOptions<MissionServiceOptions>>().Value;
-    if (!string.IsNullOrWhiteSpace(opts.BaseUrl))
-        client.BaseAddress = new Uri(opts.BaseUrl);
-});
-
-builder.Services.AddHttpClient<ILiveSessionServiceClient, LiveSessionServiceClient>((sp, client) =>
-{
-    var opts = sp.GetRequiredService<IOptions<LiveSessionServiceOptions>>().Value;
-    if (!string.IsNullOrWhiteSpace(opts.BaseUrl))
-        client.BaseAddress = new Uri(opts.BaseUrl);
-});
-
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-// Global exception handler — 502 para errores del microservicio downstream, 500 para el resto
+// Global exception handler
 app.UseExceptionHandler(exceptionApp =>
 {
     exceptionApp.Run(async context =>
     {
-        var feature = context.Features.Get<IExceptionHandlerFeature>();
-        if (feature?.Error is UserServiceException usEx)
-        {
-            context.Response.StatusCode = usEx.StatusCode;
-            context.Response.ContentType = "application/json";
-            var responseBody = !string.IsNullOrWhiteSpace(usEx.Content) 
-                ? usEx.Content 
-                : JsonSerializer.Serialize(new { error = usEx.Message });
-            await context.Response.WriteAsync(responseBody);
-            return;
-        }
-
-        if (feature?.Error is MissionServiceException msEx)
-        {
-            context.Response.StatusCode = msEx.StatusCode;
-            context.Response.ContentType = "application/json";
-            var responseBody = !string.IsNullOrWhiteSpace(msEx.Content) 
-                ? msEx.Content 
-                : JsonSerializer.Serialize(new { error = msEx.Message });
-            await context.Response.WriteAsync(responseBody);
-            return;
-        }
-
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = "An unexpected error occurred." }));
@@ -153,7 +106,12 @@ app.UseExceptionHandler(exceptionApp =>
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1"));
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger-users/swagger/v1/swagger.json", "User Service API");
+        options.SwaggerEndpoint("/swagger-missions/swagger/v1/swagger.json", "Mission Service API");
+        options.SwaggerEndpoint("/swagger-sessions/swagger/v1/swagger.json", "Live Session Service API");
+    });
 }
 
 app.UseHttpsRedirection();
@@ -161,7 +119,6 @@ app.UseCors("WebClient");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapHealthChecks("/health");
-app.MapControllers();
 app.MapReverseProxy();
 
 app.Run();
