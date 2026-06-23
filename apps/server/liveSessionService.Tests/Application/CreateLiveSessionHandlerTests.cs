@@ -92,5 +92,26 @@ namespace LiveSessionService.Tests.Application
 
             _repositoryMock.Verify(x => x.AddAsync(It.IsAny<LiveSession>(), It.IsAny<CancellationToken>()), Times.Never);
         }
+
+        [Fact]
+        public async Task Handle_WhenMissionNotFound_ShouldThrowBusinessException()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var command = new CreateLiveSessionCommand(missionId, "Partida 1", null, "jwt");
+
+            _missionClientMock
+                .Setup(x => x.GetMissionByIdAsync(missionId, "jwt", It.IsAny<CancellationToken>()))
+                .ReturnsAsync((MissionClientDto?)null);
+
+            // Act
+            Func<Task> act = () => _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<BusinessException>()
+                .WithMessage("La misión especificada no existe.");
+
+            _repositoryMock.Verify(x => x.AddAsync(It.IsAny<LiveSession>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
     }
 }
