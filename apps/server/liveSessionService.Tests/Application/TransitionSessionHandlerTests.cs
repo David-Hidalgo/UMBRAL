@@ -210,10 +210,14 @@ namespace LiveSessionService.Tests.Application
         }
 
         [Fact]
-        public async Task Handle_CancelFromActive_ShouldThrowBusinessException()
+        public async Task Handle_CancelFromActive_ShouldTransitionToCancelledAndPublishEventWithSubStages()
         {
-            // Arrange — el dominio no permite cancelar desde Activa (rama del handler inalcanzable en producción)
+            // Arrange — cancelar desde Activa es un cierre forzado válido (RB-09 / HU-31);
+            // al venir de Activa se decrementa el conteo de la etapa actual.
             var session = CreateActiveSession();
+            var subStageId = Guid.NewGuid();
+            SetupMissionClient(session.MissionId, subStageId);
+
             _repositoryMock
                 .Setup(r => r.GetByIdAsync(session.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(session);
@@ -221,11 +225,50 @@ namespace LiveSessionService.Tests.Application
             var command = new TransitionSessionCommand(session.Id, LiveSessionStatus.Cancelada, "jwt");
 
             // Act
-            Func<Task> act = () => _handler.Handle(command, CancellationToken.None);
+            await _handler.Handle(command, CancellationToken.None);
 
             // Assert
-            await act.Should().ThrowAsync<BusinessException>()
-                .WithMessage($"No se puede cancelar la partida desde el estado {LiveSessionStatus.Activa}.");
+            session.Status.Should().Be(LiveSessionStatus.Cancelada);
+            session.State.Should().BeOfType<CancelledState>();
+
+            _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+            _eventBusMock.Verify(
+                e => e.PublishAsync(
+                    It.Is<SessionCancelledIntegrationEvent>(ev => ev.SubStageIds.Contains(subStageId)),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+            _notificationMock.Verify(
+                n => n.NotifyStateChangedAsync(session.Id, LiveSessionStatus.Cancelada.ToString(), It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_CancelFromPaused_ShouldTransitionToCancelledAndPublishEventWithSubStages()
+        {
+            // Arrange — cancelar desde Pausada también es válido y decrementa el conteo de la etapa actual.
+            var session = CreateActiveSession();
+            session.Pause();
+            var subStageId = Guid.NewGuid();
+            SetupMissionClient(session.MissionId, subStageId);
+
+            _repositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(session);
+
+            var command = new TransitionSessionCommand(session.Id, LiveSessionStatus.Cancelada, "jwt");
+
+            // Act
+            await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            session.Status.Should().Be(LiveSessionStatus.Cancelada);
+            session.State.Should().BeOfType<CancelledState>();
+
+            _eventBusMock.Verify(
+                e => e.PublishAsync(
+                    It.Is<SessionCancelledIntegrationEvent>(ev => ev.SubStageIds.Contains(subStageId)),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
         }
 
         [Fact]

@@ -16,5 +16,10 @@ namespace LiveSessionService.Domain.States
         {
             session.TransitionTo(new FinishedState());
         }
+
+        public override void Cancel(LiveSession session)
+        {
+            session.TransitionTo(new CancelledState());
+        }
     }
 }
