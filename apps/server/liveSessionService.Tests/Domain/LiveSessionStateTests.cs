@@ -151,6 +151,57 @@ namespace LiveSessionService.Tests.Domain
         }
 
         [Fact]
+        public void Cancel_FromActive_ShouldTransitionToCancelled()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+            session.StartPreparation();
+            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.Activate();
+
+            // Act
+            session.Cancel();
+
+            // Assert
+            session.Status.Should().Be(LiveSessionStatus.Cancelada);
+            session.State.Should().BeOfType<CancelledState>();
+        }
+
+        [Fact]
+        public void Cancel_FromPaused_ShouldTransitionToCancelled()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+            session.StartPreparation();
+            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.Activate();
+            session.Pause();
+
+            // Act
+            session.Cancel();
+
+            // Assert
+            session.Status.Should().Be(LiveSessionStatus.Cancelada);
+            session.State.Should().BeOfType<CancelledState>();
+        }
+
+        [Fact]
+        public void Cancel_FromFinished_ShouldThrowBusinessException()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+            session.StartPreparation();
+            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.Activate();
+            session.Finish();
+
+            // Act & Assert — Finalizada es el único estado terminal que NO admite cancelación (RB-09)
+            Action act = () => session.Cancel();
+            act.Should().Throw<BusinessException>()
+                .WithMessage($"No se puede cancelar la partida desde el estado {LiveSessionStatus.Finalizada}.");
+        }
+
+        [Fact]
         public void Finish_FromPaused_ShouldTransitionToFinished()
         {
             // Arrange
