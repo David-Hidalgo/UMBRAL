@@ -50,6 +50,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             options.BackchannelHttpHandler = new KeycloakInternalRedirectHandler(publicBase, internalBase);
         }
+
+        // El navegador no puede enviar cabeceras en el handshake WebSocket, así que el cliente
+        // de SignalR manda el token por query string. Sin esto, la política "Authenticated" de
+        // la ruta sessionhub rechaza el upgrade con 401 y el transporte cae a long-polling.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization(options =>

@@ -13,28 +13,16 @@ namespace api.Tests;
 /// en YARP (appsettings.json → ReverseProxy.Routes[*].AuthorizationPolicy) bloquean
 /// o permiten solicitudes según el rol del usuario ANTES de reenviar al downstream.
 ///
-/// El gateway devuelve 401/403 por sí mismo; no necesitamos backends reales.
+/// El gateway rechaza con 401/403 por sí mismo. Cuando autoriza, la petición llega al
+/// backend stub de <see cref="StubBackendFixture"/>, que siempre responde 200.
 /// </summary>
-public class YarpAuthorizationTests : IClassFixture<WebApplicationFactory<Program>>
+public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
 {
     private readonly WebApplicationFactory<Program> _factory;
 
-    public YarpAuthorizationTests(WebApplicationFactory<Program> factory)
+    public YarpAuthorizationTests(StubBackendFixture fixture)
     {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
-            {
-                // Reemplaza el esquema JWT por uno de prueba que acepta cualquier
-                // token "Bearer <roles-separados-por-coma>".
-                services.AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = "Test";
-                    options.DefaultChallengeScheme    = "Test";
-                })
-                .AddScheme<AuthenticationSchemeOptions, FakeAuthHandler>("Test", _ => { });
-            });
-        });
+        _factory = fixture.Factory;
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -75,10 +63,9 @@ public class YarpAuthorizationTests : IClassFixture<WebApplicationFactory<Progra
         // Act
         var response = await client.SendAsync(request);
 
-        // Assert — el gateway NO devuelve 401/403; cualquier otro código (incluido 5xx de
-        // "no downstream") indica que la autorización pasó correctamente en el borde.
-        response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
-        response.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
+        // Assert — un 200 sólo puede venir del stub, así que la autorización pasó en el borde.
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            "el gateway debe autorizar la petición y reenviarla al backend stub");
     }
 
     [Theory]
@@ -129,8 +116,8 @@ public class YarpAuthorizationTests : IClassFixture<WebApplicationFactory<Progra
         var response = await client.SendAsync(request);
 
         // Assert
-        response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
-        response.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            "el gateway debe autorizar la petición y reenviarla al backend stub");
     }
 
     [Fact]
@@ -163,8 +150,8 @@ public class YarpAuthorizationTests : IClassFixture<WebApplicationFactory<Progra
         var response = await client.SendAsync(request);
 
         // Assert
-        response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
-        response.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            "el gateway debe autorizar la petición y reenviarla al backend stub");
     }
 
     [Fact]
@@ -210,8 +197,8 @@ public class YarpAuthorizationTests : IClassFixture<WebApplicationFactory<Progra
         var response = await client.SendAsync(request);
 
         // Assert
-        response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
-        response.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            "el gateway debe autorizar la petición y reenviarla al backend stub");
     }
 
     [Fact]
@@ -245,8 +232,8 @@ public class YarpAuthorizationTests : IClassFixture<WebApplicationFactory<Progra
         var response = await client.SendAsync(request);
 
         // Assert
-        response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
-        response.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            "el gateway debe autorizar la petición y reenviarla al backend stub");
     }
 
     [Fact]
@@ -276,8 +263,8 @@ public class YarpAuthorizationTests : IClassFixture<WebApplicationFactory<Progra
         var response = await client.SendAsync(request);
 
         // Assert
-        response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
-        response.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            "el gateway debe autorizar la petición y reenviarla al backend stub");
     }
 
     [Fact]
@@ -306,9 +293,9 @@ public class YarpAuthorizationTests : IClassFixture<WebApplicationFactory<Progra
         // Act
         var response = await client.SendAsync(request);
 
-        // Assert — el gateway no rechaza; el downstream puede devolver cualquier cosa
-        response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
-        response.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
+        // Assert — el gateway no rechaza y la petición llega al stub
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            "el gateway debe autorizar la petición y reenviarla al backend stub");
     }
 
     [Fact]

@@ -26,11 +26,15 @@ public class FakeAuthHandler(
         if (!Request.Headers.TryGetValue("Authorization", out var authHeader))
             return Task.FromResult(AuthenticateResult.NoResult());
 
+        // HttpClient serializa AuthenticationHeaderValue("Bearer", "") como "Bearer" (sin
+        // espacio final), por lo que el caso "autenticado sin roles" llega sin separador.
+        const string scheme = "Bearer";
         var header = authHeader.ToString();
-        if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        if (!header.Equals(scheme, StringComparison.OrdinalIgnoreCase) &&
+            !header.StartsWith(scheme + " ", StringComparison.OrdinalIgnoreCase))
             return Task.FromResult(AuthenticateResult.Fail("Invalid scheme"));
 
-        var token = header["Bearer ".Length..].Trim();
+        var token = header[scheme.Length..].Trim();
 
         var claims = new List<Claim>
         {
