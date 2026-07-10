@@ -37,9 +37,8 @@ services:
       Keycloak__Audience: account
       Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN_0:-http://localhost:3000}
       Cors__AllowedOrigins__1: ${CORS_ALLOWED_ORIGIN_1:-http://localhost:8081}
-      UserService__BaseUrl: http://userservice:5020
-      MissionService__BaseUrl: http://missionservice:5022
-      LiveSessionService__BaseUrl: http://livesessionservice:5026
+      ReverseProxy__Clusters__usercluster__Destinations__destination1__Address: http://userservice:5020
+      ReverseProxy__Clusters__missioncluster__Destinations__destination1__Address: http://missionservice:5022
       ReverseProxy__Clusters__livesessioncluster__Destinations__destination1__Address: http://livesessionservice:5026
     ports:
       - 5018:5018
