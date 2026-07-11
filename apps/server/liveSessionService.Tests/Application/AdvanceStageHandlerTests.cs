@@ -182,6 +182,54 @@ namespace LiveSessionService.Tests.Application
         }
 
         [Fact]
+        public async Task Handle_ShouldResolveSubStagesForTargetStageNotThePreviousOne()
+        {
+            // Regresión: el índice de etapa es base 0, pero el Order de la misión es base 1.
+            // Avanzar al índice 1 debe traer las subetapas de la SEGUNDA etapa (Order=2),
+            // no las de la primera (Order=1). El código anterior devolvía la primera por error.
+            var session = CreateActiveSession();
+            var stage1Sub = Guid.NewGuid();
+            var stage2Sub = Guid.NewGuid();
+            var missionDto = new MissionClientDto(
+                session.MissionId,
+                "Misión",
+                "Active",
+                60,
+                new List<StageClientDto>
+                {
+                    new(Guid.NewGuid(), "Etapa 1", "Desc", 1, new List<SubStageClientDto>
+                    {
+                        new(stage1Sub, "S1", 0, 10)
+                    }),
+                    new(Guid.NewGuid(), "Etapa 2", "Desc", 2, new List<SubStageClientDto>
+                    {
+                        new(stage2Sub, "S2", 0, 10)
+                    })
+                });
+
+            _repositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(session);
+
+            _missionClientMock
+                .Setup(c => c.GetMissionByIdAsync(session.MissionId, "jwt", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(missionDto);
+
+            var command = new AdvanceStageCommand(session.Id, 1, "jwt");
+
+            // Act
+            await _handler.Handle(command, CancellationToken.None);
+
+            // Assert: publica las subetapas de la etapa 2, no las de la 1.
+            _eventBusMock.Verify(
+                e => e.PublishAsync(
+                    It.Is<StageTransitionedIntegrationEvent>(ev =>
+                        ev.NewSubStageIds.Contains(stage2Sub) && !ev.NewSubStageIds.Contains(stage1Sub)),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
         public async Task Handle_WhenSessionNotActive_ShouldThrowBusinessException()
         {
             // Arrange

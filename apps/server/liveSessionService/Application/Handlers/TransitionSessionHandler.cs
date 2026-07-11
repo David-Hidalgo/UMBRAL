@@ -126,19 +126,13 @@ namespace LiveSessionService.Application.Handlers
                 throw new BusinessException("No se pudo obtener la estructura de la misión.");
             }
 
-            var stage = mission.Stages.FirstOrDefault(s => s.Order == stageIndex);
+            // El índice de etapa es base 0 (0 = primera); el Order de la misión es base 1.
+            // Se resuelve por POSICIÓN dentro de las etapas ordenadas por Order, para no
+            // confundir el índice 1 con la etapa Order=1 (que es la primera).
+            var stage = mission.Stages.OrderBy(s => s.Order).ElementAtOrDefault(stageIndex);
             if (stage == null)
             {
-                // Si no se encuentra por Order, intentar por el índice físico de la lista
-                if (stageIndex >= 0 && stageIndex < mission.Stages.Count)
-                {
-                    stage = mission.Stages[stageIndex];
-                }
-            }
-
-            if (stage == null)
-            {
-                throw new BusinessException($"No se encontró la etapa con índice/orden {stageIndex} en la misión.");
+                throw new BusinessException($"No se encontró la etapa con índice {stageIndex} en la misión.");
             }
 
             return stage.SubStages.Select(ss => ss.Id).ToList();
