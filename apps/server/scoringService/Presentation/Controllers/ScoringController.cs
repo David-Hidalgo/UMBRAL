@@ -34,9 +34,8 @@ namespace ScoringService.Presentation.Controllers
         public async Task<IActionResult> SubmitEvidence(
             Guid sessionId, Guid teamId, [FromBody] SubmitEvidenceRequest request, CancellationToken cancellationToken)
         {
-            var jwtToken = HttpContext.Request.Headers.Authorization.ToString();
             var command = new SubmitEvidenceCommand(
-                sessionId, teamId, request.SubStageId, request.Type, request.Payload, jwtToken);
+                sessionId, teamId, request.SubStageId, request.Type, request.Payload);
 
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
@@ -52,8 +51,7 @@ namespace ScoringService.Presentation.Controllers
         public async Task<IActionResult> ValidateEvidence(
             Guid sessionId, Guid submissionId, [FromBody] ValidateEvidenceRequest request, CancellationToken cancellationToken)
         {
-            var jwtToken = HttpContext.Request.Headers.Authorization.ToString();
-            var command = new ValidateEvidenceCommand(sessionId, submissionId, request.IsCorrect, GetActor(), jwtToken);
+            var command = new ValidateEvidenceCommand(sessionId, submissionId, request.IsCorrect, GetActor());
 
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);

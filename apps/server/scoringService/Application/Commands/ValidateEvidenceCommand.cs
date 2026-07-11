@@ -12,6 +12,5 @@ namespace ScoringService.Application.Commands
         Guid SessionId,
         Guid SubmissionId,
         bool IsCorrect,
-        string? Actor,
-        string JwtToken) : IRequest<SubmitEvidenceResultDto>;
+        string? Actor) : IRequest<SubmitEvidenceResultDto>;
 }

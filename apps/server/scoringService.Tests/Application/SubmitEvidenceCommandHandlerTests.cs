@@ -52,7 +52,7 @@ namespace ScoringService.Tests.Application
             => _monitorRepo.Setup(r => r.GetBySessionIdAsync(_sessionId, It.IsAny<CancellationToken>())).ReturnsAsync(monitor);
 
         private SubmitEvidenceCommand Command(SubmissionType type, string payload)
-            => new(_sessionId, _teamId, _subStageId, type, payload, "Bearer token");
+            => new(_sessionId, _teamId, _subStageId, type, payload);
 
         [Fact]
         public async Task Handle_WhenSessionUnknown_ShouldThrowSessionMonitorNotFound()

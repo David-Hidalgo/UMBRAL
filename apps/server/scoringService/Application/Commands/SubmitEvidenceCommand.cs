@@ -14,6 +14,5 @@ namespace ScoringService.Application.Commands
         Guid TeamId,
         Guid SubStageId,
         SubmissionType Type,
-        string Payload,
-        string JwtToken) : IRequest<SubmitEvidenceResultDto>;
+        string Payload) : IRequest<SubmitEvidenceResultDto>;
 }

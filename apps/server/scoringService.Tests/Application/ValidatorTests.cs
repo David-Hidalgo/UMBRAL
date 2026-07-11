@@ -17,7 +17,7 @@ namespace ScoringService.Tests.Application
         public void SubmitEvidence_WithValidCommand_ShouldPass()
         {
             var command = new SubmitEvidenceCommand(
-                Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), SubmissionType.Trivia, "respuesta", "token");
+                Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), SubmissionType.Trivia, "respuesta");
 
             _submitValidator.Validate(command).IsValid.Should().BeTrue();
         }
@@ -26,7 +26,7 @@ namespace ScoringService.Tests.Application
         public void SubmitEvidence_WithEmptyPayload_ShouldFail()
         {
             var command = new SubmitEvidenceCommand(
-                Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), SubmissionType.Trivia, "", "token");
+                Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), SubmissionType.Trivia, "");
 
             _submitValidator.Validate(command).IsValid.Should().BeFalse();
         }
@@ -35,7 +35,7 @@ namespace ScoringService.Tests.Application
         public void SubmitEvidence_WithEmptyIds_ShouldFail()
         {
             var command = new SubmitEvidenceCommand(
-                Guid.Empty, Guid.Empty, Guid.Empty, SubmissionType.Trivia, "x", "token");
+                Guid.Empty, Guid.Empty, Guid.Empty, SubmissionType.Trivia, "x");
 
             _submitValidator.Validate(command).IsValid.Should().BeFalse();
         }
@@ -61,7 +61,7 @@ namespace ScoringService.Tests.Application
         [Fact]
         public void ValidateEvidence_WithEmptyIds_ShouldFail()
         {
-            var command = new ValidateEvidenceCommand(Guid.Empty, Guid.Empty, true, "op", "token");
+            var command = new ValidateEvidenceCommand(Guid.Empty, Guid.Empty, true, "op");
 
             _validateValidator.Validate(command).IsValid.Should().BeFalse();
         }

@@ -55,7 +55,7 @@ namespace ScoringService.Tests.Application
             _scoringRepo.Setup(r => r.GetSubmissionByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((EvidenceSubmission?)null);
 
-            var command = new ValidateEvidenceCommand(_sessionId, Guid.NewGuid(), true, "op", "Bearer t");
+            var command = new ValidateEvidenceCommand(_sessionId, Guid.NewGuid(), true, "op");
 
             Func<Task> act = () => _handler.Handle(command, CancellationToken.None);
 
@@ -72,7 +72,7 @@ namespace ScoringService.Tests.Application
                 .ReturnsAsync(new SubStageContent(_subStageId, SubmissionType.TreasureHunt, 70, new List<Guid>(), "ABC"));
             _broadcaster.Setup(b => b.BroadcastAsync(_sessionId, _teamId, 70, It.IsAny<DateTime>(), It.IsAny<CancellationToken>())).ReturnsAsync(70);
 
-            var command = new ValidateEvidenceCommand(_sessionId, submission.Id, true, "op", "Bearer t");
+            var command = new ValidateEvidenceCommand(_sessionId, submission.Id, true, "op");
             var result = await _handler.Handle(command, CancellationToken.None);
 
             result.Status.Should().Be(nameof(SubmissionStatus.Correct));
@@ -89,7 +89,7 @@ namespace ScoringService.Tests.Application
             _scoringRepo.Setup(r => r.GetScoreEntriesByTeamAsync(_sessionId, _teamId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<ScoreEntry>());
 
-            var command = new ValidateEvidenceCommand(_sessionId, submission.Id, false, "op", "Bearer t");
+            var command = new ValidateEvidenceCommand(_sessionId, submission.Id, false, "op");
             var result = await _handler.Handle(command, CancellationToken.None);
 
             result.Status.Should().Be(nameof(SubmissionStatus.Incorrect));
