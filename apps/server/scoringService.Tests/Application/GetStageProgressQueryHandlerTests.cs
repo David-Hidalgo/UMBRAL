@@ -62,11 +62,15 @@ namespace ScoringService.Tests.Application
                     new(treasure, "B", 50, SubmissionType.TreasureHunt, null, "obj"),
                 });
 
-            // Alfa completó ambas; Bravo solo la trivia.
-            _scoringRepo.Setup(r => r.HasAnySubmissionAsync(sessionId, alfa, trivia, It.IsAny<CancellationToken>())).ReturnsAsync(true);
-            _scoringRepo.Setup(r => r.HasSolvedSubStageAsync(sessionId, alfa, treasure, It.IsAny<CancellationToken>())).ReturnsAsync(true);
-            _scoringRepo.Setup(r => r.HasAnySubmissionAsync(sessionId, bravo, trivia, It.IsAny<CancellationToken>())).ReturnsAsync(true);
-            _scoringRepo.Setup(r => r.HasSolvedSubStageAsync(sessionId, bravo, treasure, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            // Alfa completó ambas (trivia intentada + búsqueda resuelta); Bravo solo la trivia.
+            _scoringRepo
+                .Setup(r => r.GetSubmissionsForSubStagesAsync(sessionId, It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<SubStageSubmissionInfo>
+                {
+                    new(alfa, trivia, SubmissionStatus.Correct),
+                    new(alfa, treasure, SubmissionStatus.Correct),
+                    new(bravo, trivia, SubmissionStatus.Incorrect),
+                });
 
             var result = await CreateHandler().Handle(new GetStageProgressQuery(sessionId), CancellationToken.None);
 

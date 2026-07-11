@@ -45,15 +45,28 @@ namespace ScoringService.Application.Handlers
 
             if (request.TeamId is Guid teamId)
             {
+                // Una sola consulta con los intentos de la sesión para las subetapas activas;
+                // el "cerrado" del equipo se resuelve en memoria (evita N+1).
+                var submissions = await _scoringRepository.GetSubmissionsForSubStagesAsync(
+                    request.SessionId, monitor.ActiveSubStageIds, cancellationToken);
+                var attempted = new HashSet<Guid>();
+                var solved = new HashSet<Guid>();
+                foreach (var s in submissions)
+                {
+                    if (s.TeamId != teamId)
+                        continue;
+                    attempted.Add(s.SubStageId);
+                    if (s.Status == SubmissionStatus.Correct)
+                        solved.Add(s.SubStageId);
+                }
+
                 var marked = new List<PlayerSubStageDto>(subStages.Count);
                 foreach (var subStage in subStages)
                 {
                     // Trivia: cerrada tras cualquier intento. Búsqueda del tesoro: cerrada al resolverla.
                     var closed = subStage.Type == SubmissionType.Trivia
-                        ? await _scoringRepository.HasAnySubmissionAsync(
-                            request.SessionId, teamId, subStage.Id, cancellationToken)
-                        : await _scoringRepository.HasSolvedSubStageAsync(
-                            request.SessionId, teamId, subStage.Id, cancellationToken);
+                        ? attempted.Contains(subStage.Id)
+                        : solved.Contains(subStage.Id);
                     marked.Add(subStage with { Closed = closed });
                 }
                 subStages = marked;

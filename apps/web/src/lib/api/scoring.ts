@@ -78,8 +78,15 @@ async function handleResponse(res: Response): Promise<void> {
 	let errorMsg = `Error del servidor (${res.status})`;
 	try {
 		const json = await res.json();
+		// Orden: primero el mensaje específico (validación de campo), luego el
+		// detalle/título de Problem Details (409/500), y por último genéricos.
 		errorMsg =
-			json.error || json.errors?.[0]?.message || json.message || errorMsg;
+			json.error ||
+			json.errors?.[0]?.message ||
+			json.detail ||
+			json.title ||
+			json.message ||
+			errorMsg;
 	} catch {}
 
 	if (res.status === 401) {

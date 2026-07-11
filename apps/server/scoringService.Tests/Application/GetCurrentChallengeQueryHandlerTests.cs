@@ -58,9 +58,13 @@ namespace ScoringService.Tests.Application
                 });
 
             var teamId = Guid.NewGuid();
-            // Trivia: cierra por cualquier intento (HasAny). Búsqueda: cierra al resolver (HasSolved).
-            _scoringRepo.Setup(r => r.HasAnySubmissionAsync(sessionId, teamId, triviaId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
-            _scoringRepo.Setup(r => r.HasSolvedSubStageAsync(sessionId, teamId, treasureId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            // Trivia: cierra por cualquier intento. Búsqueda: cierra solo al resolver (Correct).
+            _scoringRepo
+                .Setup(r => r.GetSubmissionsForSubStagesAsync(sessionId, It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<SubStageSubmissionInfo>
+                {
+                    new(teamId, triviaId, SubmissionStatus.Incorrect),
+                });
 
             var result = await CreateHandler().Handle(new GetCurrentChallengeQuery(sessionId, teamId), CancellationToken.None);
 

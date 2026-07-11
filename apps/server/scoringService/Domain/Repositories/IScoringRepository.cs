@@ -22,6 +22,11 @@ namespace ScoringService.Domain.Repositories
         /// la Trivia, que es de un solo intento.</summary>
         Task<bool> HasAnySubmissionAsync(Guid sessionId, Guid teamId, Guid subStageId, CancellationToken cancellationToken = default);
 
+        /// <summary>Trae en una sola consulta todos los intentos de la sesión para las subetapas indicadas
+        /// (proyección ligera). Evita el patrón N+1 al calcular el progreso de varios equipos/retos.</summary>
+        Task<IReadOnlyList<SubStageSubmissionInfo>> GetSubmissionsForSubStagesAsync(
+            Guid sessionId, IReadOnlyCollection<Guid> subStageIds, CancellationToken cancellationToken = default);
+
         Task AddScoreEntryAsync(ScoreEntry entry, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<ScoreEntry>> GetScoreEntriesBySessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<ScoreEntry>> GetScoreEntriesByTeamAsync(Guid sessionId, Guid teamId, CancellationToken cancellationToken = default);

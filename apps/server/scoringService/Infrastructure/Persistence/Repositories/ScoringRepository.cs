@@ -44,6 +44,20 @@ namespace ScoringService.Infrastructure.Persistence.Repositories
                         && s.SubStageId == subStageId,
                     cancellationToken);
 
+        public async Task<IReadOnlyList<SubStageSubmissionInfo>> GetSubmissionsForSubStagesAsync(
+            Guid sessionId, IReadOnlyCollection<Guid> subStageIds, CancellationToken cancellationToken = default)
+        {
+            if (subStageIds.Count == 0)
+                return Array.Empty<SubStageSubmissionInfo>();
+
+            var ids = subStageIds.ToArray();
+            return await _context.EvidenceSubmissions
+                .AsNoTracking()
+                .Where(s => s.SessionId == sessionId && ids.Contains(s.SubStageId))
+                .Select(s => new SubStageSubmissionInfo(s.TeamId, s.SubStageId, s.Status))
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task AddScoreEntryAsync(ScoreEntry entry, CancellationToken cancellationToken = default)
             => await _context.ScoreEntries.AddAsync(entry, cancellationToken);
 
