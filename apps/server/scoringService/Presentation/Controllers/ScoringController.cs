@@ -86,6 +86,19 @@ namespace ScoringService.Presentation.Controllers
             return Ok(ranking);
         }
 
+        /// <summary>Reto actual de la sesión para el jugador, sin respuestas correctas (RF-06/08).</summary>
+        [HttpGet("{sessionId:guid}/current-challenge")]
+        [Authorize]
+        [ProducesResponseType(typeof(PlayerChallengeDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetCurrentChallenge(
+            Guid sessionId, [FromQuery] Guid? teamId, CancellationToken cancellationToken)
+        {
+            var challenge = await _mediator.Send(new GetCurrentChallengeQuery(sessionId, teamId), cancellationToken);
+            return Ok(challenge);
+        }
+
         /// <summary>Puntaje actual de un equipo, para la app móvil (RF-06).</summary>
         [HttpGet("{sessionId:guid}/teams/{teamId:guid}/score")]
         [Authorize]
@@ -96,6 +109,18 @@ namespace ScoringService.Presentation.Controllers
         {
             var score = await _mediator.Send(new GetTeamScoreQuery(sessionId, teamId), cancellationToken);
             return Ok(score);
+        }
+
+        /// <summary>Progreso de cada equipo en la etapa actual, para guiar al operador (RF-13).</summary>
+        [HttpGet("{sessionId:guid}/stage-progress")]
+        [Authorize(Roles = "admin,operator")]
+        [ProducesResponseType(typeof(StageProgressDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetStageProgress(Guid sessionId, CancellationToken cancellationToken)
+        {
+            var progress = await _mediator.Send(new GetStageProgressQuery(sessionId), cancellationToken);
+            return Ok(progress);
         }
 
         /// <summary>Historial de auditoría de la sesión (RF-15).</summary>

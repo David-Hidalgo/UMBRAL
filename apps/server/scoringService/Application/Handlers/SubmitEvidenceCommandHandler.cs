@@ -59,13 +59,27 @@ namespace ScoringService.Application.Handlers
             if (!monitor.HasTeam(request.TeamId))
                 throw new TeamNotInSessionException(request.TeamId, request.SessionId);
 
+            // Trivia: un solo intento (aciertes o falles, se cierra). Búsqueda del tesoro:
+            // reintentos hasta acertar, y una vez resuelta no se puede volver a puntuar.
+            if (request.Type == SubmissionType.Trivia)
+            {
+                if (await _scoringRepository.HasAnySubmissionAsync(
+                        request.SessionId, request.TeamId, request.SubStageId, cancellationToken))
+                    throw new TriviaAlreadyAnsweredException(request.SubStageId);
+            }
+            else if (await _scoringRepository.HasSolvedSubStageAsync(
+                         request.SessionId, request.TeamId, request.SubStageId, cancellationToken))
+            {
+                throw new SubStageAlreadySolvedException(request.SubStageId);
+            }
+
             var now = DateTime.UtcNow;
             var submission = EvidenceSubmission.Create(
                 Guid.NewGuid(), request.SessionId, request.TeamId, request.SubStageId,
                 request.Type, request.Payload, now);
 
             var content = await _missionContentClient.GetSubStageContentAsync(
-                monitor.MissionId, request.SubStageId, request.JwtToken, cancellationToken);
+                monitor.MissionId, request.SubStageId, cancellationToken);
 
             ScoreEntry? scoreEntry = null;
             if (content is not null)

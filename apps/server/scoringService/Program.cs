@@ -14,6 +14,7 @@ using ScoringService.Application.Handlers;
 using ScoringService.Application.Validators;
 using ScoringService.Domain.Exceptions;
 using ScoringService.Domain.Repositories;
+using ScoringService.Infrastructure.Auth;
 using ScoringService.Infrastructure.Clients;
 using ScoringService.Infrastructure.Messaging;
 using ScoringService.Infrastructure.Messaging.Consumers;
@@ -102,6 +103,16 @@ builder.Services.AddTransient<IValidator<ValidateEvidenceCommand>, ValidateEvide
 builder.Services.AddTransient<IValidator<ApplyPenaltyCommand>, ApplyPenaltyCommandValidator>();
 
 // --- Cliente HTTP a missionService (contenido de etapas) ---
+// Identidad de servicio (client credentials) para leer el contenido de misiones sin el token del jugador.
+builder.Services.Configure<KeycloakServiceOptions>(options =>
+{
+    options.BaseUrl = keycloakOptions.EffectiveInternalBaseUrl;
+    options.Realm = keycloakOptions.Realm;
+    options.ClientId = builder.Configuration["Keycloak:ServiceClientId"] ?? "scoring-service";
+    options.ClientSecret = builder.Configuration["Keycloak:ServiceClientSecret"] ?? "";
+});
+builder.Services.AddHttpClient<IServiceTokenProvider, KeycloakServiceTokenProvider>();
+
 builder.Services.AddHttpClient<IMissionContentClient, MissionContentClient>();
 
 // --- Mensajería RabbitMQ ---
@@ -193,6 +204,8 @@ static (int Status, string Title, string Detail) MapException(Exception? excepti
     TeamNotInSessionException e => (StatusCodes.Status404NotFound, "Equipo no encontrado en la sesión.", e.Message),
     SessionNotAcceptingEvidenceException e => (StatusCodes.Status409Conflict, "La sesión no acepta evidencias.", e.Message),
     SubmissionAlreadyValidatedException e => (StatusCodes.Status409Conflict, "La evidencia ya fue validada.", e.Message),
+    SubStageAlreadySolvedException e => (StatusCodes.Status409Conflict, "Reto ya resuelto.", e.Message),
+    TriviaAlreadyAnsweredException e => (StatusCodes.Status409Conflict, "Pregunta ya respondida.", e.Message),
     DomainException e => (StatusCodes.Status400BadRequest, "Solicitud inválida.", e.Message),
     _ => (StatusCodes.Status500InternalServerError, "Error interno del servidor.", "Ocurrió un error inesperado.")
 };

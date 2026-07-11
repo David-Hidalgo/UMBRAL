@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ScoringService.Domain.Entities;
+using ScoringService.Domain.Enums;
 using ScoringService.Domain.Repositories;
 using ScoringService.Infrastructure.Persistence.Contexts;
 
@@ -23,6 +24,25 @@ namespace ScoringService.Infrastructure.Persistence.Repositories
 
         public async Task<EvidenceSubmission?> GetSubmissionByIdAsync(Guid submissionId, CancellationToken cancellationToken = default)
             => await _context.EvidenceSubmissions.FirstOrDefaultAsync(s => s.Id == submissionId, cancellationToken);
+
+        public async Task<bool> HasSolvedSubStageAsync(Guid sessionId, Guid teamId, Guid subStageId, CancellationToken cancellationToken = default)
+            => await _context.EvidenceSubmissions
+                .AsNoTracking()
+                .AnyAsync(
+                    s => s.SessionId == sessionId
+                        && s.TeamId == teamId
+                        && s.SubStageId == subStageId
+                        && s.Status == SubmissionStatus.Correct,
+                    cancellationToken);
+
+        public async Task<bool> HasAnySubmissionAsync(Guid sessionId, Guid teamId, Guid subStageId, CancellationToken cancellationToken = default)
+            => await _context.EvidenceSubmissions
+                .AsNoTracking()
+                .AnyAsync(
+                    s => s.SessionId == sessionId
+                        && s.TeamId == teamId
+                        && s.SubStageId == subStageId,
+                    cancellationToken);
 
         public async Task AddScoreEntryAsync(ScoreEntry entry, CancellationToken cancellationToken = default)
             => await _context.ScoreEntries.AddAsync(entry, cancellationToken);

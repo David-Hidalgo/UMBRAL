@@ -15,6 +15,13 @@ namespace ScoringService.Domain.Repositories
         Task AddSubmissionAsync(EvidenceSubmission submission, CancellationToken cancellationToken = default);
         Task<EvidenceSubmission?> GetSubmissionByIdAsync(Guid submissionId, CancellationToken cancellationToken = default);
 
+        /// <summary>Indica si el equipo ya resolvió correctamente esta etapa (anti doble-puntaje).</summary>
+        Task<bool> HasSolvedSubStageAsync(Guid sessionId, Guid teamId, Guid subStageId, CancellationToken cancellationToken = default);
+
+        /// <summary>Indica si el equipo ya envió algún intento (correcto o no) a esta etapa. Se usa para
+        /// la Trivia, que es de un solo intento.</summary>
+        Task<bool> HasAnySubmissionAsync(Guid sessionId, Guid teamId, Guid subStageId, CancellationToken cancellationToken = default);
+
         Task AddScoreEntryAsync(ScoreEntry entry, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<ScoreEntry>> GetScoreEntriesBySessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<ScoreEntry>> GetScoreEntriesByTeamAsync(Guid sessionId, Guid teamId, CancellationToken cancellationToken = default);

@@ -68,7 +68,7 @@ namespace ScoringService.Tests.Application
             var submission = PendingSubmission();
             _scoringRepo.Setup(r => r.GetSubmissionByIdAsync(submission.Id, It.IsAny<CancellationToken>())).ReturnsAsync(submission);
             SetupMonitor();
-            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new SubStageContent(_subStageId, SubmissionType.TreasureHunt, 70, new List<Guid>(), "ABC"));
             _broadcaster.Setup(b => b.BroadcastAsync(_sessionId, _teamId, 70, It.IsAny<DateTime>(), It.IsAny<CancellationToken>())).ReturnsAsync(70);
 

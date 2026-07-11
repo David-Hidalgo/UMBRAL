@@ -221,6 +221,9 @@ services:
       Keycloak__InternalBaseUrl: http://keycloak:8080
       Keycloak__Realm: umbral
       Keycloak__Audience: account
+      # Identidad de servicio del scoring (client credentials) para leer misiones sin el token del jugador.
+      Keycloak__ServiceClientId: ${SCORING_SERVICE_CLIENT_ID:-scoring-service}
+      Keycloak__ServiceClientSecret: ${SCORING_SERVICE_CLIENT_SECRET:-scoring-dev-secret}
       ConnectionStrings__DefaultConnection: Host=postgres;Database=scoringservice_db;Username=${SERVICE_USER_POSTGRES:-${POSTGRES_USER:-umbral_db_user}};Password=${SERVICE_PASSWORD_POSTGRES:-${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}}
       RabbitMq__Host: rabbitmq
       RabbitMq__Port: 5672

@@ -58,7 +58,7 @@ namespace ScoringService.Application.Handlers
             if (request.IsCorrect)
             {
                 var content = await _missionContentClient.GetSubStageContentAsync(
-                    monitor.MissionId, submission.SubStageId, request.JwtToken, cancellationToken)
+                    monitor.MissionId, submission.SubStageId, cancellationToken)
                     ?? throw new InvalidSubmissionException(
                         "No se pudo obtener el puntaje de la etapa desde el servicio de misiones.");
 

@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using Moq;
+using ScoringService.Application.Abstractions;
 using ScoringService.Domain.Enums;
 using ScoringService.Infrastructure.Clients;
 using Xunit;
@@ -44,7 +46,11 @@ namespace ScoringService.Tests.Infrastructure
             var config = new ConfigurationBuilder()
                 .AddInMemoryCollection(new Dictionary<string, string?> { ["MissionService:BaseUrl"] = "http://mission:5022" })
                 .Build();
-            return new MissionContentClient(httpClient, config);
+            var tokenProvider = new Mock<IServiceTokenProvider>();
+            tokenProvider
+                .Setup(t => t.GetTokenAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync("service-token");
+            return new MissionContentClient(httpClient, tokenProvider.Object, config);
         }
 
         [Fact]
@@ -67,7 +73,7 @@ namespace ScoringService.Tests.Infrastructure
             """;
             var client = BuildClient(new StubHandler(HttpStatusCode.OK, json));
 
-            var content = await client.GetSubStageContentAsync(missionId, subId, "Bearer token");
+            var content = await client.GetSubStageContentAsync(missionId, subId);
 
             content.Should().NotBeNull();
             content!.Type.Should().Be(SubmissionType.Trivia);
@@ -93,7 +99,7 @@ namespace ScoringService.Tests.Infrastructure
             """;
             var client = BuildClient(new StubHandler(HttpStatusCode.OK, json));
 
-            var content = await client.GetSubStageContentAsync(missionId, subId, "token");
+            var content = await client.GetSubStageContentAsync(missionId, subId);
 
             content.Should().NotBeNull();
             content!.Type.Should().Be(SubmissionType.TreasureHunt);
@@ -107,7 +113,7 @@ namespace ScoringService.Tests.Infrastructure
         {
             var client = BuildClient(new StubHandler(HttpStatusCode.NotFound, ""));
 
-            var content = await client.GetSubStageContentAsync(Guid.NewGuid(), Guid.NewGuid(), "token");
+            var content = await client.GetSubStageContentAsync(Guid.NewGuid(), Guid.NewGuid());
 
             content.Should().BeNull();
         }
@@ -121,13 +127,49 @@ namespace ScoringService.Tests.Infrastructure
             """;
             var client = BuildClient(new StubHandler(HttpStatusCode.OK, json));
 
-            var content = await client.GetSubStageContentAsync(missionId, Guid.NewGuid(), "token");
+            var content = await client.GetSubStageContentAsync(missionId, Guid.NewGuid());
 
             content.Should().BeNull();
         }
 
         [Fact]
-        public async Task GetSubStageContentAsync_ShouldForwardBearerToken()
+        public async Task GetPlayerSubStagesAsync_ShouldReturnSanitizedContentWithoutAnswers()
+        {
+            var missionId = Guid.NewGuid();
+            var triviaId = Guid.NewGuid();
+            var treasureId = Guid.NewGuid();
+            var json = $$"""
+            {
+              "id": "{{missionId}}",
+              "stages": [
+                { "id": "{{Guid.NewGuid()}}", "subStages": [
+                  { "id": "{{triviaId}}", "title": "Capital", "points": 100, "question": { "id": "{{Guid.NewGuid()}}", "text": "¿Capital?",
+                    "answers": [ { "id": "{{Guid.NewGuid()}}", "text": "París", "isCorrect": true }, { "id": "{{Guid.NewGuid()}}", "text": "Londres", "isCorrect": false } ] } },
+                  { "id": "{{treasureId}}", "title": "Codigo", "points": 50, "objective": "Encuentra la placa", "secretCode": "UMBRAL" }
+                ] }
+              ]
+            }
+            """;
+            var client = BuildClient(new StubHandler(HttpStatusCode.OK, json));
+
+            var subStages = await client.GetPlayerSubStagesAsync(missionId, new[] { triviaId, treasureId });
+
+            subStages.Should().HaveCount(2);
+
+            var trivia = subStages.First(s => s.Id == triviaId);
+            trivia.Type.Should().Be(SubmissionType.Trivia);
+            trivia.Question!.Text.Should().Be("¿Capital?");
+            trivia.Question.Answers.Should().HaveCount(2);
+            trivia.Question.Answers.Should().Contain(a => a.Text == "París");
+
+            var treasure = subStages.First(s => s.Id == treasureId);
+            treasure.Type.Should().Be(SubmissionType.TreasureHunt);
+            treasure.Objective.Should().Be("Encuentra la placa");
+            // PlayerSubStageDto no expone isCorrect ni secretCode: la sanitización es estructural.
+        }
+
+        [Fact]
+        public async Task GetSubStageContentAsync_ShouldAuthenticateWithServiceToken()
         {
             var missionId = Guid.NewGuid();
             var subId = Guid.NewGuid();
@@ -137,10 +179,10 @@ namespace ScoringService.Tests.Infrastructure
             var handler = new StubHandler(HttpStatusCode.OK, json);
             var client = BuildClient(handler);
 
-            await client.GetSubStageContentAsync(missionId, subId, "Bearer abc.def");
+            await client.GetSubStageContentAsync(missionId, subId);
 
             handler.LastRequest!.Headers.Authorization!.Scheme.Should().Be("Bearer");
-            handler.LastRequest.Headers.Authorization.Parameter.Should().Be("abc.def");
+            handler.LastRequest.Headers.Authorization.Parameter.Should().Be("service-token");
         }
     }
 }

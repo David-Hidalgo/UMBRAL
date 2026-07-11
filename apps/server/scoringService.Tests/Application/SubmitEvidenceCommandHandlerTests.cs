@@ -90,11 +90,43 @@ namespace ScoringService.Tests.Application
         }
 
         [Fact]
+        public async Task Handle_WhenTriviaAlreadyAnswered_ShouldThrowAndNotAward()
+        {
+            // Trivia = un solo intento: si ya envió cualquier intento, se rechaza.
+            SetupMonitor(ActiveMonitorWithTeam());
+            _scoringRepo
+                .Setup(r => r.HasAnySubmissionAsync(_sessionId, _teamId, _subStageId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            Func<Task> act = () => _handler.Handle(Command(SubmissionType.Trivia, Guid.NewGuid().ToString()), CancellationToken.None);
+
+            await act.Should().ThrowAsync<TriviaAlreadyAnsweredException>();
+            _scoringRepo.Verify(r => r.AddSubmissionAsync(It.IsAny<EvidenceSubmission>(), It.IsAny<CancellationToken>()), Times.Never);
+            _scoringRepo.Verify(r => r.AddScoreEntryAsync(It.IsAny<ScoreEntry>(), It.IsAny<CancellationToken>()), Times.Never);
+            _broadcaster.Verify(b => b.BroadcastAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Handle_WhenTreasureHuntAlreadySolved_ShouldThrow()
+        {
+            // Búsqueda del tesoro = se cierra al resolverla; los intentos incorrectos sí reintentan.
+            SetupMonitor(ActiveMonitorWithTeam());
+            _scoringRepo
+                .Setup(r => r.HasSolvedSubStageAsync(_sessionId, _teamId, _subStageId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            Func<Task> act = () => _handler.Handle(Command(SubmissionType.TreasureHunt, "UMBRAL"), CancellationToken.None);
+
+            await act.Should().ThrowAsync<SubStageAlreadySolvedException>();
+            _scoringRepo.Verify(r => r.AddSubmissionAsync(It.IsAny<EvidenceSubmission>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
         public async Task Handle_WithCorrectTrivia_ShouldAwardPointsAndBroadcast()
         {
             SetupMonitor(ActiveMonitorWithTeam());
             var answerId = Guid.NewGuid();
-            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new SubStageContent(_subStageId, SubmissionType.Trivia, 100, new List<Guid> { answerId }, null));
             _broadcaster.Setup(b => b.BroadcastAsync(_sessionId, _teamId, 100, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(100);
@@ -115,7 +147,7 @@ namespace ScoringService.Tests.Application
         public async Task Handle_WithIncorrectTrivia_ShouldNotAwardOrBroadcast()
         {
             SetupMonitor(ActiveMonitorWithTeam());
-            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new SubStageContent(_subStageId, SubmissionType.Trivia, 100, new List<Guid> { Guid.NewGuid() }, null));
             _scoringRepo.Setup(r => r.GetScoreEntriesByTeamAsync(_sessionId, _teamId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<ScoreEntry>());
@@ -132,7 +164,7 @@ namespace ScoringService.Tests.Application
         public async Task Handle_WithCorrectTreasureHunt_ShouldNormalizeAndAward()
         {
             SetupMonitor(ActiveMonitorWithTeam());
-            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new SubStageContent(_subStageId, SubmissionType.TreasureHunt, 50, new List<Guid>(), "ABC123"));
             _broadcaster.Setup(b => b.BroadcastAsync(_sessionId, _teamId, 50, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(50);
@@ -147,7 +179,7 @@ namespace ScoringService.Tests.Application
         public async Task Handle_WhenContentUnavailable_ShouldLeavePending()
         {
             SetupMonitor(ActiveMonitorWithTeam());
-            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((SubStageContent?)null);
             _scoringRepo.Setup(r => r.GetScoreEntriesByTeamAsync(_sessionId, _teamId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<ScoreEntry>());
