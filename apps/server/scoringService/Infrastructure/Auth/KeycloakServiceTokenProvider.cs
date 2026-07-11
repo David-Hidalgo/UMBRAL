@@ -64,7 +64,8 @@ namespace ScoringService.Infrastructure.Auth
 
                 _cachedToken = token.AccessToken;
                 // Refresca 30s antes de la expiración real para evitar carreras.
-                _expiresAtUtc = DateTime.UtcNow.AddSeconds(Math.Max(30, token.ExpiresIn) - 30);
+                var refreshInSeconds = Math.Max(0, token.ExpiresIn - 30);
+                _expiresAtUtc = DateTime.UtcNow.AddSeconds(refreshInSeconds);
                 return _cachedToken;
             }
             finally
