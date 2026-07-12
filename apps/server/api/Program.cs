@@ -128,6 +128,7 @@ if (app.Environment.IsDevelopment())
         options.SwaggerEndpoint("/swagger-users/swagger/v1/swagger.json", "User Service API");
         options.SwaggerEndpoint("/swagger-missions/swagger/v1/swagger.json", "Mission Service API");
         options.SwaggerEndpoint("/swagger-sessions/swagger/v1/swagger.json", "Live Session Service API");
+        options.SwaggerEndpoint("/swagger-scoring/swagger/v1/swagger.json", "Scoring Service API");
     });
 }
 

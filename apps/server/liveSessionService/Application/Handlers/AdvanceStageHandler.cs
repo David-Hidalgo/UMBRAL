@@ -68,14 +68,10 @@ namespace LiveSessionService.Application.Handlers
                 var mission = await _missionClient.GetMissionByIdAsync(missionId, jwtToken, cancellationToken);
                 if (mission == null) return new List<Guid>();
 
-                var stage = mission.Stages.FirstOrDefault(s => s.Order == stageIndex);
-                if (stage == null)
-                {
-                    if (stageIndex >= 0 && stageIndex < mission.Stages.Count)
-                    {
-                        stage = mission.Stages[stageIndex];
-                    }
-                }
+                // El índice de etapa es base 0 (0 = primera); el Order de la misión es base 1.
+                // Se resuelve por POSICIÓN dentro de las etapas ordenadas por Order, para no
+                // confundir el índice 1 con la etapa Order=1 (que es la primera).
+                var stage = mission.Stages.OrderBy(s => s.Order).ElementAtOrDefault(stageIndex);
 
                 return stage?.SubStages.Select(ss => ss.Id).ToList() ?? new List<Guid>();
             }

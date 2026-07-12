@@ -33,6 +33,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth-provider";
 import { RoleGuard } from "@/components/role-guard";
+import { ScoringPanel } from "@/components/scoring/scoring-panel";
 import { getMissionById, type MissionDetail } from "@/lib/api/missions";
 import {
 	advanceStage,
@@ -831,6 +832,16 @@ function PartidasPanelInner() {
 														);
 													})}
 											</div>
+										</div>
+									)}
+
+									{/* Scoring: ranking en vivo, penalizaciones e historial (RF-11/12/15) */}
+									{selectedSessionId && (
+										<div className="shrink-0">
+											<ScoringPanel
+												getAccessToken={getAccessToken}
+												sessionId={selectedSessionId}
+											/>
 										</div>
 									)}
 

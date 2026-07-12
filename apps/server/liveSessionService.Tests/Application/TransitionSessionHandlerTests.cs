@@ -454,7 +454,7 @@ namespace LiveSessionService.Tests.Application
 
             // Assert
             await act.Should().ThrowAsync<BusinessException>()
-                .WithMessage($"No se encontró la etapa con índice/orden {session.CurrentStageIndex} en la misión.");
+                .WithMessage($"No se encontró la etapa con índice {session.CurrentStageIndex} en la misión.");
         }
     }
 }

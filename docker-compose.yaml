@@ -25,6 +25,8 @@ services:
         condition: service_healthy
       livesessionservice:
         condition: service_healthy
+      scoringservice:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       # Keycloak__BaseUrl must match the public issuer URL minted in client tokens (localhost:8080).
@@ -38,6 +40,7 @@ services:
       ReverseProxy__Clusters__usercluster__Destinations__destination1__Address: http://userservice:5020
       ReverseProxy__Clusters__missioncluster__Destinations__destination1__Address: http://missionservice:5022
       ReverseProxy__Clusters__livesessioncluster__Destinations__destination1__Address: http://livesessionservice:5026
+      ReverseProxy__Clusters__scoringcluster__Destinations__destination1__Address: http://scoringservice:5030
     ports:
       - 5018:5018
     healthcheck:
@@ -198,6 +201,57 @@ services:
     networks:
       - app_network
 
+  scoringservice:
+    container_name: umbral-scoringservice
+    build:
+      context: .
+      dockerfile: ./apps/server/scoringService/Dockerfile
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5030
+      Keycloak__BaseUrl: ${SERVICE_URL_KEYCLOAK:-http://localhost:8080}
+      Keycloak__InternalBaseUrl: http://keycloak:8080
+      Keycloak__Realm: umbral
+      Keycloak__Audience: account
+      # Identidad de servicio del scoring (client credentials) para leer misiones sin el token del jugador.
+      Keycloak__ServiceClientId: ${SCORING_SERVICE_CLIENT_ID:-scoring-service}
+      Keycloak__ServiceClientSecret: ${SCORING_SERVICE_CLIENT_SECRET:?set SCORING_SERVICE_CLIENT_SECRET in .env}
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=scoringservice_db;Username=${SERVICE_USER_POSTGRES:-${POSTGRES_USER:-umbral_db_user}};Password=${SERVICE_PASSWORD_POSTGRES:-${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}}
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__Username: ${SERVICE_USER_RABBITMQ:-${RABBITMQ_DEFAULT_USER:-guest}}
+      RabbitMq__Password: ${SERVICE_PASSWORD_RABBITMQ:-${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env}}
+      # Consume del exchange de sesiones y publica en el suyo propio.
+      RabbitMq__ExchangeName: umbral.livesessions
+      RabbitMq__ScoringExchangeName: umbral.scoring
+      MissionService__BaseUrl: http://missionservice:5022
+    ports:
+      - 5030:5030
+    healthcheck:
+      # La imagen aspnet:10.0 no incluye wget ni curl. Se consulta /health con bash
+      # y /dev/tcp, que sí vienen en la imagen (mismo patrón que el healthcheck de keycloak).
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "exec 3<>/dev/tcp/127.0.0.1/5030; printf 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; cat <&3 | grep -q Healthy",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - app_network
+
   rabbitmq:
     container_name: umbral-rabbitmq
     image: rabbitmq:3-management
@@ -253,7 +307,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-umbral_db}
       POSTGRES_USER: ${SERVICE_USER_POSTGRES:-${POSTGRES_USER:-umbral_db_user}}
       POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES:-${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}}
-      POSTGRES_MULTIPLE_DATABASES: userservice_db,missionservice_db,livesessionservice_db
+      POSTGRES_MULTIPLE_DATABASES: userservice_db,missionservice_db,livesessionservice_db,scoringservice_db
     ports:
       - 5432:5432
     networks:

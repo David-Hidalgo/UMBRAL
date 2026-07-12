@@ -14,6 +14,8 @@ import {
 	View,
 } from "react-native";
 import { Container } from "@/components/container";
+import { GamePlayPanel } from "@/components/game-play-panel";
+import { PlayerHeader } from "@/components/player-header";
 import { useAuth } from "@/contexts/auth-context";
 import {
 	getAllSessions,
@@ -505,6 +507,18 @@ export default function Home() {
 		return (
 			<Container className="bg-background p-6">
 				<ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+					<PlayerHeader
+						name={
+							session?.user?.name ??
+							session?.user?.preferred_username ??
+							"Agente"
+						}
+						onSignOut={() => {
+							void signOut();
+						}}
+						roleLabel="Agente de Campo"
+						subtitle={session?.user?.email ?? session?.user?.preferred_username}
+					/>
 					{/* Header */}
 					<View className="mb-6 flex-row items-center justify-between border-border/20 border-b py-4">
 						<View>
@@ -515,12 +529,6 @@ export default function Home() {
 								Buscador de Enlaces Tácticos
 							</Text>
 						</View>
-						<Pressable
-							onPress={() => void signOut()}
-							className="rounded-lg border border-border/20 p-2 active:bg-muted/10"
-						>
-							<Ionicons name="power-outline" size={16} color={dangerColor} />
-						</Pressable>
 					</View>
 
 					{/* Manual Entry card */}
@@ -575,7 +583,7 @@ export default function Home() {
 						</Pressable>
 					</View>
 
-					{loadingSessions ? (
+					{loadingSessions && activeSessions.length === 0 ? (
 						<View className="items-center py-12">
 							<Spinner size="md" color="default" />
 							<Text className="mt-2 font-mono text-muted text-xs">
@@ -678,6 +686,18 @@ export default function Home() {
 		return (
 			<Container className="bg-background p-6">
 				<ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+					<PlayerHeader
+						name={
+							session?.user?.name ??
+							session?.user?.preferred_username ??
+							"Agente"
+						}
+						onSignOut={() => {
+							void signOut();
+						}}
+						roleLabel="Agente de Campo"
+						subtitle={session?.user?.email ?? session?.user?.preferred_username}
+					/>
 					{/* Header */}
 					<View className="mb-6 flex-row items-center justify-between border-border/20 border-b py-4">
 						<View className="flex-1 pr-4">
@@ -783,6 +803,16 @@ export default function Home() {
 	return (
 		<Container className="bg-background p-6">
 			<ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+				<PlayerHeader
+					name={
+						session?.user?.name ?? session?.user?.preferred_username ?? "Agente"
+					}
+					onSignOut={() => {
+						void signOut();
+					}}
+					roleLabel="Agente de Campo"
+					subtitle={session?.user?.email ?? session?.user?.preferred_username}
+				/>
 				{/* Top telemetria bar */}
 				<View className="mb-4 flex-row items-center justify-between rounded-lg border border-border/10 bg-card/20 p-2 px-3">
 					<View className="flex-row items-center gap-1.5">
@@ -896,6 +926,16 @@ export default function Home() {
 						</View>
 					)}
 				</Card>
+
+				{/* Juego: reto de la etapa actual + puntaje en vivo (RF-06/08) */}
+				{sessionDetail.status === "Activa" && (
+					<GamePlayPanel
+						currentStageIndex={sessionDetail.currentStageIndex}
+						getAccessToken={getAccessToken}
+						sessionId={sessionDetail.id}
+						teamId={myTeam.id}
+					/>
+				)}
 
 				{/* Squad Teammates section */}
 				<Text className="mb-3 font-bold font-mono text-muted text-xs uppercase tracking-widest">
