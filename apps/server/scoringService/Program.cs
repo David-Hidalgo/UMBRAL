@@ -14,6 +14,7 @@ using ScoringService.Application.Handlers;
 using ScoringService.Application.Validators;
 using ScoringService.Domain.Exceptions;
 using ScoringService.Domain.Repositories;
+using ScoringService.Domain.Scoring;
 using ScoringService.Infrastructure.Auth;
 using ScoringService.Infrastructure.Clients;
 using ScoringService.Infrastructure.Messaging;
@@ -123,6 +124,12 @@ builder.Services.AddHostedService<SessionEventsConsumer>();
 // --- SignalR (tiempo real) ---
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IScoringNotificationService, ScoringNotificationService>();
+
+// --- Estrategias de puntaje por dificultad (patrón Strategy) ---
+builder.Services.AddSingleton<IScoringStrategy, BeginnerScoringStrategy>();
+builder.Services.AddSingleton<IScoringStrategy, IntermediateScoringStrategy>();
+builder.Services.AddSingleton<IScoringStrategy, AdvancedScoringStrategy>();
+builder.Services.AddSingleton<IScoringStrategyResolver, ScoringStrategyResolver>();
 
 // --- Repositorios y servicios de aplicación ---
 builder.Services.AddScoped<IScoringRepository, ScoringRepository>();
