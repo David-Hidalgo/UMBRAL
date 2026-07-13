@@ -43,7 +43,10 @@ namespace LiveSessionService.Application.Handlers
                         p.DisplayName,
                         p.JoinedAt
                     )).ToList()
-                )).ToList()
+                )).ToList(),
+                session.MaxTimeMinutes,
+                session.EndsAt,
+                session.RemainingSecondsOnPause
             );
         }
     }

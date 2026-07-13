@@ -24,6 +24,13 @@ namespace LiveSessionService.Infrastructure.Persistence.Configurations
 
             builder.Property(x => x.ScheduledAt);
 
+            builder.Property(x => x.MaxTimeMinutes)
+                .IsRequired();
+
+            builder.Property(x => x.EndsAt);
+
+            builder.Property(x => x.RemainingSecondsOnPause);
+
             builder.Property(x => x.CurrentStageIndex)
                 .IsRequired();
 

@@ -19,6 +19,8 @@ interface GamePlayPanelProps {
 	teamId: string;
 	currentStageIndex: number;
 	getAccessToken: (minValidity?: number) => Promise<string | null>;
+	/** true cuando el temporizador de la sesión llegó a 0: se bloquea el envío (RF-06). */
+	isTimeUp: boolean;
 }
 
 export function GamePlayPanel({
@@ -26,6 +28,7 @@ export function GamePlayPanel({
 	teamId,
 	currentStageIndex,
 	getAccessToken,
+	isTimeUp,
 }: GamePlayPanelProps) {
 	const [subStages, setSubStages] = useState<PlayerSubStage[]>([]);
 	const [loadingChallenge, setLoadingChallenge] = useState(true);
@@ -125,6 +128,8 @@ export function GamePlayPanel({
 	}, [sessionId, teamId, getAccessToken, refreshScore]);
 
 	const handleSubmit = async (subStageId: string, payload: string) => {
+		// Guard: si el tiempo se agotó no se envía (además de ocultarse el botón).
+		if (isTimeUp) return;
 		const subStage = subStages.find((s) => s.id === subStageId);
 		if (!subStage) return;
 
@@ -187,6 +192,7 @@ export function GamePlayPanel({
 						</Text>
 					)}
 					<ChallengeCard
+						isTimeUp={isTimeUp}
 						key={current.id}
 						onSubmit={(payload) => handleSubmit(current.id, payload)}
 						result={results[current.id]}

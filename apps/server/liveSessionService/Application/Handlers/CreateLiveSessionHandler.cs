@@ -49,7 +49,8 @@ namespace LiveSessionService.Application.Handlers
                 mission.Id,
                 mission.Name,
                 request.Name,
-                request.ScheduledAt
+                request.ScheduledAt,
+                mission.MaxTimeMinutes
             );
 
             await _repository.AddAsync(liveSession, cancellationToken);

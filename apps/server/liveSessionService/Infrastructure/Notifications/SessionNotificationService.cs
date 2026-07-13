@@ -25,11 +25,11 @@ namespace LiveSessionService.Infrastructure.Notifications
             );
         }
 
-        public async Task NotifyStateChangedAsync(Guid sessionId, string status, CancellationToken cancellationToken = default)
+        public async Task NotifyStateChangedAsync(Guid sessionId, string status, DateTime? endsAt, int? remainingSecondsOnPause, CancellationToken cancellationToken = default)
         {
             await _hubContext.Clients.Group($"session-{sessionId}").SendAsync(
                 "StateChanged",
-                new { SessionId = sessionId, Status = status },
+                new { SessionId = sessionId, Status = status, EndsAt = endsAt, RemainingSecondsOnPause = remainingSecondsOnPause },
                 cancellationToken
             );
         }

@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/auth-provider";
 import { RoleGuard } from "@/components/role-guard";
 import { ScoringPanel } from "@/components/scoring/scoring-panel";
+import { SessionTimer } from "@/components/session-timer";
 import { getMissionById, type MissionDetail } from "@/lib/api/missions";
 import {
 	advanceStage,
@@ -688,6 +689,18 @@ function PartidasPanelInner() {
 												{sessionDetail.missionName}
 											</span>
 										</p>
+										{(sessionDetail.status === "Activa" ||
+											sessionDetail.status === "Pausada") && (
+											<div className="mt-3">
+												<SessionTimer
+													endsAt={sessionDetail.endsAt}
+													remainingSecondsOnPause={
+														sessionDetail.remainingSecondsOnPause
+													}
+													status={sessionDetail.status}
+												/>
+											</div>
+										)}
 									</div>
 
 									<div className="flex flex-wrap gap-2 sm:self-center">

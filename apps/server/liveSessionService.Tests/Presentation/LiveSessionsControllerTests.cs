@@ -92,7 +92,10 @@ namespace LiveSessionService.Tests.Presentation
                 null,
                 0,
                 "Programada",
-                new List<TeamDto>());
+                new List<TeamDto>(),
+                0,
+                null,
+                null);
 
             _mediatorMock
                 .Setup(m => m.Send(It.IsAny<GetLiveSessionByIdQuery>(), It.IsAny<CancellationToken>()))

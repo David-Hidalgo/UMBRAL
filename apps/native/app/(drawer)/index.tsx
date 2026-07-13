@@ -16,6 +16,7 @@ import {
 import { Container } from "@/components/container";
 import { GamePlayPanel } from "@/components/game-play-panel";
 import { PlayerHeader } from "@/components/player-header";
+import { SessionTimer } from "@/components/session-timer";
 import { useAuth } from "@/contexts/auth-context";
 import {
 	getAllSessions,
@@ -24,6 +25,7 @@ import {
 	type LiveSessionDetail,
 	type LiveSessionSummary,
 } from "@/lib/api/sessions";
+import { useSessionCountdown } from "@/lib/use-session-countdown";
 
 const STATUS_LABELS = {
 	Programada: "Programada",
@@ -139,6 +141,14 @@ export default function Home() {
 	);
 	const [loadingDetail, setLoadingDetail] = useState(false);
 	const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
+
+	// Cuenta regresiva de la sesión (RF-06): única fuente para mostrar el reloj
+	// y para bloquear el envío de respuestas cuando el tiempo se agota.
+	const countdown = useSessionCountdown(
+		sessionDetail?.status ?? "",
+		sessionDetail?.endsAt ?? null,
+		sessionDetail?.remainingSecondsOnPause ?? null,
+	);
 
 	// SignalR status
 	const [signalrStatus, setSignalrStatus] = useState<
@@ -927,11 +937,22 @@ export default function Home() {
 					)}
 				</Card>
 
+				{/* Temporizador de la sesión (RF-06) */}
+				{(sessionDetail.status === "Activa" ||
+					sessionDetail.status === "Pausada") && (
+					<SessionTimer
+						isExpired={countdown.isExpired}
+						isPaused={countdown.isPaused}
+						remainingSeconds={countdown.remainingSeconds}
+					/>
+				)}
+
 				{/* Juego: reto de la etapa actual + puntaje en vivo (RF-06/08) */}
 				{sessionDetail.status === "Activa" && (
 					<GamePlayPanel
 						currentStageIndex={sessionDetail.currentStageIndex}
 						getAccessToken={getAccessToken}
+						isTimeUp={countdown.isExpired}
 						sessionId={sessionDetail.id}
 						teamId={myTeam.id}
 					/>

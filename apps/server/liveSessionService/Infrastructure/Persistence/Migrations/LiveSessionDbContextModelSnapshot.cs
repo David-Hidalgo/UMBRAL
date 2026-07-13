@@ -31,6 +31,12 @@ namespace liveSessionService.Migrations
                     b.Property<int>("CurrentStageIndex")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("EndsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("MaxTimeMinutes")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("MissionId")
                         .HasColumnType("uuid");
 
@@ -43,6 +49,9 @@ namespace liveSessionService.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("RemainingSecondsOnPause")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("ScheduledAt")
                         .HasColumnType("timestamp with time zone");
