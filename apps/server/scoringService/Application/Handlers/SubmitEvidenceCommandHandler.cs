@@ -12,6 +12,7 @@ using ScoringService.Domain.Enums;
 using ScoringService.Domain.Events;
 using ScoringService.Domain.Exceptions;
 using ScoringService.Domain.Repositories;
+using ScoringService.Domain.Scoring;
 using ScoringService.Domain.ValueObjects;
 
 namespace ScoringService.Application.Handlers
@@ -29,6 +30,7 @@ namespace ScoringService.Application.Handlers
         private readonly IScoreBroadcaster _scoreBroadcaster;
         private readonly IEventBus _eventBus;
         private readonly IScoringNotificationService _notificationService;
+        private readonly IScoringStrategyResolver _scoringStrategyResolver;
 
         public SubmitEvidenceCommandHandler(
             IScoringRepository scoringRepository,
@@ -36,7 +38,8 @@ namespace ScoringService.Application.Handlers
             IMissionContentClient missionContentClient,
             IScoreBroadcaster scoreBroadcaster,
             IEventBus eventBus,
-            IScoringNotificationService notificationService)
+            IScoringNotificationService notificationService,
+            IScoringStrategyResolver scoringStrategyResolver)
         {
             _scoringRepository = scoringRepository;
             _sessionMonitorRepository = sessionMonitorRepository;
@@ -44,6 +47,7 @@ namespace ScoringService.Application.Handlers
             _scoreBroadcaster = scoreBroadcaster;
             _eventBus = eventBus;
             _notificationService = notificationService;
+            _scoringStrategyResolver = scoringStrategyResolver;
         }
 
         public async Task<SubmitEvidenceResultDto> Handle(SubmitEvidenceCommand request, CancellationToken cancellationToken)
@@ -86,10 +90,12 @@ namespace ScoringService.Application.Handlers
             {
                 if (IsCorrect(request.Type, request.Payload, content))
                 {
-                    submission.MarkCorrect(content.Points, now);
+                    // El puntaje otorgado varía según la dificultad de la misión (patrón Strategy).
+                    var award = _scoringStrategyResolver.Resolve(content.Difficulty).CalculateAward(content.Points);
+                    submission.MarkCorrect(award.Points, now);
                     scoreEntry = ScoreEntry.ForEvidence(
                         Guid.NewGuid(), request.SessionId, request.TeamId,
-                        ScoreValue.Award(content.Points), submission.Id, now);
+                        award, submission.Id, now);
                 }
                 else
                 {

@@ -11,6 +11,7 @@ using ScoringService.Domain.Enums;
 using ScoringService.Domain.Events;
 using ScoringService.Domain.Exceptions;
 using ScoringService.Domain.Repositories;
+using ScoringService.Domain.Scoring;
 using ScoringService.Domain.ValueObjects;
 
 namespace ScoringService.Application.Handlers
@@ -26,19 +27,22 @@ namespace ScoringService.Application.Handlers
         private readonly IMissionContentClient _missionContentClient;
         private readonly IScoreBroadcaster _scoreBroadcaster;
         private readonly IScoringNotificationService _notificationService;
+        private readonly IScoringStrategyResolver _scoringStrategyResolver;
 
         public ValidateEvidenceCommandHandler(
             IScoringRepository scoringRepository,
             ISessionMonitorRepository sessionMonitorRepository,
             IMissionContentClient missionContentClient,
             IScoreBroadcaster scoreBroadcaster,
-            IScoringNotificationService notificationService)
+            IScoringNotificationService notificationService,
+            IScoringStrategyResolver scoringStrategyResolver)
         {
             _scoringRepository = scoringRepository;
             _sessionMonitorRepository = sessionMonitorRepository;
             _missionContentClient = missionContentClient;
             _scoreBroadcaster = scoreBroadcaster;
             _notificationService = notificationService;
+            _scoringStrategyResolver = scoringStrategyResolver;
         }
 
         public async Task<SubmitEvidenceResultDto> Handle(ValidateEvidenceCommand request, CancellationToken cancellationToken)
@@ -62,10 +66,12 @@ namespace ScoringService.Application.Handlers
                     ?? throw new InvalidSubmissionException(
                         "No se pudo obtener el puntaje de la etapa desde el servicio de misiones.");
 
-                submission.MarkCorrect(content.Points, now);
+                // El puntaje otorgado varía según la dificultad de la misión (patrón Strategy).
+                var award = _scoringStrategyResolver.Resolve(content.Difficulty).CalculateAward(content.Points);
+                submission.MarkCorrect(award.Points, now);
                 scoreEntry = ScoreEntry.ForEvidence(
                     Guid.NewGuid(), submission.SessionId, submission.TeamId,
-                    ScoreValue.Award(content.Points), submission.Id, now);
+                    award, submission.Id, now);
             }
             else
             {

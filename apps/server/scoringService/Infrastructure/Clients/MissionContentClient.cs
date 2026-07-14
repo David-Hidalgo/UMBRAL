@@ -63,7 +63,8 @@ namespace ScoringService.Infrastructure.Clients
                 isTrivia ? SubmissionType.Trivia : SubmissionType.TreasureHunt,
                 subStage.Points,
                 correctAnswerIds,
-                subStage.SecretCode);
+                subStage.SecretCode,
+                MissionDifficultyExtensions.FromString(mission.DifficultyLevel));
         }
 
         public async Task<IReadOnlyList<PlayerSubStageDto>> GetPlayerSubStagesAsync(
@@ -127,7 +128,7 @@ namespace ScoringService.Infrastructure.Clients
         }
 
         // Proyección local del JSON devuelto por missionService (GET /api/missions/{id}).
-        private sealed record MissionResponse(Guid Id, List<StageResponse>? Stages);
+        private sealed record MissionResponse(Guid Id, string? DifficultyLevel, List<StageResponse>? Stages);
         private sealed record StageResponse(Guid Id, List<SubStageResponse>? SubStages);
         private sealed record SubStageResponse(Guid Id, string? Title, int Points, QuestionResponse? Question, string? Objective, string? SecretCode);
         private sealed record QuestionResponse(Guid Id, string Text, List<AnswerResponse>? Answers);

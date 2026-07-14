@@ -109,6 +109,46 @@ namespace ScoringService.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task GetSubStageContentAsync_ShouldMapMissionDifficulty()
+        {
+            var missionId = Guid.NewGuid();
+            var subId = Guid.NewGuid();
+            var json = $$"""
+            {
+              "id": "{{missionId}}",
+              "difficultyLevel": "Advanced",
+              "stages": [
+                { "id": "{{Guid.NewGuid()}}", "subStages": [
+                  { "id": "{{subId}}", "points": 100, "secretCode": "X" }
+                ] }
+              ]
+            }
+            """;
+            var client = BuildClient(new StubHandler(HttpStatusCode.OK, json));
+
+            var content = await client.GetSubStageContentAsync(missionId, subId);
+
+            content.Should().NotBeNull();
+            content!.Difficulty.Should().Be(MissionDifficulty.Advanced);
+        }
+
+        [Fact]
+        public async Task GetSubStageContentAsync_WhenDifficultyMissing_ShouldDefaultToBeginner()
+        {
+            var missionId = Guid.NewGuid();
+            var subId = Guid.NewGuid();
+            var json = $$"""
+            { "id": "{{missionId}}", "stages": [ { "id": "{{Guid.NewGuid()}}", "subStages": [ { "id": "{{subId}}", "points": 10, "secretCode": "X" } ] } ] }
+            """;
+            var client = BuildClient(new StubHandler(HttpStatusCode.OK, json));
+
+            var content = await client.GetSubStageContentAsync(missionId, subId);
+
+            content.Should().NotBeNull();
+            content!.Difficulty.Should().Be(MissionDifficulty.Beginner);
+        }
+
+        [Fact]
         public async Task GetSubStageContentAsync_WhenMissionNotFound_ShouldReturnNull()
         {
             var client = BuildClient(new StubHandler(HttpStatusCode.NotFound, ""));

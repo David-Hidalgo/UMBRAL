@@ -13,6 +13,7 @@ using ScoringService.Domain.Entities;
 using ScoringService.Domain.Enums;
 using ScoringService.Domain.Exceptions;
 using ScoringService.Domain.Repositories;
+using ScoringService.Domain.Scoring;
 using ScoringService.Domain.ValueObjects;
 using Xunit;
 
@@ -26,6 +27,13 @@ namespace ScoringService.Tests.Application
         private readonly Mock<IScoreBroadcaster> _broadcaster = new();
         private readonly Mock<IEventBus> _eventBus = new();
         private readonly Mock<IScoringNotificationService> _notification = new();
+        private readonly IScoringStrategyResolver _strategyResolver = new ScoringStrategyResolver(
+            new IScoringStrategy[]
+            {
+                new BeginnerScoringStrategy(),
+                new IntermediateScoringStrategy(),
+                new AdvancedScoringStrategy()
+            });
         private readonly SubmitEvidenceCommandHandler _handler;
 
         private readonly Guid _sessionId = Guid.NewGuid();
@@ -37,7 +45,7 @@ namespace ScoringService.Tests.Application
         {
             _handler = new SubmitEvidenceCommandHandler(
                 _scoringRepo.Object, _monitorRepo.Object, _missionClient.Object,
-                _broadcaster.Object, _eventBus.Object, _notification.Object);
+                _broadcaster.Object, _eventBus.Object, _notification.Object, _strategyResolver);
         }
 
         private SessionMonitor ActiveMonitorWithTeam()
@@ -173,6 +181,45 @@ namespace ScoringService.Tests.Application
 
             result.Status.Should().Be(nameof(SubmissionStatus.Correct));
             result.AwardedPoints.Should().Be(50);
+        }
+
+        [Fact]
+        public async Task Handle_WithIntermediateDifficulty_ShouldAwardMultipliedPoints()
+        {
+            // Intermedia ×1.5: 100 puntos base → 150 otorgados (patrón Strategy).
+            SetupMonitor(ActiveMonitorWithTeam());
+            var answerId = Guid.NewGuid();
+            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new SubStageContent(
+                    _subStageId, SubmissionType.Trivia, 100, new List<Guid> { answerId }, null,
+                    MissionDifficulty.Intermediate));
+            _broadcaster.Setup(b => b.BroadcastAsync(_sessionId, _teamId, 150, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(150);
+
+            var result = await _handler.Handle(Command(SubmissionType.Trivia, answerId.ToString()), CancellationToken.None);
+
+            result.Status.Should().Be(nameof(SubmissionStatus.Correct));
+            result.AwardedPoints.Should().Be(150);
+            _broadcaster.Verify(b => b.BroadcastAsync(_sessionId, _teamId, 150, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Once);
+            _notification.Verify(n => n.NotifyEvidenceValidatedAsync(_sessionId, _teamId, It.IsAny<Guid>(), true, 150, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_WithAdvancedDifficulty_ShouldDoublePoints()
+        {
+            // Avanzada ×2.0: 50 puntos base → 100 otorgados (patrón Strategy).
+            SetupMonitor(ActiveMonitorWithTeam());
+            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new SubStageContent(
+                    _subStageId, SubmissionType.TreasureHunt, 50, new List<Guid>(), "ABC123",
+                    MissionDifficulty.Advanced));
+            _broadcaster.Setup(b => b.BroadcastAsync(_sessionId, _teamId, 100, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(100);
+
+            var result = await _handler.Handle(Command(SubmissionType.TreasureHunt, "abc123"), CancellationToken.None);
+
+            result.Status.Should().Be(nameof(SubmissionStatus.Correct));
+            result.AwardedPoints.Should().Be(100);
         }
 
         [Fact]

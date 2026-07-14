@@ -12,6 +12,7 @@ using ScoringService.Domain.Entities;
 using ScoringService.Domain.Enums;
 using ScoringService.Domain.Exceptions;
 using ScoringService.Domain.Repositories;
+using ScoringService.Domain.Scoring;
 using ScoringService.Domain.ValueObjects;
 using Xunit;
 
@@ -24,6 +25,13 @@ namespace ScoringService.Tests.Application
         private readonly Mock<IMissionContentClient> _missionClient = new();
         private readonly Mock<IScoreBroadcaster> _broadcaster = new();
         private readonly Mock<IScoringNotificationService> _notification = new();
+        private readonly IScoringStrategyResolver _strategyResolver = new ScoringStrategyResolver(
+            new IScoringStrategy[]
+            {
+                new BeginnerScoringStrategy(),
+                new IntermediateScoringStrategy(),
+                new AdvancedScoringStrategy()
+            });
         private readonly ValidateEvidenceCommandHandler _handler;
 
         private readonly Guid _sessionId = Guid.NewGuid();
@@ -35,7 +43,7 @@ namespace ScoringService.Tests.Application
         {
             _handler = new ValidateEvidenceCommandHandler(
                 _scoringRepo.Object, _monitorRepo.Object, _missionClient.Object,
-                _broadcaster.Object, _notification.Object);
+                _broadcaster.Object, _notification.Object, _strategyResolver);
         }
 
         private EvidenceSubmission PendingSubmission()
@@ -78,6 +86,26 @@ namespace ScoringService.Tests.Application
             result.Status.Should().Be(nameof(SubmissionStatus.Correct));
             result.AwardedPoints.Should().Be(70);
             _scoringRepo.Verify(r => r.AddScoreEntryAsync(It.IsAny<ScoreEntry>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_WhenValidatedAsCorrectOnAdvancedMission_ShouldApplyMultiplier()
+        {
+            // La validación manual del operador también respeta la dificultad (Avanzada ×2.0): 70 → 140.
+            var submission = PendingSubmission();
+            _scoringRepo.Setup(r => r.GetSubmissionByIdAsync(submission.Id, It.IsAny<CancellationToken>())).ReturnsAsync(submission);
+            SetupMonitor();
+            _missionClient.Setup(c => c.GetSubStageContentAsync(_missionId, _subStageId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new SubStageContent(
+                    _subStageId, SubmissionType.TreasureHunt, 70, new List<Guid>(), "ABC",
+                    MissionDifficulty.Advanced));
+            _broadcaster.Setup(b => b.BroadcastAsync(_sessionId, _teamId, 140, It.IsAny<DateTime>(), It.IsAny<CancellationToken>())).ReturnsAsync(140);
+
+            var command = new ValidateEvidenceCommand(_sessionId, submission.Id, true, "op");
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            result.Status.Should().Be(nameof(SubmissionStatus.Correct));
+            result.AwardedPoints.Should().Be(140);
         }
 
         [Fact]
