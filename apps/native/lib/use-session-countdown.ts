@@ -32,7 +32,10 @@ export function useSessionCountdown(
 	}, [isPaused, endsAt]);
 
 	if (isPaused) {
-		const remaining = remainingSecondsOnPause ?? 0;
+		if (remainingSecondsOnPause == null) {
+			return { remainingSeconds: null, isExpired: false, isPaused };
+		}
+		const remaining = remainingSecondsOnPause;
 		return { remainingSeconds: remaining, isExpired: remaining <= 0, isPaused };
 	}
 	if (endsAt) {

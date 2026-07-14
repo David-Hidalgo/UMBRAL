@@ -38,7 +38,8 @@ export function SessionTimer({
 
 	let remainingSeconds: number;
 	if (isPaused) {
-		remainingSeconds = remainingSecondsOnPause ?? 0;
+		if (remainingSecondsOnPause == null) return null;
+		remainingSeconds = remainingSecondsOnPause;
 	} else if (endsAt) {
 		remainingSeconds = (new Date(endsAt).getTime() - nowMs) / 1000;
 	} else {

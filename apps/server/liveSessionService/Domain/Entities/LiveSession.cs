@@ -73,11 +73,21 @@ namespace LiveSessionService.Domain.Entities
             State.Activate(this);
 
             // Arranque del reloj: la cuenta regresiva expira en now + MaxTimeMinutes.
-            if (now.HasValue)
+            if (!now.HasValue)
             {
-                EndsAt = now.Value.AddMinutes(MaxTimeMinutes);
-                RemainingSecondsOnPause = null;
+                return;
             }
+
+            // Si MaxTimeMinutes es 0 (sesiones legacy), no se inicia temporizador.
+            if (MaxTimeMinutes <= 0)
+            {
+                EndsAt = null;
+                RemainingSecondsOnPause = null;
+                return;
+            }
+
+            EndsAt = now.Value.AddMinutes(MaxTimeMinutes);
+            RemainingSecondsOnPause = null;
         }
 
         public void Pause(DateTime? now = null)
@@ -97,12 +107,26 @@ namespace LiveSessionService.Domain.Entities
             State.Resume(this);
 
             // Se recalcula el deadline a partir del remanente congelado.
-            if (now.HasValue)
+            if (!now.HasValue)
             {
-                var remainingSeconds = RemainingSecondsOnPause ?? MaxTimeMinutes * 60;
-                EndsAt = now.Value.AddSeconds(remainingSeconds);
-                RemainingSecondsOnPause = null;
+                return;
             }
+
+            var remainingSeconds = RemainingSecondsOnPause;
+            if (remainingSeconds == null)
+            {
+                // Si MaxTimeMinutes es 0 (sesiones legacy) no se reactiva el temporizador.
+                if (MaxTimeMinutes <= 0)
+                {
+                    EndsAt = null;
+                    return;
+                }
+
+                remainingSeconds = MaxTimeMinutes * 60;
+            }
+
+            EndsAt = now.Value.AddSeconds(remainingSeconds.Value);
+            RemainingSecondsOnPause = null;
         }
 
         public void Finish()
