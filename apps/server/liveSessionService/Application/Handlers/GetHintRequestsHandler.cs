@@ -33,9 +33,11 @@ namespace LiveSessionService.Application.Handlers
 
             var query = session.HintRequests.AsEnumerable();
 
-            if (!string.IsNullOrWhiteSpace(request.Status) &&
-                Enum.TryParse<HintRequestStatus>(request.Status, true, out var statusFilter))
+            if (!string.IsNullOrWhiteSpace(request.Status))
             {
+                if (!Enum.TryParse<HintRequestStatus>(request.Status, true, out var statusFilter))
+                    throw new BusinessException("El estado indicado no es válido. Use 'Pendiente' o 'Resuelta'.");
+
                 query = query.Where(r => r.Status == statusFilter);
             }
 

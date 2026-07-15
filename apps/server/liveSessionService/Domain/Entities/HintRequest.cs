@@ -23,12 +23,14 @@ namespace LiveSessionService.Domain.Entities
             if (id == Guid.Empty)
                 throw new ArgumentException("El ID de la solicitud de pista no puede estar vacío.", nameof(id));
 
+            if (liveSessionId == Guid.Empty)
+                throw new ArgumentException("El ID de la sesión es requerido.", nameof(liveSessionId));
+
             if (teamId == Guid.Empty)
                 throw new ArgumentException("El ID del equipo es requerido.", nameof(teamId));
 
             if (subStageId == Guid.Empty)
                 throw new ArgumentException("El ID de la subetapa es requerido.", nameof(subStageId));
-
             return new HintRequest
             {
                 Id = id,
