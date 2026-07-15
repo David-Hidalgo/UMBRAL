@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using LiveSessionService.Application.Commands;
 using LiveSessionService.Application.Abstractions;
 using LiveSessionService.Application.IntegrationEvents;
@@ -71,7 +72,17 @@ namespace LiveSessionService.Application.Handlers
             var released = session.GrantHint(request.TeamId, request.SubStageId, clue.Id, clue.Text, clue.Order, DateTime.UtcNow);
 
             await _repository.AddReleasedHintAsync(released, cancellationToken);
-            await _repository.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _repository.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Segundo candado de RB-04: bajo concurrencia (dos "otorgar" a la vez), ambos pasan
+                // el chequeo en memoria y es el índice único (LiveSessionId, TeamId, ClueId) el que
+                // rechaza el duplicado. Se traduce a un mensaje de negocio en vez de un 500.
+                throw new BusinessException("Esta pista ya fue liberada a este equipo.");
+            }
 
             // Evento de integración (RabbitMQ)
             await _eventBus.PublishAsync(

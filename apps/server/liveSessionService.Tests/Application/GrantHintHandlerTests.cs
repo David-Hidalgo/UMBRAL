@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
 using LiveSessionService.Application.Abstractions;
@@ -175,6 +176,41 @@ namespace LiveSessionService.Tests.Application
 
             await act.Should().ThrowAsync<BusinessException>()
                 .WithMessage("Esta pista ya fue liberada a este equipo.");
+        }
+
+        [Fact]
+        public async Task Handle_WhenUniqueIndexViolatedOnSave_ShouldThrowBusinessException_RB04()
+        {
+            // Carrera concurrente: el chequeo en memoria pasa, pero el índice único de la BD
+            // rechaza el duplicado. Debe traducirse a mensaje de negocio, no propagar un 500.
+            var (session, team) = CreateActiveSessionWithPlayer();
+            SetupSession(session);
+
+            var subStageId = Guid.NewGuid();
+            var clueId = Guid.NewGuid();
+            var mission = CreateMission(session.MissionId, subStageId, clueId);
+            _missionClientMock
+                .Setup(c => c.GetMissionByIdAsync(session.MissionId, "jwt", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mission);
+
+            _repositoryMock
+                .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DbUpdateException("unique violation"));
+
+            var command = new GrantHintCommand(session.Id, team.Id, subStageId, clueId, "jwt");
+
+            Func<Task> act = () => _handler.Handle(command, CancellationToken.None);
+
+            await act.Should().ThrowAsync<BusinessException>()
+                .WithMessage("Esta pista ya fue liberada a este equipo.");
+
+            // No debe publicar el evento ni notificar si la persistencia falló.
+            _eventBusMock.Verify(
+                e => e.PublishAsync(It.IsAny<HintReleasedIntegrationEvent>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _notificationMock.Verify(
+                n => n.NotifyHintReleasedAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()),
+                Times.Never);
         }
 
         private void SetupSession(LiveSession session)
