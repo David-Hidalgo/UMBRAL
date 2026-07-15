@@ -213,12 +213,17 @@ namespace UserService.Infrastructure.Authentication
             var allUsersUri = $"{baseUrl}/admin/realms/{_options.Realm}/users?max=1000&enabled=true";
             var keycloakUsers = await GetUsersFromUriAsync(allUsersUri, accessToken, cancellationToken);
 
+            // Filter out service account users (e.g. service-account-scoring-service) from the user list
+            var normalUsers = keycloakUsers.Where(u => 
+                string.IsNullOrEmpty(u.ServiceAccountClientId) && 
+                !u.Username.StartsWith("service-account-", StringComparison.OrdinalIgnoreCase));
+
             // 2. Resolve roles for each user with bounded concurrency via /users/{id}/role-mappings/realm.
             //    This endpoint only requires view-users / manage-users, which are already granted.
             const int maxConcurrency = 10;
             using var throttler = new SemaphoreSlim(maxConcurrency);
 
-            var roleTasks = keycloakUsers.Select(async ku =>
+            var roleTasks = normalUsers.Select(async ku =>
             {
                 await throttler.WaitAsync(cancellationToken);
                 try
@@ -472,6 +477,9 @@ namespace UserService.Infrastructure.Authentication
 
             [JsonPropertyName("createdTimestamp")]
             public long CreatedTimestamp { get; set; }
+
+            [JsonPropertyName("serviceAccountClientId")]
+            public string? ServiceAccountClientId { get; set; }
         }
         private sealed class KeycloakRoleRepresentation
         {

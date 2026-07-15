@@ -311,6 +311,52 @@ public class KeycloakUserProvisioningServiceTests
     }
 
     [Fact]
+    public async Task GetUsersAsync_WithServiceAccounts_FiltersThemOut()
+    {
+        // Arrange
+        var realUserId = Guid.NewGuid().ToString();
+        var serviceAccountUserId = Guid.NewGuid().ToString();
+        
+        var rawJson = $@"
+        [
+            {{
+                ""id"": ""{realUserId}"",
+                ""username"": ""player1"",
+                ""email"": ""player1@umbral.io"",
+                ""firstName"": ""Player One"",
+                ""lastName"": ""Test"",
+                ""enabled"": true,
+                ""createdTimestamp"": 1780361721000
+            }},
+            {{
+                ""id"": ""{serviceAccountUserId}"",
+                ""username"": ""service-account-scoring-service"",
+                ""email"": """",
+                ""firstName"": """",
+                ""lastName"": """",
+                ""enabled"": true,
+                ""createdTimestamp"": 1780361722000,
+                ""serviceAccountClientId"": ""scoring-service""
+            }}
+        ]";
+
+        var usersResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(rawJson, System.Text.Encoding.UTF8, "application/json")
+        };
+        var roleResponse = RoleOk("player");
+
+        var sut = BuildSut(new SequentialHandler(TokenOk(), usersResponse, roleResponse));
+
+        // Act
+        var result = await sut.GetUsersAsync();
+
+        // Assert
+        result.Should().ContainSingle();
+        result.Single().KeycloakUserId.Should().Be(realUserId);
+    }
+
+    [Fact]
     public async Task GetUsersAsync_WhenUserHasNoValidGuidId_ThrowsInvalidOperationException()
     {
         // Arrange
