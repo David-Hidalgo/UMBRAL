@@ -205,7 +205,17 @@ namespace LiveSessionService.Presentation.Controllers
             Guid teamId,
             CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(new GetTeamReleasedHintsQuery(id, teamId), cancellationToken);
+            var keycloakUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(keycloakUserId))
+            {
+                return BadRequest("No se pudo identificar al usuario desde el token JWT.");
+            }
+
+            // El operador/admin puede consultar las pistas de cualquier equipo; el jugador solo las suyas.
+            var isPrivileged = User.IsInRole("admin") || User.IsInRole("operator");
+
+            var result = await _mediator.Send(
+                new GetTeamReleasedHintsQuery(id, teamId, keycloakUserId, isPrivileged), cancellationToken);
             return Ok(result);
         }
     }

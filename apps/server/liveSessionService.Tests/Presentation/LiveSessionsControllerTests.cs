@@ -298,6 +298,7 @@ namespace LiveSessionService.Tests.Presentation
         public async Task GetTeamHints_ShouldReturnOkWithReleasedHints()
         {
             // Arrange
+            SetUserClaims("user-123", "Juan");
             var sessionId = Guid.NewGuid();
             var teamId = Guid.NewGuid();
             var hints = new List<ReleasedHintDto>
@@ -315,6 +316,16 @@ namespace LiveSessionService.Tests.Presentation
             // Assert
             var ok = result.Should().BeOfType<OkObjectResult>().Subject;
             ok.Value.Should().BeEquivalentTo(hints);
+        }
+
+        [Fact]
+        public async Task GetTeamHints_WithoutUserClaims_ShouldReturnBadRequest()
+        {
+            // Sin claims no se puede identificar al usuario → no se autoriza la consulta.
+            var result = await _controller.GetTeamHints(Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+            var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequest.Value.Should().Be("No se pudo identificar al usuario desde el token JWT.");
         }
 
         private void SetUserClaims(string userId, string displayName)
