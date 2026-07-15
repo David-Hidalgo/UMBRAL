@@ -29,6 +29,13 @@ namespace LiveSessionService.Infrastructure.Persistence
                 .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
         }
 
+        public async Task<Team?> GetTeamByIdAsync(Guid teamId, CancellationToken cancellationToken = default)
+        {
+            return await _context.Teams
+                .Include(t => t.Players)
+                .FirstOrDefaultAsync(t => t.Id == teamId, cancellationToken);
+        }
+
         public async Task AddAsync(LiveSession liveSession, CancellationToken cancellationToken = default)
         {
             await _context.LiveSessions.AddAsync(liveSession, cancellationToken);
