@@ -10,6 +10,8 @@ namespace LiveSessionService.Domain.Entities
     public class LiveSession
     {
         private readonly List<Team> _teams = new();
+        private readonly List<HintRequest> _hintRequests = new();
+        private readonly List<ReleasedHint> _releasedHints = new();
 
         public Guid Id { get; private set; }
         public Guid MissionId { get; private set; }
@@ -27,6 +29,8 @@ namespace LiveSessionService.Domain.Entities
         // Segundos restantes congelados mientras la sesión está Pausada (enfoque "deadline móvil").
         public int? RemainingSecondsOnPause { get; private set; }
         public IReadOnlyCollection<Team> Teams => _teams.AsReadOnly();
+        public IReadOnlyCollection<HintRequest> HintRequests => _hintRequests.AsReadOnly();
+        public IReadOnlyCollection<ReleasedHint> ReleasedHints => _releasedHints.AsReadOnly();
 
         public LiveSessionState State => GetStateInstance(Status);
 
@@ -189,6 +193,61 @@ namespace LiveSessionService.Domain.Entities
                 throw new BusinessException("El índice de la nueva etapa debe ser mayor que el índice actual.");
 
             CurrentStageIndex = nextStageIndex;
+        }
+
+        // Un jugador de un equipo solicita ayuda (una pista) para su reto actual.
+        // Regla: solo con la partida Activa; el jugador debe pertenecer al equipo indicado.
+        // Idempotencia: no se permite una segunda solicitud pendiente para el mismo equipo/subetapa.
+        public HintRequest RequestHint(Guid teamId, Guid subStageId, string keycloakUserId, DateTime nowUtc)
+        {
+            if (Status != LiveSessionStatus.Activa)
+                throw new BusinessException("Solo se pueden solicitar pistas si la partida está activa.");
+
+            var team = _teams.FirstOrDefault(t => t.Id == teamId);
+            if (team == null)
+                throw new BusinessException("El equipo especificado no pertenece a esta sesión.");
+
+            if (!team.Players.Any(p => p.KeycloakUserId == keycloakUserId))
+                throw new BusinessException("El jugador no pertenece al equipo indicado.");
+
+            var alreadyPending = _hintRequests.Any(r =>
+                r.TeamId == teamId &&
+                r.SubStageId == subStageId &&
+                r.Status == HintRequestStatus.Pendiente);
+            if (alreadyPending)
+                throw new BusinessException("Ya tienes una solicitud de pista pendiente para este reto.");
+
+            var hintRequest = HintRequest.Create(Guid.NewGuid(), Id, teamId, subStageId, nowUtc);
+            _hintRequests.Add(hintRequest);
+            return hintRequest;
+        }
+
+        // El operador libera una pista concreta a un equipo (RF-07).
+        // Regla: solo con la partida Activa; RB-04 = una pista no se libera dos veces al mismo equipo.
+        // Al otorgar, se resuelve la solicitud pendiente del equipo para esa subetapa (si existe).
+        public ReleasedHint GrantHint(Guid teamId, Guid subStageId, Guid clueId, string clueText, int clueOrder, DateTime nowUtc)
+        {
+            if (Status != LiveSessionStatus.Activa)
+                throw new BusinessException("Solo se pueden liberar pistas si la partida está activa.");
+
+            var team = _teams.FirstOrDefault(t => t.Id == teamId);
+            if (team == null)
+                throw new BusinessException("El equipo especificado no pertenece a esta sesión.");
+
+            // RB-04: la misma pista no puede liberarse dos veces al mismo equipo.
+            if (_releasedHints.Any(h => h.TeamId == teamId && h.ClueId == clueId))
+                throw new BusinessException("Esta pista ya fue liberada a este equipo.");
+
+            var released = ReleasedHint.Create(Guid.NewGuid(), Id, teamId, subStageId, clueId, clueText, clueOrder, nowUtc);
+            _releasedHints.Add(released);
+
+            var pending = _hintRequests.FirstOrDefault(r =>
+                r.TeamId == teamId &&
+                r.SubStageId == subStageId &&
+                r.Status == HintRequestStatus.Pendiente);
+            pending?.Resolve(nowUtc);
+
+            return released;
         }
 
         private LiveSessionState GetStateInstance(LiveSessionStatus status)

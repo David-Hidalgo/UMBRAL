@@ -218,6 +218,116 @@ namespace LiveSessionService.Tests.Presentation
             result.Should().BeOfType<NoContentResult>();
         }
 
+        [Fact]
+        public async Task RequestHint_WithValidClaims_ShouldReturnCreatedWithRequestId()
+        {
+            // Arrange
+            var sessionId = Guid.NewGuid();
+            var teamId = Guid.NewGuid();
+            var requestId = Guid.NewGuid();
+            SetUserClaims("user-123", "Juan");
+
+            _mediatorMock
+                .Setup(m => m.Send(It.IsAny<RequestHintCommand>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(requestId);
+
+            // Act
+            var result = await _controller.RequestHint(
+                sessionId, teamId, new RequestHintRequest(Guid.NewGuid()), CancellationToken.None);
+
+            // Assert
+            var created = result.Should().BeOfType<CreatedResult>().Subject;
+            created.Value.Should().Be(requestId);
+        }
+
+        [Fact]
+        public async Task RequestHint_WithoutUserClaims_ShouldReturnBadRequest()
+        {
+            // Act
+            var result = await _controller.RequestHint(
+                Guid.NewGuid(), Guid.NewGuid(), new RequestHintRequest(Guid.NewGuid()), CancellationToken.None);
+
+            // Assert
+            var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequest.Value.Should().Be("No se pudo identificar al usuario desde el token JWT.");
+        }
+
+        [Fact]
+        public async Task GetHintRequests_ShouldReturnOkWithRequests()
+        {
+            // Arrange
+            var sessionId = Guid.NewGuid();
+            var requests = new List<HintRequestDto>
+            {
+                new(Guid.NewGuid(), Guid.NewGuid(), "Alfa", Guid.NewGuid(), "Pendiente", DateTime.UtcNow, null)
+            };
+
+            _mediatorMock
+                .Setup(m => m.Send(It.IsAny<GetHintRequestsQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(requests);
+
+            // Act
+            var result = await _controller.GetHintRequests(sessionId, "Pendiente", CancellationToken.None);
+
+            // Assert
+            var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+            ok.Value.Should().BeEquivalentTo(requests);
+        }
+
+        [Fact]
+        public async Task GrantHint_ShouldReturnNoContent()
+        {
+            // Arrange
+            var sessionId = Guid.NewGuid();
+            var teamId = Guid.NewGuid();
+            _controller.HttpContext.Request.Headers.Authorization = "Bearer jwt-token";
+
+            _mediatorMock
+                .Setup(m => m.Send(It.IsAny<GrantHintCommand>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Unit.Value);
+
+            // Act
+            var result = await _controller.GrantHint(
+                sessionId, teamId, new GrantHintRequest(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
+
+            // Assert
+            result.Should().BeOfType<NoContentResult>();
+        }
+
+        [Fact]
+        public async Task GetTeamHints_ShouldReturnOkWithReleasedHints()
+        {
+            // Arrange
+            SetUserClaims("user-123", "Juan");
+            var sessionId = Guid.NewGuid();
+            var teamId = Guid.NewGuid();
+            var hints = new List<ReleasedHintDto>
+            {
+                new(Guid.NewGuid(), teamId, Guid.NewGuid(), Guid.NewGuid(), "Pista", 1, DateTime.UtcNow)
+            };
+
+            _mediatorMock
+                .Setup(m => m.Send(It.IsAny<GetTeamReleasedHintsQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(hints);
+
+            // Act
+            var result = await _controller.GetTeamHints(sessionId, teamId, CancellationToken.None);
+
+            // Assert
+            var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+            ok.Value.Should().BeEquivalentTo(hints);
+        }
+
+        [Fact]
+        public async Task GetTeamHints_WithoutUserClaims_ShouldReturnBadRequest()
+        {
+            // Sin claims no se puede identificar al usuario → no se autoriza la consulta.
+            var result = await _controller.GetTeamHints(Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+            var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequest.Value.Should().Be("No se pudo identificar al usuario desde el token JWT.");
+        }
+
         private void SetUserClaims(string userId, string displayName)
         {
             var identity = new ClaimsIdentity(new[]

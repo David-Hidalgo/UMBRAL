@@ -40,4 +40,24 @@ namespace LiveSessionService.Application.DTOs
         int TeamCount,
         int PlayerCount
     );
+
+    public record HintRequestDto(
+        Guid Id,
+        Guid TeamId,
+        string TeamName,
+        Guid SubStageId,
+        string Status,
+        DateTime RequestedAt,
+        DateTime? ResolvedAt
+    );
+
+    public record ReleasedHintDto(
+        Guid Id,
+        Guid TeamId,
+        Guid SubStageId,
+        Guid ClueId,
+        string Text,
+        int Order,
+        DateTime ReleasedAt
+    );
 }

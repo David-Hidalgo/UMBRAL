@@ -103,6 +103,8 @@ builder.Services.AddTransient<IValidator<CreateTeamCommand>, CreateTeamCommandVa
 builder.Services.AddTransient<IValidator<JoinTeamCommand>, JoinTeamCommandValidator>();
 builder.Services.AddTransient<IValidator<TransitionSessionCommand>, TransitionSessionCommandValidator>();
 builder.Services.AddTransient<IValidator<AdvanceStageCommand>, AdvanceStageCommandValidator>();
+builder.Services.AddTransient<IValidator<RequestHintCommand>, RequestHintCommandValidator>();
+builder.Services.AddTransient<IValidator<GrantHintCommand>, GrantHintCommandValidator>();
 
 // HttpClient registration
 builder.Services.AddHttpClient<IMissionServiceClient, MissionServiceClient>();

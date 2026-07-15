@@ -24,7 +24,16 @@ namespace LiveSessionService.Infrastructure.Persistence
             return await _context.LiveSessions
                 .Include(s => s.Teams)
                     .ThenInclude(t => t.Players)
+                .Include(s => s.HintRequests)
+                .Include(s => s.ReleasedHints)
                 .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        }
+
+        public async Task<Team?> GetTeamByIdAsync(Guid teamId, CancellationToken cancellationToken = default)
+        {
+            return await _context.Teams
+                .Include(t => t.Players)
+                .FirstOrDefaultAsync(t => t.Id == teamId, cancellationToken);
         }
 
         public async Task AddAsync(LiveSession liveSession, CancellationToken cancellationToken = default)
@@ -40,6 +49,16 @@ namespace LiveSessionService.Infrastructure.Persistence
         public async Task AddPlayerAsync(Player player, CancellationToken cancellationToken = default)
         {
             await _context.Players.AddAsync(player, cancellationToken);
+        }
+
+        public async Task AddHintRequestAsync(HintRequest hintRequest, CancellationToken cancellationToken = default)
+        {
+            await _context.HintRequests.AddAsync(hintRequest, cancellationToken);
+        }
+
+        public async Task AddReleasedHintAsync(ReleasedHint releasedHint, CancellationToken cancellationToken = default)
+        {
+            await _context.ReleasedHints.AddAsync(releasedHint, cancellationToken);
         }
 
         public async Task SaveChangesAsync(CancellationToken cancellationToken = default)

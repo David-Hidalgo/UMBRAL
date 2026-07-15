@@ -42,5 +42,35 @@ namespace LiveSessionService.Infrastructure.Notifications
                 cancellationToken
             );
         }
+
+        public async Task NotifyHintRequestedAsync(Guid sessionId, Guid requestId, Guid teamId, string teamName, Guid subStageId, DateTime requestedAt, CancellationToken cancellationToken = default)
+        {
+            // Al operador: llega a todo el grupo de la sesión.
+            await _hubContext.Clients.Group($"session-{sessionId}").SendAsync(
+                "HintRequested",
+                new { SessionId = sessionId, RequestId = requestId, TeamId = teamId, TeamName = teamName, SubStageId = subStageId, RequestedAt = requestedAt },
+                cancellationToken
+            );
+        }
+
+        public async Task NotifyHintReleasedAsync(Guid sessionId, Guid teamId, Guid releasedHintId, Guid subStageId, Guid clueId, string text, int order, DateTime releasedAt, CancellationToken cancellationToken = default)
+        {
+            // SOLO al equipo destinatario: grupo del equipo.
+            await _hubContext.Clients.Group($"team-{teamId}").SendAsync(
+                "HintReleased",
+                new { SessionId = sessionId, TeamId = teamId, ReleasedHintId = releasedHintId, SubStageId = subStageId, ClueId = clueId, Text = text, Order = order, ReleasedAt = releasedAt },
+                cancellationToken
+            );
+        }
+
+        public async Task NotifyHintRequestResolvedAsync(Guid sessionId, Guid teamId, Guid subStageId, CancellationToken cancellationToken = default)
+        {
+            // Al operador: para retirar la solicitud del panel una vez atendida.
+            await _hubContext.Clients.Group($"session-{sessionId}").SendAsync(
+                "HintRequestResolved",
+                new { SessionId = sessionId, TeamId = teamId, SubStageId = subStageId },
+                cancellationToken
+            );
+        }
     }
 }
