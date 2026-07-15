@@ -244,6 +244,60 @@ namespace MissionService.Tests.Domain
 
             act.Should().Throw<ArgumentException>().WithMessage("*radius*");
         }
+
+        [Fact]
+        public void UpdateDetails_WithoutLocation_Should_Preserve_Existing_Location()
+        {
+            // Arrange: subetapa con ubicación ya guardada.
+            var subStage = TreasureHuntSubStage.Create(
+                Guid.NewGuid(), "Find it", 0, 100, "Objetivo", "SECRET-123", null,
+                latitude: 10.488158, longitude: -66.846534, searchRadiusMeters: 120);
+
+            // Act: se actualiza solo el texto (sobrecarga de 2 args).
+            subStage.UpdateDetails("Nuevo objetivo", "NUEVO-CODIGO");
+
+            // Assert: el texto cambia pero la ubicación se conserva (antes se borraba).
+            subStage.Objective.Should().Be("Nuevo objetivo");
+            subStage.SecretCode.Should().Be("NUEVO-CODIGO");
+            subStage.Latitude.Should().Be(10.488158);
+            subStage.Longitude.Should().Be(-66.846534);
+            subStage.SearchRadiusMeters.Should().Be(120);
+        }
+
+        [Fact]
+        public void UpdateDetails_WithLocation_Should_Update_Location()
+        {
+            // Arrange: subetapa sin ubicación.
+            var subStage = TreasureHuntSubStage.Create(
+                Guid.NewGuid(), "Find it", 0, 100, "Objetivo", "SECRET-123", null);
+
+            // Act: se actualiza con una ubicación nueva (sobrecarga completa).
+            subStage.UpdateDetails("Objetivo", "SECRET-123",
+                latitude: 40.416775, longitude: -3.703790, searchRadiusMeters: 250);
+
+            // Assert.
+            subStage.Latitude.Should().Be(40.416775);
+            subStage.Longitude.Should().Be(-3.703790);
+            subStage.SearchRadiusMeters.Should().Be(250);
+        }
+
+        [Fact]
+        public void UpdateDetails_WithNullLocation_Should_Clear_Existing_Location()
+        {
+            // Arrange: subetapa con ubicación.
+            var subStage = TreasureHuntSubStage.Create(
+                Guid.NewGuid(), "Find it", 0, 100, "Objetivo", "SECRET-123", null,
+                latitude: 10.488158, longitude: -66.846534, searchRadiusMeters: 120);
+
+            // Act: la sobrecarga completa con nulls limpia la ubicación explícitamente.
+            subStage.UpdateDetails("Objetivo", "SECRET-123",
+                latitude: null, longitude: null, searchRadiusMeters: null);
+
+            // Assert.
+            subStage.Latitude.Should().BeNull();
+            subStage.Longitude.Should().BeNull();
+            subStage.SearchRadiusMeters.Should().BeNull();
+        }
     }
 }
 

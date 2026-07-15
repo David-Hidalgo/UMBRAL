@@ -82,7 +82,12 @@ namespace MissionService.Application.Handlers
                     }
                     else if (existingSubStage is TreasureHuntSubStage treasureHuntSubStage)
                     {
-                        treasureHuntSubStage.UpdateDetails(ssc.Objective ?? string.Empty, ssc.SecretCode ?? string.Empty);
+                        // Se pasa la ubicación del payload para no perder el pin/radio al editar
+                        // (y para limpiarla si el operador la quitó). Ver TreasureHuntSubStage.UpdateDetails.
+                        treasureHuntSubStage.UpdateDetails(
+                            ssc.Objective ?? string.Empty,
+                            ssc.SecretCode ?? string.Empty,
+                            ssc.Latitude, ssc.Longitude, ssc.SearchRadiusMeters);
                     }
                 }
                 else

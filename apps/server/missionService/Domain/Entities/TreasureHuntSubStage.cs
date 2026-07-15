@@ -34,15 +34,7 @@ namespace MissionService.Domain.Entities
                 throw new ArgumentException("Substage title cannot be empty.", nameof(title));
             if (points < 0)
                 throw new ArgumentException("Substage points cannot be negative.", nameof(points));
-            if (string.IsNullOrWhiteSpace(objective))
-                throw new ArgumentException("Treasure hunt objective cannot be empty.", nameof(objective));
-            if (string.IsNullOrWhiteSpace(secretCode))
-                throw new ArgumentException("Secret code cannot be empty.", nameof(secretCode));
-            if (secretCode.Length > 100)
-                throw new ArgumentException("Secret code cannot exceed 100 characters.", nameof(secretCode));
-            if (!System.Text.RegularExpressions.Regex.IsMatch(secretCode, "^[a-zA-Z0-9-]+$"))
-                throw new ArgumentException("Secret code must be alphanumeric and can contain hyphens.", nameof(secretCode));
-
+            ValidateObjectiveAndSecretCode(objective, secretCode);
             ValidateLocation(latitude, longitude, searchRadiusMeters);
 
             var th = new TreasureHuntSubStage
@@ -69,12 +61,36 @@ namespace MissionService.Domain.Entities
             return th;
         }
 
+        // Actualiza objetivo y código secreto CONSERVANDO la ubicación actual. Se usa cuando
+        // el llamador no gestiona el mapa, para no borrar lat/lon/radio sin querer.
+        public void UpdateDetails(string objective, string secretCode)
+        {
+            ValidateObjectiveAndSecretCode(objective, secretCode);
+
+            Objective = objective;
+            SecretCode = secretCode.Trim().ToUpperInvariant();
+        }
+
+        // Actualiza objetivo, código secreto y ubicación. Pasar las tres coordenadas en null
+        // limpia explícitamente la ubicación del tesoro.
         public void UpdateDetails(
             string objective,
             string secretCode,
-            double? latitude = null,
-            double? longitude = null,
-            int? searchRadiusMeters = null)
+            double? latitude,
+            double? longitude,
+            int? searchRadiusMeters)
+        {
+            ValidateObjectiveAndSecretCode(objective, secretCode);
+            ValidateLocation(latitude, longitude, searchRadiusMeters);
+
+            Objective = objective;
+            SecretCode = secretCode.Trim().ToUpperInvariant();
+            Latitude = latitude;
+            Longitude = longitude;
+            SearchRadiusMeters = searchRadiusMeters;
+        }
+
+        private static void ValidateObjectiveAndSecretCode(string objective, string secretCode)
         {
             if (string.IsNullOrWhiteSpace(objective))
                 throw new ArgumentException("Treasure hunt objective cannot be empty.", nameof(objective));
@@ -84,14 +100,6 @@ namespace MissionService.Domain.Entities
                 throw new ArgumentException("Secret code cannot exceed 100 characters.", nameof(secretCode));
             if (!System.Text.RegularExpressions.Regex.IsMatch(secretCode, "^[a-zA-Z0-9-]+$"))
                 throw new ArgumentException("Secret code must be alphanumeric and can contain hyphens.", nameof(secretCode));
-
-            ValidateLocation(latitude, longitude, searchRadiusMeters);
-
-            Objective = objective;
-            SecretCode = secretCode.Trim().ToUpperInvariant();
-            Latitude = latitude;
-            Longitude = longitude;
-            SearchRadiusMeters = searchRadiusMeters;
         }
 
         // Latitud/longitud van juntas o ninguna; rangos geográficos válidos; radio positivo.
