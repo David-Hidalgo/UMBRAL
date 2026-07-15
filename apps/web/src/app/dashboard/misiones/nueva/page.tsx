@@ -592,8 +592,12 @@ function CreateMissionForm() {
 							secretCode: sub.secretCode.trim().toUpperCase(),
 							latitude: sub.latitude,
 							longitude: sub.longitude,
+							// El radio solo se envía si hay un punto completo (lat y lon); si no,
+							// el backend rechaza "radio sin ubicación" / "lat sin lon".
 							searchRadiusMeters:
-								sub.latitude !== null ? sub.searchRadiusMeters : null,
+								sub.latitude !== null && sub.longitude !== null
+									? sub.searchRadiusMeters
+									: null,
 							clues: hasClues
 								? sub.clues.map((c) => ({
 										text: c.text,
