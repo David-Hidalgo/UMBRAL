@@ -17,6 +17,11 @@ namespace MissionService.Infrastructure.Persistence.Configurations
             builder.Property(x => x.SecretCode)
                 .HasMaxLength(100)
                 .IsRequired();
+
+            // Ubicación del tesoro (opcional).
+            builder.Property(x => x.Latitude);
+            builder.Property(x => x.Longitude);
+            builder.Property(x => x.SearchRadiusMeters);
         }
     }
 }

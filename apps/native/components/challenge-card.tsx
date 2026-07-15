@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 
 import type { PlayerSubStage, SubmitEvidenceResult } from "@/lib/api/scoring";
+import { TreasureMap } from "./treasure-map";
 
 interface ChallengeCardProps {
 	subStage: PlayerSubStage;
@@ -87,6 +88,13 @@ export function ChallengeCard({
 				</View>
 			) : (
 				<View className="gap-2">
+					{subStage.latitude !== null && subStage.longitude !== null && (
+						<TreasureMap
+							latitude={subStage.latitude}
+							longitude={subStage.longitude}
+							radius={subStage.searchRadiusMeters ?? 100}
+						/>
+					)}
 					{subStage.objective ? (
 						<Text className="mb-1 font-mono text-muted text-xs">
 							{subStage.objective}

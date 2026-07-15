@@ -28,7 +28,11 @@ namespace MissionService.Application.DTOs
         // TreasureHunt
         string? Objective,
         string? SecretCode,
-        List<CreateClueRequest>? Clues
+        List<CreateClueRequest>? Clues,
+        // Ubicación del tesoro (opcional)
+        double? Latitude = null,
+        double? Longitude = null,
+        int? SearchRadiusMeters = null
     );
 
     public sealed record CreateQuestionRequest(

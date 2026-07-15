@@ -32,7 +32,10 @@ namespace MissionService.Application.DTOs
         QuestionDetailDto? Question,
         string? Objective,
         string? SecretCode,
-        IReadOnlyList<ClueDetailDto>? Clues
+        IReadOnlyList<ClueDetailDto>? Clues,
+        double? Latitude = null,
+        double? Longitude = null,
+        int? SearchRadiusMeters = null
     );
 
     public sealed record QuestionDetailDto(Guid Id, string Text, IReadOnlyList<AnswerDetailDto> Answers);

@@ -28,6 +28,7 @@ import {
 	Unlock,
 	X,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -49,6 +50,15 @@ import {
 	updateMission,
 	updateStage,
 } from "@/lib/api/missions";
+
+// Leaflet necesita `window`, así que el mapa se carga solo en el cliente (sin SSR).
+const TreasureMapPicker = dynamic(
+	() =>
+		import("@/components/missions/treasure-map-picker").then(
+			(m) => m.TreasureMapPicker,
+		),
+	{ ssr: false },
+);
 
 // ─── Client State Types for Editor ──────────────────────────────────────────
 
@@ -83,6 +93,9 @@ interface ClientSubStage {
 	question: ClientQuestion;
 	objective: string;
 	secretCode: string;
+	latitude: number | null;
+	longitude: number | null;
+	searchRadiusMeters: number;
 	clues: ClientClue[];
 }
 
@@ -188,6 +201,9 @@ function mapStageToForm(stage: StageDetail): StageForm {
 				question,
 				objective: sub.objective ?? "",
 				secretCode: sub.secretCode ?? "",
+				latitude: sub.latitude,
+				longitude: sub.longitude,
+				searchRadiusMeters: sub.searchRadiusMeters ?? 120,
 				clues,
 			};
 		}),
@@ -234,6 +250,10 @@ function mapFormToRequest(form: StageForm, order: number): CreateStageRequest {
 				points: Number(sub.points) || 0,
 				objective: sub.objective,
 				secretCode: sub.secretCode.trim().toUpperCase(),
+				latitude: sub.latitude,
+				longitude: sub.longitude,
+				searchRadiusMeters:
+					sub.latitude !== null ? sub.searchRadiusMeters : null,
 				clues: hasClues
 					? sub.clues.map((c) => ({
 							id: c.id,
@@ -742,6 +762,9 @@ function MissionDetailPanelInner() {
 			question: makeDefaultQuestion(),
 			objective: "",
 			secretCode: "",
+			latitude: null,
+			longitude: null,
+			searchRadiusMeters: 120,
 			clues: [],
 		};
 		setStageForm((prev) => ({
@@ -1160,6 +1183,32 @@ function MissionDetailPanelInner() {
 															disabled={loadingOperations.savingStage}
 														/>
 													</div>
+												</div>
+												<div className="space-y-1">
+													<Label className="text-[11px] text-primary/80">
+														Ubicación del tesoro (opcional)
+													</Label>
+													<TreasureMapPicker
+														disabled={loadingOperations.savingStage}
+														latitude={sub.latitude}
+														longitude={sub.longitude}
+														onChange={(lat, lng) => {
+															handleUpdateSubStage(sub.tempId, "latitude", lat);
+															handleUpdateSubStage(
+																sub.tempId,
+																"longitude",
+																lng,
+															);
+														}}
+														onRadiusChange={(r) =>
+															handleUpdateSubStage(
+																sub.tempId,
+																"searchRadiusMeters",
+																r,
+															)
+														}
+														radius={sub.searchRadiusMeters}
+													/>
 												</div>
 											</div>
 										)}

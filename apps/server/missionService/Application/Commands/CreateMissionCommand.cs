@@ -30,7 +30,11 @@ namespace MissionService.Application.Commands
         string? Objective = null,
         string? SecretCode = null,
         List<CreateClueCommand>? Clues = null,
-        Guid? Id = null
+        Guid? Id = null,
+        // Ubicación del tesoro (opcional, solo TreasureHunt)
+        double? Latitude = null,
+        double? Longitude = null,
+        int? SearchRadiusMeters = null
     );
 
     public sealed record CreateQuestionCommand(

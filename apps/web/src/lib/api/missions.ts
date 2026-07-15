@@ -32,6 +32,9 @@ export interface SubStageDetail {
 	objective: string | null;
 	secretCode: string | null;
 	clues: ClueDetail[] | null;
+	latitude: number | null;
+	longitude: number | null;
+	searchRadiusMeters: number | null;
 }
 
 export interface QuestionDetail {
@@ -79,6 +82,9 @@ export interface CreateSubStageRequest {
 	objective?: string | null;
 	secretCode?: string | null;
 	clues?: CreateClueRequest[] | null;
+	latitude?: number | null;
+	longitude?: number | null;
+	searchRadiusMeters?: number | null;
 }
 
 export interface CreateQuestionRequest {

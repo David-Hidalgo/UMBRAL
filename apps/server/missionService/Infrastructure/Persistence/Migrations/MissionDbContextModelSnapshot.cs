@@ -191,10 +191,19 @@ namespace missionService.Migrations
                 {
                     b.HasBaseType("MissionService.Domain.Entities.SubStage");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("Objective")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("SearchRadiusMeters")
+                        .HasColumnType("integer");
 
                     b.Property<string>("SecretCode")
                         .IsRequired()

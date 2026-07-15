@@ -119,7 +119,8 @@ namespace MissionService.Application.Handlers
                             ssc.Points,
                             ssc.Objective ?? string.Empty,
                             ssc.SecretCode ?? string.Empty,
-                            domainClues
+                            domainClues,
+                            ssc.Latitude, ssc.Longitude, ssc.SearchRadiusMeters
                         );
                         stage.AddSubStage(treasureHuntSubStage);
                     }

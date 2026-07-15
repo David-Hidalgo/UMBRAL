@@ -183,6 +183,67 @@ namespace MissionService.Tests.Domain
             subStage.DecrementSessionCount();
             subStage.Status.ActiveSessionCount.Should().Be(0);
         }
+
+        [Fact]
+        public void TreasureHuntSubStage_Should_Store_Location_When_Provided()
+        {
+            // Act
+            var subStage = TreasureHuntSubStage.Create(
+                Guid.NewGuid(), "Find it", 0, 100, "Objetivo", "SECRET-123", null,
+                latitude: 10.488158, longitude: -66.846534, searchRadiusMeters: 120);
+
+            // Assert
+            subStage.Latitude.Should().Be(10.488158);
+            subStage.Longitude.Should().Be(-66.846534);
+            subStage.SearchRadiusMeters.Should().Be(120);
+        }
+
+        [Fact]
+        public void TreasureHuntSubStage_Without_Location_Should_Have_Null_Coordinates()
+        {
+            var subStage = TreasureHuntSubStage.Create(
+                Guid.NewGuid(), "Find it", 0, 100, "Objetivo", "SECRET-123", null);
+
+            subStage.Latitude.Should().BeNull();
+            subStage.Longitude.Should().BeNull();
+            subStage.SearchRadiusMeters.Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData(91.0, 0.0)]   // latitud fuera de rango
+        [InlineData(-91.0, 0.0)]
+        [InlineData(0.0, 181.0)]  // longitud fuera de rango
+        [InlineData(0.0, -181.0)]
+        public void TreasureHuntSubStage_Should_Throw_When_Coordinates_Out_Of_Range(double lat, double lon)
+        {
+            Action act = () => TreasureHuntSubStage.Create(
+                Guid.NewGuid(), "Find it", 0, 100, "Objetivo", "SECRET-123", null,
+                latitude: lat, longitude: lon);
+
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void TreasureHuntSubStage_Should_Throw_When_Only_One_Coordinate_Provided()
+        {
+            Action act = () => TreasureHuntSubStage.Create(
+                Guid.NewGuid(), "Find it", 0, 100, "Objetivo", "SECRET-123", null,
+                latitude: 10.5, longitude: null);
+
+            act.Should().Throw<ArgumentException>().WithMessage("*together*");
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-5)]
+        public void TreasureHuntSubStage_Should_Throw_When_Radius_Not_Positive(int radius)
+        {
+            Action act = () => TreasureHuntSubStage.Create(
+                Guid.NewGuid(), "Find it", 0, 100, "Objetivo", "SECRET-123", null,
+                latitude: 10.5, longitude: -66.8, searchRadiusMeters: radius);
+
+            act.Should().Throw<ArgumentException>().WithMessage("*radius*");
+        }
     }
 }
 

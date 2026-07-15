@@ -45,6 +45,10 @@ export interface PlayerSubStage {
 	objective: string | null;
 	// El jugador ya no puede enviar: Trivia = ya respondió (1 intento); Búsqueda = ya resolvió.
 	closed: boolean;
+	// Ubicación del tesoro (solo Búsqueda del Tesoro): guía visual en el mapa.
+	latitude: number | null;
+	longitude: number | null;
+	searchRadiusMeters: number | null;
 }
 
 export interface PlayerChallenge {
