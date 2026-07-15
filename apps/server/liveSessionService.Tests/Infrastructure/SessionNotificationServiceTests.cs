@@ -83,5 +83,66 @@ namespace LiveSessionService.Tests.Infrastructure
                     It.IsAny<CancellationToken>()),
                 Times.Once);
         }
+
+        [Fact]
+        public async Task NotifyHintRequestedAsync_Should_Send_To_Session_Group()
+        {
+            // Arrange: la solicitud del jugador llega al operador (grupo de la sesión).
+            var sessionId = Guid.NewGuid();
+            var teamId = Guid.NewGuid();
+
+            // Act
+            await _service.NotifyHintRequestedAsync(sessionId, Guid.NewGuid(), teamId, "Alfa", Guid.NewGuid(), DateTime.UtcNow, CancellationToken.None);
+
+            // Assert
+            _clientsMock.Verify(c => c.Group($"session-{sessionId}"), Times.Once);
+            _clientProxyMock.Verify(
+                p => p.SendCoreAsync(
+                    "HintRequested",
+                    It.Is<object[]>(args => args.Length == 1),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task NotifyHintReleasedAsync_Should_Send_Only_To_Team_Group()
+        {
+            // Arrange: la pista liberada va SOLO al grupo del equipo destinatario.
+            var sessionId = Guid.NewGuid();
+            var teamId = Guid.NewGuid();
+
+            // Act
+            await _service.NotifyHintReleasedAsync(sessionId, teamId, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Pista", 1, DateTime.UtcNow, CancellationToken.None);
+
+            // Assert
+            _clientsMock.Verify(c => c.Group($"team-{teamId}"), Times.Once);
+            _clientsMock.Verify(c => c.Group($"session-{sessionId}"), Times.Never);
+            _clientProxyMock.Verify(
+                p => p.SendCoreAsync(
+                    "HintReleased",
+                    It.Is<object[]>(args => args.Length == 1),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task NotifyHintRequestResolvedAsync_Should_Send_To_Session_Group()
+        {
+            // Arrange
+            var sessionId = Guid.NewGuid();
+            var teamId = Guid.NewGuid();
+
+            // Act
+            await _service.NotifyHintRequestResolvedAsync(sessionId, teamId, Guid.NewGuid(), CancellationToken.None);
+
+            // Assert
+            _clientsMock.Verify(c => c.Group($"session-{sessionId}"), Times.Once);
+            _clientProxyMock.Verify(
+                p => p.SendCoreAsync(
+                    "HintRequestResolved",
+                    It.Is<object[]>(args => args.Length == 1),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
     }
 }

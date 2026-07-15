@@ -1,9 +1,11 @@
+import { Ionicons } from "@expo/vector-icons";
 import * as signalR from "@microsoft/signalr";
 import { env } from "@umbral/env/native";
 import { Spinner } from "heroui-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 
+import { getTeamHints, type ReleasedHint, requestHint } from "@/lib/api/hints";
 import {
 	getCurrentChallenge,
 	getTeamScore,
@@ -12,7 +14,20 @@ import {
 	submitEvidence,
 } from "@/lib/api/scoring";
 import { ChallengeCard } from "./challenge-card";
+import { HintList } from "./hint-list";
 import { ScoreBadge } from "./score-badge";
+
+// Payload del evento SignalR "HintReleased" (hub de sesiones, grupo team-{teamId}).
+interface HintReleasedEvent {
+	sessionId: string;
+	teamId: string;
+	releasedHintId: string;
+	subStageId: string;
+	clueId: string;
+	text: string;
+	order: number;
+	releasedAt: string;
+}
 
 interface GamePlayPanelProps {
 	sessionId: string;
@@ -37,7 +52,13 @@ export function GamePlayPanel({
 	const [results, setResults] = useState<Record<string, SubmitEvidenceResult>>(
 		{},
 	);
+	const [hints, setHints] = useState<ReleasedHint[]>([]);
+	const [requestingHint, setRequestingHint] = useState(false);
+	const [pendingHintSubIds, setPendingHintSubIds] = useState<Set<string>>(
+		new Set(),
+	);
 	const hubRef = useRef<signalR.HubConnection | null>(null);
+	const sessionHubRef = useRef<signalR.HubConnection | null>(null);
 
 	const refreshScore = useCallback(async () => {
 		try {
@@ -127,6 +148,115 @@ export function GamePlayPanel({
 		};
 	}, [sessionId, teamId, getAccessToken, refreshScore]);
 
+	// Pistas: carga inicial + tiempo real. El evento HintReleased vive en el hub de
+	// SESIONES (grupo team-{teamId}); OJO: aquí JoinTeamGroup toma UN solo argumento,
+	// a diferencia del hub de scoring que toma (sessionId, teamId).
+	useEffect(() => {
+		let active = true;
+
+		const loadHints = async () => {
+			try {
+				const token = await getAccessToken(60);
+				if (!token) return;
+				const released = await getTeamHints(sessionId, teamId, token);
+				if (active) setHints(released);
+			} catch {
+				// Silencioso: aún sin pistas o sesión no disponible.
+			}
+		};
+		void loadHints();
+
+		// Sondeo de respaldo: si el evento HintReleased no se entrega (reconexión, o
+		// esta segunda conexión al mismo hub que la de index.tsx), las pistas otorgadas
+		// aparecen igual al re-sincronizar por HTTP cada pocos segundos.
+		const hintPoll = setInterval(() => {
+			void loadHints();
+		}, 4000);
+
+		const connection = new signalR.HubConnectionBuilder()
+			.withUrl(`${env.EXPO_PUBLIC_SERVER_URL}/hubs/sessions`, {
+				accessTokenFactory: async () => (await getAccessToken(60)) ?? "",
+			})
+			.withAutomaticReconnect()
+			.build();
+
+		connection.on("HintReleased", (payload: HintReleasedEvent) => {
+			if (!active || payload.teamId !== teamId) return;
+			setHints((prev) =>
+				prev.some((h) => h.clueId === payload.clueId)
+					? prev
+					: [
+							...prev,
+							{
+								id: payload.releasedHintId,
+								teamId: payload.teamId,
+								subStageId: payload.subStageId,
+								clueId: payload.clueId,
+								text: payload.text,
+								order: payload.order,
+								releasedAt: payload.releasedAt,
+							},
+						],
+			);
+			setPendingHintSubIds((prev) => {
+				const next = new Set(prev);
+				next.delete(payload.subStageId);
+				return next;
+			});
+			Alert.alert("Nueva pista", payload.text);
+		});
+
+		connection.onreconnected(() => {
+			void loadHints();
+		});
+
+		const start = async () => {
+			try {
+				await connection.start();
+				if (!active) return;
+				await connection.invoke("JoinTeamGroup", teamId);
+				sessionHubRef.current = connection;
+			} catch {
+				// Si el hub falla, las pistas siguen disponibles por HTTP (loadHints).
+			}
+		};
+		void start();
+
+		return () => {
+			active = false;
+			clearInterval(hintPoll);
+			const conn = sessionHubRef.current;
+			if (conn) {
+				conn
+					.invoke("LeaveTeamGroup", teamId)
+					.catch(() => undefined)
+					.finally(() => conn.stop());
+				sessionHubRef.current = null;
+			} else {
+				connection.stop().catch(() => undefined);
+			}
+		};
+	}, [sessionId, teamId, getAccessToken]);
+
+	const handleRequestHint = async (subStageId: string) => {
+		setRequestingHint(true);
+		try {
+			const token = await getAccessToken(60);
+			if (!token) throw new Error("No autenticado.");
+			await requestHint(sessionId, teamId, subStageId, token);
+			setPendingHintSubIds((prev) => new Set(prev).add(subStageId));
+			Alert.alert(
+				"Solicitud enviada",
+				"Espera a que el operador te otorgue la pista.",
+			);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			Alert.alert("No se pudo pedir la pista", message);
+		} finally {
+			setRequestingHint(false);
+		}
+	};
+
 	const handleSubmit = async (subStageId: string, payload: string) => {
 		// Guard: si el tiempo se agotó no se envía (además de ocultarse el botón).
 		if (isTimeUp) return;
@@ -199,6 +329,28 @@ export function GamePlayPanel({
 						subStage={current}
 						submitting={submittingSubId === current.id}
 					/>
+
+					<HintList hints={hints.filter((h) => h.subStageId === current.id)} />
+
+					{!isTimeUp &&
+						(pendingHintSubIds.has(current.id) ? (
+							<View className="items-center rounded-lg border border-border/20 bg-muted/10 py-3">
+								<Text className="font-mono text-[10px] text-muted uppercase tracking-widest">
+									Solicitud enviada · espera al operador
+								</Text>
+							</View>
+						) : (
+							<Pressable
+								className="flex-row items-center justify-center gap-2 rounded-lg border border-accent/40 bg-accent/10 py-3"
+								disabled={requestingHint}
+								onPress={() => handleRequestHint(current.id)}
+							>
+								<Ionicons color="#fbbf24" name="bulb-outline" size={16} />
+								<Text className="font-bold font-mono text-accent text-xs uppercase tracking-widest">
+									{requestingHint ? "Enviando..." : "Pedir pista"}
+								</Text>
+							</Pressable>
+						))}
 				</View>
 			) : null}
 

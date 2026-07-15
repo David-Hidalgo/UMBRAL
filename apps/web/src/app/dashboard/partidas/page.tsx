@@ -32,6 +32,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth-provider";
+import { HintsPanel } from "@/components/hints/hints-panel";
 import { RoleGuard } from "@/components/role-guard";
 import { ScoringPanel } from "@/components/scoring/scoring-panel";
 import { SessionTimer } from "@/components/session-timer";
@@ -848,11 +849,17 @@ function PartidasPanelInner() {
 										</div>
 									)}
 
-									{/* Scoring: ranking en vivo, penalizaciones e historial (RF-11/12/15) */}
+									{/* Scoring (ranking) + Pistas (solicitudes): comparten un contenedor
+									    con scroll propio para que no crezcan sin límite (RF-07/11/12/15). */}
 									{selectedSessionId && (
-										<div className="shrink-0">
+										<div className="max-h-[32rem] shrink-0 space-y-6 overflow-y-auto pr-1">
 											<ScoringPanel
 												getAccessToken={getAccessToken}
+												sessionId={selectedSessionId}
+											/>
+											<HintsPanel
+												getAccessToken={getAccessToken}
+												missionDetail={missionDetail}
 												sessionId={selectedSessionId}
 											/>
 										</div>

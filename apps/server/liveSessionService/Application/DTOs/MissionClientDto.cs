@@ -23,6 +23,15 @@ namespace LiveSessionService.Application.DTOs
         Guid Id,
         string Title,
         int Order,
-        int Points
+        int Points,
+        IReadOnlyList<ClueClientDto>? Clues = null
+    );
+
+    // Las pistas se crean al definir la misión (admin). Una subetapa puede no tener ninguna,
+    // en cuyo caso el missionService devuelve un arreglo vacío.
+    public record ClueClientDto(
+        Guid Id,
+        string Text,
+        int Order
     );
 }

@@ -22,6 +22,39 @@ namespace liveSessionService.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("LiveSessionService.Domain.Entities.HintRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LiveSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("SubStageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LiveSessionId", "TeamId", "SubStageId", "Status");
+
+                    b.ToTable("HintRequests", (string)null);
+                });
+
             modelBuilder.Entity("LiveSessionService.Domain.Entities.LiveSession", b =>
                 {
                     b.Property<Guid>("Id")
@@ -96,6 +129,43 @@ namespace liveSessionService.Migrations
                     b.ToTable("Players", (string)null);
                 });
 
+            modelBuilder.Entity("LiveSessionService.Domain.Entities.ReleasedHint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ClueOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ClueText")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("LiveSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ReleasedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SubStageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LiveSessionId", "TeamId", "ClueId")
+                        .IsUnique();
+
+                    b.ToTable("ReleasedHints", (string)null);
+                });
+
             modelBuilder.Entity("LiveSessionService.Domain.Entities.Team", b =>
                 {
                     b.Property<Guid>("Id")
@@ -117,11 +187,29 @@ namespace liveSessionService.Migrations
                     b.ToTable("Teams", (string)null);
                 });
 
+            modelBuilder.Entity("LiveSessionService.Domain.Entities.HintRequest", b =>
+                {
+                    b.HasOne("LiveSessionService.Domain.Entities.LiveSession", null)
+                        .WithMany("HintRequests")
+                        .HasForeignKey("LiveSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("LiveSessionService.Domain.Entities.Player", b =>
                 {
                     b.HasOne("LiveSessionService.Domain.Entities.Team", null)
                         .WithMany("Players")
                         .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LiveSessionService.Domain.Entities.ReleasedHint", b =>
+                {
+                    b.HasOne("LiveSessionService.Domain.Entities.LiveSession", null)
+                        .WithMany("ReleasedHints")
+                        .HasForeignKey("LiveSessionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -137,6 +225,10 @@ namespace liveSessionService.Migrations
 
             modelBuilder.Entity("LiveSessionService.Domain.Entities.LiveSession", b =>
                 {
+                    b.Navigation("HintRequests");
+
+                    b.Navigation("ReleasedHints");
+
                     b.Navigation("Teams");
                 });
 

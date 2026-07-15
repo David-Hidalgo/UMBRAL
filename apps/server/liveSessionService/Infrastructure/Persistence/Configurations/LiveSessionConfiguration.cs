@@ -46,6 +46,22 @@ namespace LiveSessionService.Infrastructure.Persistence.Configurations
 
             builder.Navigation(x => x.Teams)
                 .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            builder.HasMany(x => x.HintRequests)
+                .WithOne()
+                .HasForeignKey(x => x.LiveSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Navigation(x => x.HintRequests)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            builder.HasMany(x => x.ReleasedHints)
+                .WithOne()
+                .HasForeignKey(x => x.LiveSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Navigation(x => x.ReleasedHints)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
         }
     }
 }

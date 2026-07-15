@@ -12,6 +12,8 @@ namespace LiveSessionService.Domain.Repositories
         Task AddAsync(LiveSession liveSession, CancellationToken cancellationToken = default);
         Task AddTeamAsync(Team team, CancellationToken cancellationToken = default);
         Task AddPlayerAsync(Player player, CancellationToken cancellationToken = default);
+        Task AddHintRequestAsync(HintRequest hintRequest, CancellationToken cancellationToken = default);
+        Task AddReleasedHintAsync(ReleasedHint releasedHint, CancellationToken cancellationToken = default);
         Task SaveChangesAsync(CancellationToken cancellationToken = default);
         Task<IEnumerable<LiveSession>> GetAllAsync(Guid? missionId, string? status, CancellationToken cancellationToken = default);
     }
