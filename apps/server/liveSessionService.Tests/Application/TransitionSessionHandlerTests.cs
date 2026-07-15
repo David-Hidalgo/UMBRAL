@@ -70,7 +70,7 @@ namespace LiveSessionService.Tests.Application
             // Assert
             _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
             _notificationMock.Verify(
-                n => n.NotifyStateChangedAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                n => n.NotifyStateChangedAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()),
                 Times.Never);
         }
 
@@ -102,7 +102,7 @@ namespace LiveSessionService.Tests.Application
                     It.IsAny<CancellationToken>()),
                 Times.Once);
             _notificationMock.Verify(
-                n => n.NotifyStateChangedAsync(session.Id, LiveSessionStatus.Activa.ToString(), It.IsAny<CancellationToken>()),
+                n => n.NotifyStateChangedAsync(session.Id, LiveSessionStatus.Activa.ToString(), It.IsAny<DateTime?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()),
                 Times.Once);
         }
 
@@ -127,7 +127,7 @@ namespace LiveSessionService.Tests.Application
                 e => e.PublishAsync(It.IsAny<SessionPausedIntegrationEvent>(), It.IsAny<CancellationToken>()),
                 Times.Once);
             _notificationMock.Verify(
-                n => n.NotifyStateChangedAsync(session.Id, LiveSessionStatus.Pausada.ToString(), It.IsAny<CancellationToken>()),
+                n => n.NotifyStateChangedAsync(session.Id, LiveSessionStatus.Pausada.ToString(), It.IsAny<DateTime?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()),
                 Times.Once);
         }
 
@@ -154,7 +154,7 @@ namespace LiveSessionService.Tests.Application
                 e => e.PublishAsync(It.IsAny<SessionActivatedIntegrationEvent>(), It.IsAny<CancellationToken>()),
                 Times.Never);
             _notificationMock.Verify(
-                n => n.NotifyStateChangedAsync(session.Id, LiveSessionStatus.Activa.ToString(), It.IsAny<CancellationToken>()),
+                n => n.NotifyStateChangedAsync(session.Id, LiveSessionStatus.Activa.ToString(), It.IsAny<DateTime?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()),
                 Times.Once);
         }
 
@@ -238,7 +238,7 @@ namespace LiveSessionService.Tests.Application
                     It.IsAny<CancellationToken>()),
                 Times.Once);
             _notificationMock.Verify(
-                n => n.NotifyStateChangedAsync(session.Id, LiveSessionStatus.Cancelada.ToString(), It.IsAny<CancellationToken>()),
+                n => n.NotifyStateChangedAsync(session.Id, LiveSessionStatus.Cancelada.ToString(), It.IsAny<DateTime?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()),
                 Times.Once);
         }
 
@@ -288,7 +288,7 @@ namespace LiveSessionService.Tests.Application
             // Assert
             session.Status.Should().Be(LiveSessionStatus.Preparacion);
             _notificationMock.Verify(
-                n => n.NotifyStateChangedAsync(session.Id, LiveSessionStatus.Preparacion.ToString(), It.IsAny<CancellationToken>()),
+                n => n.NotifyStateChangedAsync(session.Id, LiveSessionStatus.Preparacion.ToString(), It.IsAny<DateTime?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()),
                 Times.Once);
         }
 

@@ -18,6 +18,14 @@ namespace LiveSessionService.Domain.Entities
         public DateTime? ScheduledAt { get; private set; }
         public int CurrentStageIndex { get; private set; }
         public LiveSessionStatus Status { get; private set; }
+
+        // --- Temporizador de sesión (RF-06/RF-02) ---
+        // Tiempo máximo de la misión, copiado como snapshot al crear la sesión.
+        public int MaxTimeMinutes { get; private set; }
+        // Instante en que expira la cuenta regresiva mientras la sesión está Activa.
+        public DateTime? EndsAt { get; private set; }
+        // Segundos restantes congelados mientras la sesión está Pausada (enfoque "deadline móvil").
+        public int? RemainingSecondsOnPause { get; private set; }
         public IReadOnlyCollection<Team> Teams => _teams.AsReadOnly();
 
         public LiveSessionState State => GetStateInstance(Status);
@@ -25,7 +33,7 @@ namespace LiveSessionService.Domain.Entities
         // Requerido por EF Core
         private LiveSession() { }
 
-        public static LiveSession Create(Guid id, Guid missionId, string missionName, string name, DateTime? scheduledAt)
+        public static LiveSession Create(Guid id, Guid missionId, string missionName, string name, DateTime? scheduledAt, int maxTimeMinutes = 0)
         {
             if (id == Guid.Empty)
                 throw new ArgumentException("El ID de la sesión no puede estar vacío.", nameof(id));
@@ -39,6 +47,9 @@ namespace LiveSessionService.Domain.Entities
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("El nombre de la sesión es requerido.", nameof(name));
 
+            if (maxTimeMinutes < 0)
+                throw new ArgumentException("El tiempo máximo no puede ser negativo.", nameof(maxTimeMinutes));
+
             return new LiveSession
             {
                 Id = id,
@@ -46,6 +57,7 @@ namespace LiveSessionService.Domain.Entities
                 MissionName = missionName,
                 Name = name,
                 ScheduledAt = scheduledAt,
+                MaxTimeMinutes = maxTimeMinutes,
                 CurrentStageIndex = 0,
                 Status = LiveSessionStatus.Programada
             };
@@ -56,19 +68,65 @@ namespace LiveSessionService.Domain.Entities
             State.StartPreparation(this);
         }
 
-        public void Activate()
+        public void Activate(DateTime? now = null)
         {
             State.Activate(this);
+
+            // Arranque del reloj: la cuenta regresiva expira en now + MaxTimeMinutes.
+            if (!now.HasValue)
+            {
+                return;
+            }
+
+            // Si MaxTimeMinutes es 0 (sesiones legacy), no se inicia temporizador.
+            if (MaxTimeMinutes <= 0)
+            {
+                EndsAt = null;
+                RemainingSecondsOnPause = null;
+                return;
+            }
+
+            EndsAt = now.Value.AddMinutes(MaxTimeMinutes);
+            RemainingSecondsOnPause = null;
         }
 
-        public void Pause()
+        public void Pause(DateTime? now = null)
         {
             State.Pause(this);
+
+            // Se congela el tiempo restante para reanudar exactamente donde quedó.
+            if (now.HasValue && EndsAt.HasValue)
+            {
+                var remaining = (EndsAt.Value - now.Value).TotalSeconds;
+                RemainingSecondsOnPause = (int)Math.Max(0, Math.Ceiling(remaining));
+            }
         }
 
-        public void Resume()
+        public void Resume(DateTime? now = null)
         {
             State.Resume(this);
+
+            // Se recalcula el deadline a partir del remanente congelado.
+            if (!now.HasValue)
+            {
+                return;
+            }
+
+            var remainingSeconds = RemainingSecondsOnPause;
+            if (remainingSeconds == null)
+            {
+                // Si MaxTimeMinutes es 0 (sesiones legacy) no se reactiva el temporizador.
+                if (MaxTimeMinutes <= 0)
+                {
+                    EndsAt = null;
+                    return;
+                }
+
+                remainingSeconds = MaxTimeMinutes * 60;
+            }
+
+            EndsAt = now.Value.AddSeconds(remainingSeconds.Value);
+            RemainingSecondsOnPause = null;
         }
 
         public void Finish()

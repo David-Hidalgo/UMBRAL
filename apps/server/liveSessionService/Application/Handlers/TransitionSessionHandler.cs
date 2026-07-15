@@ -49,7 +49,10 @@ namespace LiveSessionService.Application.Handlers
                 return Unit.Value;
             }
 
-            // Aplicar transición según el patrón de estado
+            var now = DateTime.UtcNow;
+
+            // Aplicar transición según el patrón de estado. Se pasa `now` a las transiciones
+            // con temporizador (activar arranca el reloj, pausar lo congela, reanudar lo restaura).
             if (targetStatus == LiveSessionStatus.Preparacion)
             {
                 session.StartPreparation();
@@ -58,16 +61,16 @@ namespace LiveSessionService.Application.Handlers
             {
                 if (previousStatus == LiveSessionStatus.Pausada)
                 {
-                    session.Resume();
+                    session.Resume(now);
                 }
                 else
                 {
-                    session.Activate();
+                    session.Activate(now);
                 }
             }
             else if (targetStatus == LiveSessionStatus.Pausada)
             {
-                session.Pause();
+                session.Pause(now);
             }
             else if (targetStatus == LiveSessionStatus.Finalizada)
             {
@@ -112,8 +115,9 @@ namespace LiveSessionService.Application.Handlers
                 await _eventBus.PublishAsync(new SessionCancelledIntegrationEvent(session.Id, subStageIds), cancellationToken);
             }
 
-            // Notificación en tiempo real de cambio de estado
-            await _notificationService.NotifyStateChangedAsync(session.Id, session.Status.ToString(), cancellationToken);
+            // Notificación en tiempo real de cambio de estado (incluye el temporizador RF-06).
+            await _notificationService.NotifyStateChangedAsync(
+                session.Id, session.Status.ToString(), session.EndsAt, session.RemainingSecondsOnPause, cancellationToken);
 
             return Unit.Value;
         }

@@ -30,6 +30,9 @@ export interface LiveSessionDetail {
 		| "Finalizada"
 		| "Cancelada";
 	teams: TeamDetail[];
+	maxTimeMinutes: number;
+	endsAt: string | null;
+	remainingSecondsOnPause: number | null;
 }
 
 export interface LiveSessionSummary {

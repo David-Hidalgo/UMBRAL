@@ -53,7 +53,7 @@ namespace LiveSessionService.Tests.Infrastructure
             var sessionId = Guid.NewGuid();
 
             // Act
-            await _service.NotifyStateChangedAsync(sessionId, "Activa", CancellationToken.None);
+            await _service.NotifyStateChangedAsync(sessionId, "Activa", null, null, CancellationToken.None);
 
             // Assert
             _clientsMock.Verify(c => c.Group($"session-{sessionId}"), Times.Once);

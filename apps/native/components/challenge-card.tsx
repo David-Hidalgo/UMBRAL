@@ -9,6 +9,8 @@ interface ChallengeCardProps {
 	submitting: boolean;
 	result?: SubmitEvidenceResult;
 	onSubmit: (payload: string) => void;
+	/** true cuando el temporizador de la sesión llegó a 0: se oculta el botón de enviar (RF-06). */
+	isTimeUp: boolean;
 }
 
 export function ChallengeCard({
@@ -16,6 +18,7 @@ export function ChallengeCard({
 	submitting,
 	result,
 	onSubmit,
+	isTimeUp,
 }: ChallengeCardProps) {
 	const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null);
 	const [code, setCode] = useState("");
@@ -24,9 +27,10 @@ export function ChallengeCard({
 	// Trivia: un solo intento (cualquier resultado la bloquea, no se puede corregir).
 	// Búsqueda del tesoro: se puede reintentar hasta acertar.
 	const locked = isTrivia ? result != null : result?.status === "Correct";
+	// Al agotarse el tiempo se deshabilita toda interacción con el reto.
+	const disabled = submitting || locked || isTimeUp;
 	const canSubmit =
-		!submitting &&
-		!locked &&
+		!disabled &&
 		(isTrivia ? selectedAnswerId !== null : code.trim().length > 0);
 
 	const handleSubmit = () => {
@@ -65,7 +69,7 @@ export function ChallengeCard({
 										? "border-accent/40 bg-accent/10"
 										: "border-border/10 bg-card/15"
 								}`}
-								disabled={submitting || locked}
+								disabled={disabled}
 								key={answer.id}
 								onPress={() => setSelectedAnswerId(answer.id)}
 							>
@@ -91,7 +95,7 @@ export function ChallengeCard({
 					<TextInput
 						autoCapitalize="characters"
 						className="rounded-lg border border-border/20 bg-muted/10 px-3 py-2 font-mono text-foreground text-sm"
-						editable={!(submitting || locked)}
+						editable={!disabled}
 						onChangeText={setCode}
 						placeholder="Introduce el código secreto..."
 						placeholderTextColor="#71717a"
@@ -121,7 +125,7 @@ export function ChallengeCard({
 				</View>
 			) : null}
 
-			{!locked && (
+			{!locked && !isTimeUp && (
 				<Pressable
 					className={`mt-3 items-center rounded-lg border py-3 ${
 						canSubmit
@@ -139,6 +143,17 @@ export function ChallengeCard({
 						{submitting ? "Enviando..." : "Enviar respuesta"}
 					</Text>
 				</Pressable>
+			)}
+
+			{!locked && isTimeUp && (
+				<View className="mt-3 items-center rounded-lg border border-danger/30 bg-danger/10 py-3">
+					<Text className="font-bold font-mono text-danger text-xs uppercase tracking-widest">
+						Tiempo agotado
+					</Text>
+					<Text className="mt-1 font-mono text-[10px] text-muted uppercase">
+						Ya no puedes responder este reto
+					</Text>
+				</View>
 			)}
 		</View>
 	);

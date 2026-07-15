@@ -11,7 +11,10 @@ namespace LiveSessionService.Application.DTOs
         DateTime? ScheduledAt,
         int CurrentStageIndex,
         string Status,
-        IReadOnlyList<TeamDto> Teams
+        IReadOnlyList<TeamDto> Teams,
+        int MaxTimeMinutes,
+        DateTime? EndsAt,
+        int? RemainingSecondsOnPause
     );
 
     public record TeamDto(
