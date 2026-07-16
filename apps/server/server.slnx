@@ -8,4 +8,6 @@
   <Project Path="missionService.Tests/missionService.Tests.csproj" />
   <Project Path="liveSessionService/liveSessionService.csproj" />
   <Project Path="liveSessionService.Tests/liveSessionService.Tests.csproj" />
+  <Project Path="scoringService/scoringService.csproj" />
+  <Project Path="scoringService.Tests/scoringService.Tests.csproj" />
 </Solution>
