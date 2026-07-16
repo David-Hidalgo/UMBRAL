@@ -121,6 +121,82 @@ namespace MissionService.Tests.Domain
             subStage.DecrementSessionCount();
             subStage.Status.ActiveSessionCount.Should().Be(0);
         }
+
+        [Fact]
+        public void Update_Should_Modify_Title_Order_And_Points()
+        {
+            // Arrange
+            var subStage = TriviaSubStage.Create(Guid.NewGuid(), "Trivia Round 1", 0, 10, ValidQuestion());
+
+            // Act
+            subStage.Update("Trivia Round 2", 5, 25);
+
+            // Assert
+            subStage.Title.Should().Be("Trivia Round 2");
+            subStage.Order.Should().Be(5);
+            subStage.Points.Should().Be(25);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void Update_Should_Throw_ArgumentException_When_Title_Is_Invalid(string? invalidTitle)
+        {
+            // Arrange
+            var subStage = TriviaSubStage.Create(Guid.NewGuid(), "Trivia Round 1", 0, 10, ValidQuestion());
+
+            // Act
+            Action act = () => subStage.Update(invalidTitle!, 0, 10);
+
+            // Assert
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Update_Should_Throw_ArgumentException_When_Points_Are_Negative()
+        {
+            // Arrange
+            var subStage = TriviaSubStage.Create(Guid.NewGuid(), "Trivia Round 1", 0, 10, ValidQuestion());
+
+            // Act
+            Action act = () => subStage.Update("Trivia Round 2", 0, -1);
+
+            // Assert
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void UpdateClues_Should_Remove_Clues_Missing_From_The_New_List()
+        {
+            // Arrange
+            var first = Clue.Create(Guid.NewGuid(), "Look under the table", 0);
+            var second = Clue.Create(Guid.NewGuid(), "Check the bookshelf", 1);
+            var subStage = TriviaSubStage.Create(
+                Guid.NewGuid(), "Trivia Round 1", 0, 10, ValidQuestion(), new List<Clue> { first, second });
+
+            // Act
+            subStage.UpdateClues(new List<Clue> { first });
+
+            // Assert
+            subStage.Clues.Should().ContainSingle().Which.Should().Be(first);
+        }
+
+        [Fact]
+        public void UpdateClues_Should_Add_Clues_Not_Previously_Present()
+        {
+            // Arrange
+            var first = Clue.Create(Guid.NewGuid(), "Look under the table", 0);
+            var subStage = TriviaSubStage.Create(
+                Guid.NewGuid(), "Trivia Round 1", 0, 10, ValidQuestion(), new List<Clue> { first });
+            var second = Clue.Create(Guid.NewGuid(), "Check the bookshelf", 1);
+
+            // Act
+            subStage.UpdateClues(new List<Clue> { first, second });
+
+            // Assert
+            subStage.Clues.Should().HaveCount(2).And.Contain(second);
+        }
     }
 }
 
