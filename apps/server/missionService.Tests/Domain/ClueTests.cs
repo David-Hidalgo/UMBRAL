@@ -55,5 +55,48 @@ namespace MissionService.Tests.Domain
             // Assert
             act.Should().Throw<ArgumentException>();
         }
+
+        [Fact]
+        public void Update_Should_Modify_Text_And_Order()
+        {
+            // Arrange
+            var clue = Clue.Create(Guid.NewGuid(), "Look under the red chair", 1);
+
+            // Act
+            clue.Update("Look behind the blue door", 3);
+
+            // Assert
+            clue.Text.Should().Be("Look behind the blue door");
+            clue.Order.Should().Be(3);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void Update_Should_Throw_ArgumentException_When_Text_Is_Invalid(string? invalidText)
+        {
+            // Arrange
+            var clue = Clue.Create(Guid.NewGuid(), "Look under the red chair", 1);
+
+            // Act
+            Action act = () => clue.Update(invalidText!, 1);
+
+            // Assert
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Update_Should_Throw_ArgumentException_When_Order_Is_Negative()
+        {
+            // Arrange
+            var clue = Clue.Create(Guid.NewGuid(), "Look under the red chair", 1);
+
+            // Act
+            Action act = () => clue.Update("Look behind the blue door", -1);
+
+            // Assert
+            act.Should().Throw<ArgumentException>();
+        }
     }
 }
