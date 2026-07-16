@@ -1,0 +1,183 @@
+services:
+  # 1. API Gateway
+  - type: web
+    name: umbral-apigateway
+    runtime: docker
+    dockerfilePath: apps/server/api/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: PORT
+        value: "5018"
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Keycloak__BaseUrl
+        value: https://keycloak-production-eede.up.railway.app
+      - key: Keycloak__InternalBaseUrl
+        value: https://keycloak-production-eede.up.railway.app
+      - key: Keycloak__Realm
+        value: umbral
+      - key: Keycloak__Audience
+        value: account
+      - key: Cors__AllowedOrigins__0
+        sync: false
+      - key: ReverseProxy__Clusters__usercluster__Destinations__destination1__Address
+        value: https://umbral-userservice.onrender.com
+      - key: ReverseProxy__Clusters__missioncluster__Destinations__destination1__Address
+        value: https://umbral-missionservice.onrender.com
+      - key: ReverseProxy__Clusters__livesessioncluster__Destinations__destination1__Address
+        value: https://umbral-livesessionservice.onrender.com
+      - key: ReverseProxy__Clusters__scoringcluster__Destinations__destination1__Address
+        value: https://umbral-scoringservice.onrender.com
+
+  # 2. User Service
+  - type: web
+    name: umbral-userservice
+    runtime: docker
+    dockerfilePath: apps/server/userService/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: PORT
+        value: "5020"
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:5020
+      - key: Keycloak__BaseUrl
+        value: https://keycloak-production-eede.up.railway.app
+      - key: Keycloak__InternalBaseUrl
+        value: https://keycloak-production-eede.up.railway.app
+      - key: Keycloak__Realm
+        value: umbral
+      - key: Keycloak__Audience
+        value: account
+      - key: Keycloak__AdminClientId
+        value: user-service-admin
+      - key: Keycloak__AdminClientSecret
+        sync: false
+      - key: RabbitMq__Host
+        value: tokaido.proxy.rlwy.net
+      - key: RabbitMq__Port
+        value: "57435"
+      - key: RabbitMq__Username
+        value: guest
+      - key: RabbitMq__Password
+        sync: false
+      - key: RabbitMq__ExchangeName
+        value: umbral.users
+
+  # 3. Mission Service
+  - type: web
+    name: umbral-missionservice
+    runtime: docker
+    dockerfilePath: apps/server/missionService/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: PORT
+        value: "5022"
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:5022
+      - key: Keycloak__BaseUrl
+        value: https://keycloak-production-eede.up.railway.app
+      - key: Keycloak__InternalBaseUrl
+        value: https://keycloak-production-eede.up.railway.app
+      - key: Keycloak__Realm
+        value: umbral
+      - key: Keycloak__Audience
+        value: account
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: RabbitMq__Host
+        value: tokaido.proxy.rlwy.net
+      - key: RabbitMq__Port
+        value: "57435"
+      - key: RabbitMq__Username
+        value: guest
+      - key: RabbitMq__Password
+        sync: false
+      - key: RabbitMq__ExchangeName
+        value: umbral.livesessions
+
+  # 4. Live Session Service
+  - type: web
+    name: umbral-livesessionservice
+    runtime: docker
+    dockerfilePath: apps/server/liveSessionService/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: PORT
+        value: "5026"
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:5026
+      - key: Keycloak__BaseUrl
+        value: https://keycloak-production-eede.up.railway.app
+      - key: Keycloak__InternalBaseUrl
+        value: https://keycloak-production-eede.up.railway.app
+      - key: Keycloak__Realm
+        value: umbral
+      - key: Keycloak__Audience
+        value: account
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: RabbitMq__Host
+        value: tokaido.proxy.rlwy.net
+      - key: RabbitMq__Port
+        value: "57435"
+      - key: RabbitMq__Username
+        value: guest
+      - key: RabbitMq__Password
+        sync: false
+      - key: RabbitMq__ExchangeName
+        value: umbral.livesessions
+      - key: MissionService__BaseUrl
+        value: https://umbral-missionservice.onrender.com
+
+  # 5. Scoring Service
+  - type: web
+    name: umbral-scoringservice
+    runtime: docker
+    dockerfilePath: apps/server/scoringService/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: PORT
+        value: "5030"
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:5030
+      - key: Keycloak__BaseUrl
+        value: https://keycloak-production-eede.up.railway.app
+      - key: Keycloak__InternalBaseUrl
+        value: https://keycloak-production-eede.up.railway.app
+      - key: Keycloak__Realm
+        value: umbral
+      - key: Keycloak__Audience
+        value: account
+      - key: Keycloak__ServiceClientId
+        value: scoring-service
+      - key: Keycloak__ServiceClientSecret
+        sync: false
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: RabbitMq__Host
+        value: tokaido.proxy.rlwy.net
+      - key: RabbitMq__Port
+        value: "57435"
+      - key: RabbitMq__Username
+        value: guest
+      - key: RabbitMq__Password
+        sync: false
+      - key: RabbitMq__ExchangeName
+        value: umbral.livesessions
+      - key: RabbitMq__ScoringExchangeName
+        value: umbral.scoring
+      - key: MissionService__BaseUrl
+        value: https://umbral-missionservice.onrender.com
