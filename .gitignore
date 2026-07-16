@@ -110,3 +110,9 @@ TestResult.xml
 nunit-*.xml
 build_check/*
 **/coveragereport/
+
+# Artefactos de cobertura (dotnet test --results-directory + ReportGenerator).
+# Sin esto, un solo `dotnet test` con coverlet registra cientos de archivos.
+**/TestResults/
+**/covreport/
+**/covcore/
