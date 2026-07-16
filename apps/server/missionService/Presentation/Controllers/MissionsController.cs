@@ -72,7 +72,8 @@ namespace MissionService.Presentation.Controllers
                             ) : null,
                         ss.Objective, ss.SecretCode,
                         ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order, c.Id)).ToList(),
-                        ss.Id
+                        ss.Id,
+                        ss.Latitude, ss.Longitude, ss.SearchRadiusMeters
                     )).ToList()
                 )).ToList()
             );
@@ -137,7 +138,8 @@ namespace MissionService.Presentation.Controllers
                         ) : null,
                     ss.Objective, ss.SecretCode,
                     ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order, c.Id)).ToList(),
-                    ss.Id
+                    ss.Id,
+                    ss.Latitude, ss.Longitude, ss.SearchRadiusMeters
                 )).ToList()
             );
 
@@ -168,7 +170,8 @@ namespace MissionService.Presentation.Controllers
                         ) : null,
                     ss.Objective, ss.SecretCode,
                     ss.Clues?.Select(c => new CreateClueCommand(c.Text, c.Order, c.Id)).ToList(),
-                    ss.Id
+                    ss.Id,
+                    ss.Latitude, ss.Longitude, ss.SearchRadiusMeters
                 )).ToList()
             );
 

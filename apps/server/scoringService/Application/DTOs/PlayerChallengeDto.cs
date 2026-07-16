@@ -22,7 +22,11 @@ namespace ScoringService.Application.DTOs
         string? Objective,
         // El equipo ya no puede enviar a esta subetapa: Trivia = ya la respondió (1 intento);
         // Búsqueda del tesoro = ya la resolvió.
-        bool Closed = false);
+        bool Closed = false,
+        // Ubicación del tesoro (solo Búsqueda del Tesoro): guía visual en el mapa del jugador.
+        double? Latitude = null,
+        double? Longitude = null,
+        int? SearchRadiusMeters = null);
 
     public sealed record PlayerQuestionDto(Guid Id, string Text, IReadOnlyList<PlayerAnswerDto> Answers);
 

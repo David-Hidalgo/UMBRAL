@@ -224,5 +224,124 @@ namespace ScoringService.Tests.Infrastructure
             handler.LastRequest!.Headers.Authorization!.Scheme.Should().Be("Bearer");
             handler.LastRequest.Headers.Authorization.Parameter.Should().Be("service-token");
         }
+
+        // ─── Nuevos tests: propagación de coordenadas del mapa ───────────────────────
+
+        [Fact]
+        public async Task GetPlayerSubStagesAsync_TreasureHunt_WithLocation_ShouldMapCoordinatesAndRadius()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var subId = Guid.NewGuid();
+            var json = $$"""
+            {
+              "id": "{{missionId}}",
+              "stages": [
+                { "id": "{{Guid.NewGuid()}}", "subStages": [
+                  {
+                    "id": "{{subId}}",
+                    "title": "Busca el tesoro",
+                    "points": 80,
+                    "objective": "Encuentra el cofre",
+                    "secretCode": "UMBRAL-01",
+                    "latitude": 10.488158,
+                    "longitude": -66.846534,
+                    "searchRadiusMeters": 120
+                  }
+                ] }
+              ]
+            }
+            """;
+            var client = BuildClient(new StubHandler(HttpStatusCode.OK, json));
+
+            // Act
+            var subStages = await client.GetPlayerSubStagesAsync(missionId, new[] { subId });
+
+            // Assert
+            subStages.Should().HaveCount(1);
+            var dto = subStages.First();
+            dto.Type.Should().Be(SubmissionType.TreasureHunt);
+            dto.Latitude.Should().BeApproximately(10.488158, 1e-6);
+            dto.Longitude.Should().BeApproximately(-66.846534, 1e-6);
+            dto.SearchRadiusMeters.Should().Be(120);
+        }
+
+        [Fact]
+        public async Task GetPlayerSubStagesAsync_TreasureHunt_WithoutLocation_ShouldHaveNullCoordinates()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var subId = Guid.NewGuid();
+            var json = $$"""
+            {
+              "id": "{{missionId}}",
+              "stages": [
+                { "id": "{{Guid.NewGuid()}}", "subStages": [
+                  {
+                    "id": "{{subId}}",
+                    "title": "Busca el tesoro",
+                    "points": 80,
+                    "objective": "Encuentra el cofre",
+                    "secretCode": "UMBRAL-02"
+                  }
+                ] }
+              ]
+            }
+            """;
+            var client = BuildClient(new StubHandler(HttpStatusCode.OK, json));
+
+            // Act
+            var subStages = await client.GetPlayerSubStagesAsync(missionId, new[] { subId });
+
+            // Assert: los campos de localización deben ser null cuando no se incluyen en la respuesta.
+            subStages.Should().HaveCount(1);
+            var dto = subStages.First();
+            dto.Latitude.Should().BeNull();
+            dto.Longitude.Should().BeNull();
+            dto.SearchRadiusMeters.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task GetPlayerSubStagesAsync_TreasureHunt_ShouldNotExposeSecretCodeInPlayerDto()
+        {
+            // Arrange: aunque el JSON de missionService incluye secretCode y las coordenadas,
+            // PlayerSubStageDto NO debe exponer el secretCode al jugador.
+            var missionId = Guid.NewGuid();
+            var subId = Guid.NewGuid();
+            var json = $$"""
+            {
+              "id": "{{missionId}}",
+              "stages": [
+                { "id": "{{Guid.NewGuid()}}", "subStages": [
+                  {
+                    "id": "{{subId}}",
+                    "title": "Busca el tesoro",
+                    "points": 60,
+                    "objective": "Encuentra la campana",
+                    "secretCode": "SECRETO-XYZ",
+                    "latitude": 40.416775,
+                    "longitude": -3.703790,
+                    "searchRadiusMeters": 250
+                  }
+                ] }
+              ]
+            }
+            """;
+            var client = BuildClient(new StubHandler(HttpStatusCode.OK, json));
+
+            // Act
+            var subStages = await client.GetPlayerSubStagesAsync(missionId, new[] { subId });
+
+            // Assert: el DTO del jugador incluye la ubicación (guía visual) pero NO el secretCode.
+            subStages.Should().HaveCount(1);
+            var dto = subStages.First();
+            dto.Latitude.Should().BeApproximately(40.416775, 1e-6);
+            dto.Longitude.Should().BeApproximately(-3.703790, 1e-6);
+            dto.SearchRadiusMeters.Should().Be(250);
+            // PlayerSubStageDto no tiene propiedad SecretCode: la sanitización es estructural.
+            typeof(ScoringService.Application.DTOs.PlayerSubStageDto)
+                .GetProperty("SecretCode")
+                .Should().BeNull("el jugador no debe acceder al código secreto a través del DTO");
+        }
     }
 }

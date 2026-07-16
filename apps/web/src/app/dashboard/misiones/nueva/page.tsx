@@ -24,12 +24,22 @@ import {
 	ScrollText,
 	Trash,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth-provider";
 import { RoleGuard } from "@/components/role-guard";
+
+// Leaflet necesita `window`, así que el mapa se carga solo en el cliente (sin SSR).
+const TreasureMapPicker = dynamic(
+	() =>
+		import("@/components/missions/treasure-map-picker").then(
+			(m) => m.TreasureMapPicker,
+		),
+	{ ssr: false },
+);
 
 // ─── Types and Interfaces ───────────────────────────────────────────────────
 
@@ -62,6 +72,9 @@ interface ClientSubStage {
 	// TreasureHunt
 	objective: string;
 	secretCode: string;
+	latitude: number | null;
+	longitude: number | null;
+	searchRadiusMeters: number;
 	clues: ClientClue[];
 }
 
@@ -94,6 +107,9 @@ interface SubStagePayload {
 	} | null;
 	objective?: string | null;
 	secretCode?: string | null;
+	latitude?: number | null;
+	longitude?: number | null;
+	searchRadiusMeters?: number | null;
 	clues?: { text: string; order: number }[] | null;
 }
 
@@ -195,6 +211,9 @@ function CreateMissionForm() {
 					question: makeDefaultQuestion(),
 					objective: "",
 					secretCode: "",
+					latitude: null,
+					longitude: null,
+					searchRadiusMeters: 120,
 					clues:
 						type === "TreasureHunt"
 							? [
@@ -571,6 +590,14 @@ function CreateMissionForm() {
 							points: Number(sub.points) || 0,
 							objective: sub.objective,
 							secretCode: sub.secretCode.trim().toUpperCase(),
+							latitude: sub.latitude,
+							longitude: sub.longitude,
+							// El radio solo se envía si hay un punto completo (lat y lon); si no,
+							// el backend rechaza "radio sin ubicación" / "lat sin lon".
+							searchRadiusMeters:
+								sub.latitude !== null && sub.longitude !== null
+									? sub.searchRadiusMeters
+									: null,
 							clues: hasClues
 								? sub.clues.map((c) => ({
 										text: c.text,
@@ -1098,6 +1125,40 @@ function CreateMissionForm() {
 																			</Button>
 																		</div>
 																	</div>
+																</div>
+
+																<div className="space-y-1.5">
+																	<Label className="text-muted-foreground text-xs">
+																		Ubicación del tesoro (opcional)
+																	</Label>
+																	<TreasureMapPicker
+																		disabled={loading}
+																		latitude={_sub.latitude}
+																		longitude={_sub.longitude}
+																		onChange={(lat, lng) => {
+																			updateSubStageField(
+																				stage.tempId,
+																				_sub.tempId,
+																				"latitude",
+																				lat,
+																			);
+																			updateSubStageField(
+																				stage.tempId,
+																				_sub.tempId,
+																				"longitude",
+																				lng,
+																			);
+																		}}
+																		onRadiusChange={(r) =>
+																			updateSubStageField(
+																				stage.tempId,
+																				_sub.tempId,
+																				"searchRadiusMeters",
+																				r,
+																			)
+																		}
+																		radius={_sub.searchRadiusMeters}
+																	/>
 																</div>
 															</div>
 														)}

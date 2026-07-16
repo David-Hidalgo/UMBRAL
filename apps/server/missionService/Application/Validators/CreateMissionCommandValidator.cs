@@ -99,6 +99,34 @@ namespace MissionService.Application.Validators
                     .NotEmpty().WithMessage("Treasure hunt secret code is required.")
                     .MaximumLength(100).WithMessage("Treasure hunt secret code must not exceed 100 characters.")
                     .Matches("^[a-zA-Z0-9-]+$").WithMessage("Treasure hunt secret code must be alphanumeric and can contain hyphens.");
+
+                // Ubicación del tesoro (opcional). Se valida aquí en el borde para devolver 400
+                // en vez de dejar que reviente en el dominio. Espeja TreasureHuntSubStage.ValidateLocation.
+                RuleFor(x => x)
+                    .Must(x => x.Latitude.HasValue == x.Longitude.HasValue)
+                    .WithName("Location")
+                    .WithMessage("Latitude and longitude must be provided together.");
+
+                RuleFor(x => x.Latitude)
+                    .Must(lat => lat >= -90 && lat <= 90)
+                    .WithMessage("Latitude must be between -90 and 90.")
+                    .When(x => x.Latitude.HasValue);
+
+                RuleFor(x => x.Longitude)
+                    .Must(lon => lon >= -180 && lon <= 180)
+                    .WithMessage("Longitude must be between -180 and 180.")
+                    .When(x => x.Longitude.HasValue);
+
+                RuleFor(x => x.SearchRadiusMeters)
+                    .Must(radius => radius > 0)
+                    .WithMessage("Search radius must be positive.")
+                    .When(x => x.SearchRadiusMeters.HasValue);
+
+                // El radio no tiene sentido sin un punto en el mapa (lat y lon).
+                RuleFor(x => x.SearchRadiusMeters)
+                    .Null()
+                    .WithMessage("Search radius requires a treasure location (latitude and longitude).")
+                    .When(x => !(x.Latitude.HasValue && x.Longitude.HasValue));
             });
         }
     }

@@ -107,7 +107,10 @@ namespace ScoringService.Infrastructure.Clients
                 subStage.Points,
                 isTrivia ? SubmissionType.Trivia : SubmissionType.TreasureHunt,
                 question,
-                subStage.Objective);
+                subStage.Objective,
+                Latitude: subStage.Latitude,
+                Longitude: subStage.Longitude,
+                SearchRadiusMeters: subStage.SearchRadiusMeters);
         }
 
         private async Task<MissionResponse?> FetchMissionAsync(Guid missionId, CancellationToken cancellationToken)
@@ -130,7 +133,7 @@ namespace ScoringService.Infrastructure.Clients
         // Proyección local del JSON devuelto por missionService (GET /api/missions/{id}).
         private sealed record MissionResponse(Guid Id, string? DifficultyLevel, List<StageResponse>? Stages);
         private sealed record StageResponse(Guid Id, List<SubStageResponse>? SubStages);
-        private sealed record SubStageResponse(Guid Id, string? Title, int Points, QuestionResponse? Question, string? Objective, string? SecretCode);
+        private sealed record SubStageResponse(Guid Id, string? Title, int Points, QuestionResponse? Question, string? Objective, string? SecretCode, double? Latitude, double? Longitude, int? SearchRadiusMeters);
         private sealed record QuestionResponse(Guid Id, string Text, List<AnswerResponse>? Answers);
         private sealed record AnswerResponse(Guid Id, string Text, bool IsCorrect);
     }

@@ -91,7 +91,8 @@ namespace MissionService.Application.Handlers
                     .OrderBy(c => c.Order)
                     .Select(c => new ClueDetailDto(c.Id, c.Text, c.Order))
                     .ToList()
-                    .AsReadOnly()
+                    .AsReadOnly(),
+                th.Latitude, th.Longitude, th.SearchRadiusMeters
             ),
             _ => throw new InvalidOperationException($"Unknown SubStage type: {ss.GetType().Name}")
         };
