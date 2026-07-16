@@ -7,6 +7,18 @@ namespace shared.Extensions;
 
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registra el acceso a la identidad del invocador de la peticion en curso.
+    /// AddHttpContextAccessor es idempotente, asi que es seguro llamarlo
+    /// aunque el servicio ya lo registre por su cuenta.
+    /// </summary>
+    public static IServiceCollection AddCurrentUser(this IServiceCollection services)
+    {
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+        return services;
+    }
+
     public static IServiceCollection AddSwaggerGenWithAuthSupport(
         this IServiceCollection services,
         IConfiguration configuration)

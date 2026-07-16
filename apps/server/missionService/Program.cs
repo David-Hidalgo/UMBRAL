@@ -16,6 +16,7 @@ using MissionService.Infrastructure.Messaging;
 using MissionService.Infrastructure.Messaging.Consumers;
 using shared.Authentication;
 using shared.Extensions;
+using shared.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,9 +67,14 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<MissionDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+builder.Services.AddCurrentUser();
+
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(CreateMissionHandler).Assembly);
+    // El orden importa: LoggingBehavior debe envolver a ValidationBehavior
+    // para auditar tambien las invocaciones que fallan por validacion.
+    cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 
@@ -171,6 +177,14 @@ app.UseExceptionHandler(exceptionApp =>
             await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = argEx.Message }));
             return;
         }
+
+        // Solo el path 500 loguea a Error: los fallos ya mapeados a 4xx
+        // fueron registrados por el LoggingBehavior con usuario y caso de uso.
+        app.Logger.LogError(
+            exception,
+            "Error no controlado en {Method} {Path}",
+            context.Request.Method,
+            context.Request.Path);
 
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = "An unexpected error occurred." }));

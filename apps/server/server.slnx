@@ -2,6 +2,8 @@
   <Project Path="api/api.csproj" />
   <Project Path="api.Tests/api.Tests.csproj" />
   <Project Path="testUtils/TestUtils.csproj" />
+  <Project Path="shared/shared.csproj" />
+  <Project Path="shared.Tests/shared.Tests.csproj" />
   <Project Path="userService/userService.csproj" />
   <Project Path="userService.Tests/userService.Tests.csproj" />
   <Project Path="missionService/missionService.csproj" />

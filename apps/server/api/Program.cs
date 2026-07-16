@@ -114,6 +114,14 @@ app.UseExceptionHandler(exceptionApp =>
 {
     exceptionApp.Run(async context =>
     {
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+
+        app.Logger.LogError(
+            exception,
+            "Error no controlado en {Method} {Path}",
+            context.Request.Method,
+            context.Request.Path);
+
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = "An unexpected error occurred." }));
