@@ -26,4 +26,3 @@ export const env = {
 			? (_env.EXPO_PUBLIC_SERVER_URL_WEB ?? _env.EXPO_PUBLIC_SERVER_URL)
 			: _env.EXPO_PUBLIC_SERVER_URL,
 };
-

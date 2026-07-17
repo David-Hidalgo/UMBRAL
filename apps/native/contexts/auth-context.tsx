@@ -9,6 +9,7 @@ import {
 	useContext,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import { Platform } from "react-native";
@@ -61,6 +62,7 @@ export type AuthContextValue = {
 	getAccessToken: (minValidity?: number) => Promise<string | null>;
 	hasRealmRole: (role: string) => boolean;
 	getSubjectId: () => string | null;
+	exchangeCodeForTokens: (code: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -301,13 +303,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		syncSessionFromTokens,
 	]);
 
+	const processedCodeRef = useRef<string | null>(null);
+
 	const exchangeCodeForTokens = useCallback(
-		async (code: string, redirectUri: string) => {
+		async (code: string) => {
+			if (processedCodeRef.current === code) {
+				console.log(
+					"Authorization code already processing or processed:",
+					code,
+				);
+				return;
+			}
+			processedCodeRef.current = code;
+
 			const verifier = await SecureStore.getItemAsync("umbral_code_verifier");
 			if (!verifier) {
 				throw new Error("Missing PKCE code verifier in secure storage");
 			}
 
+			const redirectUri = Linking.createURL("redirect");
 			const tokenUrl = `${env.EXPO_PUBLIC_KEYCLOAK_URL}/realms/${env.EXPO_PUBLIC_KEYCLOAK_REALM}/protocol/openid-connect/token`;
 			const response = await fetch(tokenUrl, {
 				method: "POST",
@@ -325,6 +339,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 			if (!response.ok) {
 				const errText = await response.text();
+				processedCodeRef.current = null;
 				throw new Error(`Failed to exchange authorization code: ${errText}`);
 			}
 
@@ -346,10 +361,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				await SecureStore.setItemAsync("umbral_code_verifier", verifier);
 				const challenge = await generateCodeChallenge(verifier);
 
-				const redirectUri =
-					Platform.OS === "web"
-						? Linking.createURL("redirect")
-						: "umbral://redirect";
+				const redirectUri = Linking.createURL("redirect");
 				const isRegister = options?.action === "register";
 				const endpoint = isRegister ? "registrations" : "auth";
 				const authUrl =
@@ -371,7 +383,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					const code = queryParams?.code;
 
 					if (typeof code === "string") {
-						await exchangeCodeForTokens(code, redirectUri);
+						await exchangeCodeForTokens(code);
 					} else {
 						throw new Error("No authorization code returned in redirect URI");
 					}
@@ -400,10 +412,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		try {
 			setStatus("loading");
 			const idToken = await SecureStore.getItemAsync("umbral_id_token");
-			const redirectUri =
-				Platform.OS === "web"
-					? Linking.createURL("redirect")
-					: "umbral://redirect";
+			const redirectUri = Linking.createURL("redirect");
 
 			let logoutUrl =
 				`${env.EXPO_PUBLIC_KEYCLOAK_URL}/realms/${env.EXPO_PUBLIC_KEYCLOAK_REALM}/protocol/openid-connect/logout?` +
@@ -512,6 +521,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			getAccessToken,
 			hasRealmRole,
 			getSubjectId,
+			exchangeCodeForTokens,
 		}),
 		[
 			status,
@@ -522,6 +532,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			getAccessToken,
 			hasRealmRole,
 			getSubjectId,
+			exchangeCodeForTokens,
 		],
 	);
 
