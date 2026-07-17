@@ -308,10 +308,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const exchangeCodeForTokens = useCallback(
 		async (code: string) => {
 			if (processedCodeRef.current === code) {
-				console.log(
-					"Authorization code already processing or processed:",
-					code,
-				);
+				console.debug("Authorization code already processing or processed");
 				return;
 			}
 			processedCodeRef.current = code;
