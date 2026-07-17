@@ -1,16 +1,21 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useRootNavigationState } from "expo-router";
 import { Spinner } from "heroui-native";
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function RedirectPage() {
-	const { code } = useLocalSearchParams<{ code?: string }>();
+	const { code: rawCode } = useLocalSearchParams<{ code?: string | string[] }>();
+	const code = Array.isArray(rawCode) ? rawCode[0] : rawCode;
 	const { exchangeCodeForTokens } = useAuth();
 	const router = useRouter();
+	const navigationState = useRootNavigationState();
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
+		// Wait until navigation state is fully loaded to avoid navigation errors
+		if (!navigationState?.key) return;
+
 		let isMounted = true;
 		if (code) {
 			exchangeCodeForTokens(code)
@@ -19,10 +24,10 @@ export default function RedirectPage() {
 						router.replace("/");
 					}
 				})
-				.catch((err) => {
+				.catch((err: unknown) => {
 					if (isMounted) {
 						console.error("Failed to complete login redirect", err);
-						setError(err.message || "Failed to authenticate");
+						setError(err instanceof Error ? err.message : "Failed to authenticate");
 					}
 				});
 		} else {
@@ -32,7 +37,7 @@ export default function RedirectPage() {
 		return () => {
 			isMounted = false;
 		};
-	}, [code, exchangeCodeForTokens, router]);
+	}, [code, exchangeCodeForTokens, router, navigationState?.key]);
 
 	if (error) {
 		return (

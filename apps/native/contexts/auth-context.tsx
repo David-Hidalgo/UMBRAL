@@ -313,39 +313,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			}
 			processedCodeRef.current = code;
 
-			const verifier = await SecureStore.getItemAsync("umbral_code_verifier");
-			if (!verifier) {
-				throw new Error("Missing PKCE code verifier in secure storage");
-			}
+			try {
+				const verifier = await SecureStore.getItemAsync("umbral_code_verifier");
+				if (!verifier) {
+					throw new Error("Missing PKCE code verifier in secure storage");
+				}
 
-			const redirectUri = Linking.createURL("redirect");
-			const tokenUrl = `${env.EXPO_PUBLIC_KEYCLOAK_URL}/realms/${env.EXPO_PUBLIC_KEYCLOAK_REALM}/protocol/openid-connect/token`;
-			const response = await fetch(tokenUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
-				},
-				body: new URLSearchParams({
-					grant_type: "authorization_code",
-					client_id: env.EXPO_PUBLIC_KEYCLOAK_CLIENT_ID,
-					code,
-					redirect_uri: redirectUri,
-					code_verifier: verifier,
-				}).toString(),
-			});
+				const redirectUri = Linking.createURL("redirect");
+				const tokenUrl = `${env.EXPO_PUBLIC_KEYCLOAK_URL}/realms/${env.EXPO_PUBLIC_KEYCLOAK_REALM}/protocol/openid-connect/token`;
+				const response = await fetch(tokenUrl, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+					},
+					body: new URLSearchParams({
+						grant_type: "authorization_code",
+						client_id: env.EXPO_PUBLIC_KEYCLOAK_CLIENT_ID,
+						code,
+						redirect_uri: redirectUri,
+						code_verifier: verifier,
+					}).toString(),
+				});
 
-			if (!response.ok) {
-				const errText = await response.text();
+				if (!response.ok) {
+					const errText = await response.text();
+					throw new Error(`Failed to exchange authorization code: ${errText}`);
+				}
+
+				const tokenData = await response.json();
+				await saveStoredTokens(tokenData);
+				syncSessionFromTokens(
+					tokenData.access_token,
+					tokenData.id_token || tokenData.access_token,
+				);
+			} catch (error) {
 				processedCodeRef.current = null;
-				throw new Error(`Failed to exchange authorization code: ${errText}`);
+				throw error;
 			}
-
-			const tokenData = await response.json();
-			await saveStoredTokens(tokenData);
-			syncSessionFromTokens(
-				tokenData.access_token,
-				tokenData.id_token || tokenData.access_token,
-			);
 		},
 		[saveStoredTokens, syncSessionFromTokens],
 	);
