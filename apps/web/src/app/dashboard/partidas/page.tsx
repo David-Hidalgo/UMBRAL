@@ -801,7 +801,7 @@ function PartidasPanelInner() {
 
 							<div className="grid flex-1 grid-cols-1 gap-6 overflow-hidden md:grid-cols-12">
 								{/* Grid Col 1: Stages and Teams status */}
-								<div className="flex flex-col gap-6 overflow-hidden md:col-span-8">
+								<div className="custom-scrollbar flex flex-col gap-6 overflow-y-auto pr-1 md:col-span-8">
 									{/* Operations progress */}
 									{missionDetail && (
 										<div className="shrink-0 rounded-xl border border-border/10 bg-card/10 p-4">
@@ -866,7 +866,7 @@ function PartidasPanelInner() {
 									)}
 
 									{/* Teams / Players Console */}
-									<div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-border/10 bg-card/10 p-4">
+									<div className="flex shrink-0 flex-col rounded-xl border border-border/10 bg-card/10 p-4">
 										<div className="mb-4 flex shrink-0 items-center justify-between border-border/10 border-b pb-3">
 											<h3 className="flex items-center gap-1.5 font-bold font-mono text-muted-foreground text-xs uppercase tracking-widest">
 												<Users className="size-3.5 text-accent" /> EQUIPOS Y
@@ -892,7 +892,7 @@ function PartidasPanelInner() {
 											)}
 										</div>
 
-										<div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto pr-1">
+										<div className="space-y-4 pr-1">
 											{sessionDetail.teams.length === 0 ? (
 												<div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
 													<UserPlus className="mb-2 size-8 opacity-50" />
