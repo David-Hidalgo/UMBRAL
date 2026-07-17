@@ -257,11 +257,16 @@ export function GamePlayPanel({
 		}
 	};
 
-	const handleSubmit = async (subStageId: string, payload: string) => {
+	// Devuelve true si el servidor aceptó la solicitud (lo usa el flujo QR para
+	// cerrar el escáner; un envío fallido lo deja abierto para reintentar).
+	const handleSubmit = async (
+		subStageId: string,
+		payload: string,
+	): Promise<boolean> => {
 		// Guard: si el tiempo se agotó no se envía (además de ocultarse el botón).
-		if (isTimeUp) return;
+		if (isTimeUp) return false;
 		const subStage = subStages.find((s) => s.id === subStageId);
-		if (!subStage) return;
+		if (!subStage) return false;
 
 		setSubmittingSubId(subStageId);
 		try {
@@ -282,9 +287,11 @@ export function GamePlayPanel({
 					"Perdiste tu único intento en esta pregunta.",
 				);
 			}
+			return true;
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			Alert.alert("Error al enviar", message);
+			return false;
 		} finally {
 			setSubmittingSubId(null);
 		}
