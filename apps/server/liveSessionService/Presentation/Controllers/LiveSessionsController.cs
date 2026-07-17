@@ -34,7 +34,7 @@ namespace LiveSessionService.Presentation.Controllers
         {
             var jwtToken = HttpContext.Request.Headers.Authorization.ToString();
             var command = new CreateLiveSessionCommand(request.MissionId, request.Name, request.ScheduledAt, jwtToken);
-            
+
             var sessionId = await _mediator.Send(command, cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = sessionId }, sessionId);
         }
@@ -79,7 +79,7 @@ namespace LiveSessionService.Presentation.Controllers
         {
             var jwtToken = HttpContext.Request.Headers.Authorization.ToString();
             var command = new TransitionSessionCommand(id, request.TargetStatus, jwtToken);
-            
+
             await _mediator.Send(command, cancellationToken);
             return NoContent();
         }

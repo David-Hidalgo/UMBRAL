@@ -16,11 +16,11 @@ namespace MissionService.Tests.Domain
         {
             // Arrange & Act
             var mission = Mission.Create(
-                Guid.NewGuid(), 
-                "Escape Room", 
-                "Solve mysteries to escape.", 
-                DifficultyLevel.Beginner, 
-                60, 
+                Guid.NewGuid(),
+                "Escape Room",
+                "Solve mysteries to escape.",
+                DifficultyLevel.Beginner,
+                60,
                 new List<Stage>());
 
             // Assert
@@ -36,11 +36,11 @@ namespace MissionService.Tests.Domain
         {
             // Arrange
             var mission = Mission.Create(
-                Guid.NewGuid(), 
-                "Escape Room", 
-                "Solve mysteries to escape.", 
-                DifficultyLevel.Beginner, 
-                60, 
+                Guid.NewGuid(),
+                "Escape Room",
+                "Solve mysteries to escape.",
+                DifficultyLevel.Beginner,
+                60,
                 new List<Stage>());
             var stage = Stage.Create(Guid.NewGuid(), "Stage 1", "First room", 0, new List<SubStage>());
 
@@ -57,11 +57,11 @@ namespace MissionService.Tests.Domain
             var subStage = TreasureHuntSubStage.Create(Guid.NewGuid(), "SubStage", 1, 10, "Objective", "CODE-1", null);
             var activeStage = Stage.Create(Guid.NewGuid(), "Stage 1", "First room", 0, new List<SubStage> { subStage });
             var mission = Mission.Create(
-                Guid.NewGuid(), 
-                "Escape Room", 
-                "Solve mysteries to escape.", 
-                DifficultyLevel.Beginner, 
-                60, 
+                Guid.NewGuid(),
+                "Escape Room",
+                "Solve mysteries to escape.",
+                DifficultyLevel.Beginner,
+                60,
                 new List<Stage> { activeStage });
             subStage.IncrementSessionCount();
             var stage = Stage.Create(Guid.NewGuid(), "Stage 2", "Second room", 1, new List<SubStage>());
@@ -81,11 +81,11 @@ namespace MissionService.Tests.Domain
             var stage2 = Stage.Create(Guid.NewGuid(), "Stage 1", "Second room", 1, new List<SubStage>()); // Duplicate Name
 
             var mission = Mission.Create(
-                Guid.NewGuid(), 
-                "Escape Room", 
-                "Solve mysteries.", 
-                DifficultyLevel.Beginner, 
-                60, 
+                Guid.NewGuid(),
+                "Escape Room",
+                "Solve mysteries.",
+                DifficultyLevel.Beginner,
+                60,
                 new List<Stage> { stage1 });
 
             // Act
@@ -103,11 +103,11 @@ namespace MissionService.Tests.Domain
             var stage2 = Stage.Create(Guid.NewGuid(), "Stage 2", "Second room", 0, new List<SubStage>()); // Duplicate Order
 
             var mission = Mission.Create(
-                Guid.NewGuid(), 
-                "Escape Room", 
-                "Solve mysteries.", 
-                DifficultyLevel.Beginner, 
-                60, 
+                Guid.NewGuid(),
+                "Escape Room",
+                "Solve mysteries.",
+                DifficultyLevel.Beginner,
+                60,
                 new List<Stage> { stage1 });
 
             // Act

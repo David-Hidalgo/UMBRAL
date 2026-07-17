@@ -229,7 +229,7 @@ namespace MissionService.Tests.Application
             var question = Question.Create(questionId, "Old Question?", new List<Answer> { answer });
             var clue = Clue.Create(clueId, "Old Clue", 1);
             var subStage = TriviaSubStage.Create(subStageId, "Old Title", 1, 10, question, new List<Clue> { clue });
-            
+
             var stage = Stage.Create(stageId, "Old Stage Name", "Old Stage Desc", 1, new List<SubStage> { subStage });
             var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
 
@@ -274,13 +274,13 @@ namespace MissionService.Tests.Application
             stage.Name.Should().Be("New Stage Name");
             stage.Description.Should().Be("New Stage Desc");
             stage.SubStages.Should().HaveCount(1);
-            
+
             var updatedSubStage = stage.SubStages.Single() as TriviaSubStage;
             updatedSubStage.Should().NotBeNull();
             updatedSubStage!.Id.Should().Be(subStageId); // ID preserved
             updatedSubStage.Title.Should().Be("New Title");
             updatedSubStage.Points.Should().Be(20);
-            
+
             updatedSubStage.Clues.Should().HaveCount(1);
             updatedSubStage.Clues.Single().Id.Should().Be(clueId); // ID preserved
             updatedSubStage.Clues.Single().Text.Should().Be("New Clue");
@@ -290,7 +290,7 @@ namespace MissionService.Tests.Application
             updatedSubStage.Question.Answers.Should().HaveCount(1);
             updatedSubStage.Question.Answers.Single().Id.Should().Be(answerId); // ID preserved
             updatedSubStage.Question.Answers.Single().Text.Should().Be("New Answer");
-            
+
             _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
     }

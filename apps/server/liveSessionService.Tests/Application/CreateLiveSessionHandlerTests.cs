@@ -59,7 +59,7 @@ namespace LiveSessionService.Tests.Application
 
             _repositoryMock.Verify(x => x.AddAsync(It.IsAny<LiveSession>(), It.IsAny<CancellationToken>()), Times.Once);
             _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
-            
+
             _eventBusMock.Verify(x => x.PublishAsync(
                 It.Is<SessionCreatedIntegrationEvent>(e => e.MissionId == missionId && e.Name == "Partida 1"),
                 It.IsAny<CancellationToken>()

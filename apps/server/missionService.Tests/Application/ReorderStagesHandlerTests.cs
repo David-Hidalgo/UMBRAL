@@ -36,7 +36,7 @@ namespace MissionService.Tests.Application
             var stage1 = Stage.Create(stageId1, "Stage 1", "Desc", 1, new List<SubStage>());
             var stage2 = Stage.Create(stageId2, "Stage 2", "Desc", 2, new List<SubStage>());
             var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage1, stage2 });
-            
+
             // Reorder so stage 2 comes first
             var command = new ReorderStagesCommand(missionId, new List<Guid> { stageId2, stageId1 });
 
@@ -79,7 +79,7 @@ namespace MissionService.Tests.Application
             var stageId1 = Guid.NewGuid();
             var stage1 = Stage.Create(stageId1, "Stage 1", "Desc", 1, new List<SubStage>());
             var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage1 });
-            
+
             // Reorder command with invalid non-matching ID
             var command = new ReorderStagesCommand(missionId, new List<Guid> { Guid.NewGuid() });
 

@@ -57,7 +57,7 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task UsersAdminRoute_WithAdminRole_IsNotRejectedByGateway(string method)
     {
         // Arrange
-        using var client  = CreateClientWithRoles("admin");
+        using var client = CreateClientWithRoles("admin");
         var request = new HttpRequestMessage(new HttpMethod(method), "/api/users/some-path");
 
         // Act
@@ -75,7 +75,7 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task UsersAdminRoute_WithOperatorRole_ReturnsForbidden(string method)
     {
         // Arrange
-        using var client  = CreateClientWithRoles("operator");
+        using var client = CreateClientWithRoles("operator");
         var request = new HttpRequestMessage(new HttpMethod(method), "/api/users/some-path");
 
         // Act
@@ -92,7 +92,7 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task UsersAdminRoute_WithNoToken_ReturnsUnauthorized(string method)
     {
         // Arrange
-        using var client  = CreateAnonymousClient();
+        using var client = CreateAnonymousClient();
         var request = new HttpRequestMessage(new HttpMethod(method), "/api/users/some-path");
 
         // Act
@@ -143,7 +143,7 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task MissionsRoute_WithAdminOrOperatorRole_IsNotRejectedByGateway(string role)
     {
         // Arrange
-        using var client  = CreateClientWithRoles(role);
+        using var client = CreateClientWithRoles(role);
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/missions/some-path");
 
         // Act
@@ -158,7 +158,7 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task MissionsRoute_WithOnlyAuthenticatedRole_ReturnsForbidden()
     {
         // Arrange — usuario autenticado sin admin ni operator
-        using var client  = CreateClientWithRoles();
+        using var client = CreateClientWithRoles();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/missions/some-path");
 
         // Act
@@ -172,7 +172,7 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task MissionsRoute_WithNoToken_ReturnsUnauthorized()
     {
         // Arrange
-        using var client  = CreateAnonymousClient();
+        using var client = CreateAnonymousClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/missions/some-path");
 
         // Act
@@ -188,10 +188,10 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task SessionsJoinRoute_WithAnyAuthenticatedUser_IsNotRejectedByGateway()
     {
         // Arrange
-        using var client    = CreateClientWithRoles();
+        using var client = CreateClientWithRoles();
         var sessionId = Guid.NewGuid();
-        var teamId    = Guid.NewGuid();
-        var request   = new HttpRequestMessage(HttpMethod.Post, $"/api/sessions/{sessionId}/teams/{teamId}/join");
+        var teamId = Guid.NewGuid();
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/sessions/{sessionId}/teams/{teamId}/join");
 
         // Act
         var response = await client.SendAsync(request);
@@ -205,10 +205,10 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task SessionsJoinRoute_WithNoToken_ReturnsUnauthorized()
     {
         // Arrange
-        using var client    = CreateAnonymousClient();
+        using var client = CreateAnonymousClient();
         var sessionId = Guid.NewGuid();
-        var teamId    = Guid.NewGuid();
-        var request   = new HttpRequestMessage(HttpMethod.Post, $"/api/sessions/{sessionId}/teams/{teamId}/join");
+        var teamId = Guid.NewGuid();
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/sessions/{sessionId}/teams/{teamId}/join");
 
         // Act
         var response = await client.SendAsync(request);
@@ -225,7 +225,7 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task SessionsAdminOperatorRoute_WithCorrectRole_IsNotRejectedByGateway(string role)
     {
         // Arrange
-        using var client  = CreateClientWithRoles(role);
+        using var client = CreateClientWithRoles(role);
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/sessions/some-path");
 
         // Act
@@ -240,7 +240,7 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task SessionsAdminOperatorRoute_WithOnlyAuthenticatedRole_ReturnsForbidden()
     {
         // Arrange
-        using var client  = CreateClientWithRoles();
+        using var client = CreateClientWithRoles();
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/sessions/some-path");
 
         // Act
@@ -256,7 +256,7 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task SessionsGetRoute_WithAnyAuthenticatedUser_IsNotRejectedByGateway()
     {
         // Arrange
-        using var client  = CreateClientWithRoles();
+        using var client = CreateClientWithRoles();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/sessions/some-path");
 
         // Act
@@ -271,7 +271,7 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task SessionsGetRoute_WithNoToken_ReturnsUnauthorized()
     {
         // Arrange
-        using var client  = CreateAnonymousClient();
+        using var client = CreateAnonymousClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/sessions/some-path");
 
         // Act
@@ -287,7 +287,7 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task SessionHub_WithAuthenticatedUser_IsNotRejectedByGateway()
     {
         // Arrange
-        using var client  = CreateClientWithRoles();
+        using var client = CreateClientWithRoles();
         var request = new HttpRequestMessage(HttpMethod.Get, "/hubs/sessions/negotiate");
 
         // Act
@@ -302,7 +302,7 @@ public class YarpAuthorizationTests : IClassFixture<StubBackendFixture>
     public async Task SessionHub_WithNoToken_ReturnsUnauthorized()
     {
         // Arrange
-        using var client  = CreateAnonymousClient();
+        using var client = CreateAnonymousClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/hubs/sessions/negotiate");
 
         // Act

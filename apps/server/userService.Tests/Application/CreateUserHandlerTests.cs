@@ -20,7 +20,7 @@ public class CreateUserHandlerTests
     public CreateUserHandlerTests()
     {
         _eventBusMock = new Mock<IEventBus>(MockBehavior.Strict);
-        _identityMock   = new Mock<IIdentityProviderService>(MockBehavior.Strict);
+        _identityMock = new Mock<IIdentityProviderService>(MockBehavior.Strict);
         _sut = new CreateUserHandler(_eventBusMock.Object, _identityMock.Object);
     }
 

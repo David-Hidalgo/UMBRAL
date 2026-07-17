@@ -19,8 +19,8 @@ public class KeycloakUserProvisioningServiceTests
 
     private static KeycloakAdminOptions ValidOptions() => new()
     {
-        BaseUrl       = "http://keycloak:8080",
-        Realm         = "umbral",
+        BaseUrl = "http://keycloak:8080",
+        Realm = "umbral",
         AdminClientId = "user-service-admin",
         AdminClientSecret = "test-secret"
     };
@@ -30,7 +30,7 @@ public class KeycloakUserProvisioningServiceTests
         KeycloakAdminOptions? options = null)
     {
         var client = new HttpClient(handler);
-        var opts   = Options.Create(options ?? ValidOptions());
+        var opts = Options.Create(options ?? ValidOptions());
         return new KeycloakUserProvisioningService(client, opts);
     }
 
@@ -89,18 +89,20 @@ public class KeycloakUserProvisioningServiceTests
     // ─── EnsureConfigured ────────────────────────────────────────────────────
 
     [Theory]
-    [InlineData("",                    "umbral", "client-id", "secret")]
-    [InlineData("http://keycloak:8080","",        "client-id", "secret")]
-    [InlineData("http://keycloak:8080","umbral",  "",          "secret")]
-    [InlineData("http://keycloak:8080","umbral",  "client-id", "")]
+    [InlineData("", "umbral", "client-id", "secret")]
+    [InlineData("http://keycloak:8080", "", "client-id", "secret")]
+    [InlineData("http://keycloak:8080", "umbral", "", "secret")]
+    [InlineData("http://keycloak:8080", "umbral", "client-id", "")]
     public async Task CreateUserAsync_WithIncompleteConfig_ThrowsInvalidOperationException(
         string baseUrl, string realm, string clientId, string secret)
     {
         // Arrange
         var opts = new KeycloakAdminOptions
         {
-            BaseUrl = baseUrl, Realm = realm,
-            AdminClientId = clientId, AdminClientSecret = secret
+            BaseUrl = baseUrl,
+            Realm = realm,
+            AdminClientId = clientId,
+            AdminClientSecret = secret
         };
         var sut = BuildSut(new SequentialHandler(), opts);
 
@@ -300,7 +302,7 @@ public class KeycloakUserProvisioningServiceTests
         // Assert
         result.Should().HaveCount(2);
         var list = new List<UserService.Application.DTOs.UserDto>(result);
-        
+
         list[0].KeycloakUserId.Should().Be(user2Id);
         list[0].Role.Should().Be("admin");
         list[0].Name.Should().Be("Admin One");
@@ -316,7 +318,7 @@ public class KeycloakUserProvisioningServiceTests
         // Arrange
         var realUserId = Guid.NewGuid().ToString();
         var serviceAccountUserId = Guid.NewGuid().ToString();
-        
+
         var rawJson = $@"
         [
             {{
