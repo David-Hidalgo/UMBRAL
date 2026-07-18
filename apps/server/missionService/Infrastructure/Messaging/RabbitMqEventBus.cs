@@ -38,6 +38,13 @@ namespace MissionService.Infrastructure.Messaging
                 autoDelete: false,
                 arguments: null).GetAwaiter().GetResult();
         }
+ 
+        internal RabbitMqEventBus(IConnection connection, IChannel channel, IOptions<RabbitMqOptions> options)
+        {
+            _connection = connection;
+            _channel = channel;
+            _options = options.Value;
+        }
 
         public async Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default)
         {
