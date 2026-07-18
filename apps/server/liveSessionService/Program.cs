@@ -92,6 +92,7 @@ builder.Services.AddDbContext<LiveSessionDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 builder.Services.AddCurrentUser();
+builder.Services.AddAuditLogging();
 
 // MediatR
 builder.Services.AddMediatR(cfg =>

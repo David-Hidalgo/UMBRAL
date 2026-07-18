@@ -68,6 +68,7 @@ builder.Services.AddDbContext<MissionDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 builder.Services.AddCurrentUser();
+builder.Services.AddAuditLogging();
 
 builder.Services.AddMediatR(cfg =>
 {

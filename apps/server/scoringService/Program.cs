@@ -96,6 +96,7 @@ builder.Services.AddDbContext<ScoringDbContext>(options => options.UseNpgsql(con
 
 // --- MediatR + validaciones ---
 builder.Services.AddCurrentUser();
+builder.Services.AddAuditLogging();
 
 builder.Services.AddMediatR(cfg =>
 {

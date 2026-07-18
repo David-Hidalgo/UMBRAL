@@ -59,6 +59,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddTransient<IClaimsTransformation, KeycloakRoleClaimsTransformation>();
 
 builder.Services.AddCurrentUser();
+builder.Services.AddAuditLogging();
 
 builder.Services.AddMediatR(cfg =>
 {

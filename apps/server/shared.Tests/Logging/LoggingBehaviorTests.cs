@@ -3,11 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
-using FluentValidation;
-using FluentValidation.Results;
-using Microsoft.Extensions.Logging;
-using Moq;
-using shared.Authentication;
 using shared.Logging;
 using Xunit;
 
@@ -15,42 +10,20 @@ namespace shared.Tests.Logging;
 
 public class LoggingBehaviorTests
 {
-    private const string UserId = "8f3a1b2c-0000-4444-9999-abcdefabcdef";
-    private const string UserName = "operador1";
-
-    /// <summary>Request con PII para fijar que el payload nunca se loguea.</summary>
+    /// <summary>Request con PII para fijar que el behavior nunca reenvia el payload al auditor.</summary>
     private sealed record CreateUserCommand(string Email, string Name);
 
     private static readonly CreateUserCommand SampleRequest = new("victima@ucab.edu.ve", "Juan Perez");
 
-    private readonly RecordingLogger<LoggingBehavior<CreateUserCommand, Guid>> _logger = new();
+    private readonly RecordingAuditLogger _auditLogger = new();
 
-    private static Mock<ICurrentUserService> AuthenticatedUser(params string[] roles)
-    {
-        var mock = new Mock<ICurrentUserService>(MockBehavior.Strict);
-        mock.SetupGet(s => s.UserId).Returns(UserId);
-        mock.SetupGet(s => s.UserName).Returns(UserName);
-        mock.SetupGet(s => s.Roles).Returns(roles);
-        return mock;
-    }
-
-    private static Mock<ICurrentUserService> AnonymousUser()
-    {
-        var mock = new Mock<ICurrentUserService>(MockBehavior.Strict);
-        mock.SetupGet(s => s.UserId).Returns((string?)null);
-        mock.SetupGet(s => s.UserName).Returns((string?)null);
-        mock.SetupGet(s => s.Roles).Returns(Array.Empty<string>());
-        return mock;
-    }
-
-    private LoggingBehavior<CreateUserCommand, Guid> CreateBehavior(ICurrentUserService currentUser)
-        => new(_logger, currentUser);
+    private LoggingBehavior<CreateUserCommand, Guid> CreateBehavior() => new(_auditLogger);
 
     [Fact]
     public async Task Handle_WhenHandlerSucceeds_CallsNextAndReturnsResponse()
     {
         // Arrange
-        var behavior = CreateBehavior(AuthenticatedUser("operator").Object);
+        var behavior = CreateBehavior();
         var expectedId = Guid.NewGuid();
         var nextCalled = false;
 
@@ -69,111 +42,61 @@ public class LoggingBehaviorTests
     }
 
     [Fact]
-    public async Task Handle_WhenHandlerSucceeds_LogsInformationOnce()
+    public async Task Handle_WhenHandlerSucceeds_AuditsSuccessOnceWithUseCaseName()
     {
         // Arrange
-        var behavior = CreateBehavior(AuthenticatedUser("operator").Object);
+        var behavior = CreateBehavior();
 
         // Act
         await behavior.Handle(SampleRequest, Next, CancellationToken.None);
 
         // Assert
-        _logger.Entries.Should().ContainSingle()
-            .Which.Level.Should().Be(LogLevel.Information);
+        var entry = _auditLogger.Entries.Should().ContainSingle().Subject;
+        entry.Succeeded.Should().BeTrue();
+        entry.UseCase.Should().Be(nameof(CreateUserCommand));
+        entry.Exception.Should().BeNull();
 
         static Task<Guid> Next(CancellationToken ct = default) => Task.FromResult(Guid.NewGuid());
     }
 
     [Fact]
-    public async Task Handle_WhenHandlerSucceeds_LogsUseCaseNameUserIdAndRoles()
+    public async Task Handle_WhenHandlerSucceeds_AuditsElapsedMilliseconds()
     {
         // Arrange
-        var behavior = CreateBehavior(AuthenticatedUser("operator", "admin").Object);
+        var behavior = CreateBehavior();
 
         // Act
         await behavior.Handle(SampleRequest, Next, CancellationToken.None);
 
         // Assert
-        var message = _logger.Entries.Should().ContainSingle().Subject.Message;
-        message.Should().Contain(nameof(CreateUserCommand));
-        message.Should().Contain(UserId);
-        message.Should().Contain(UserName);
-        message.Should().Contain("roles=[operator,admin]");
-        message.Should().Contain("resultado=Success");
+        _auditLogger.Entries.Should().ContainSingle()
+            .Subject.ElapsedMs.Should().BeGreaterThanOrEqualTo(0);
 
         static Task<Guid> Next(CancellationToken ct = default) => Task.FromResult(Guid.NewGuid());
     }
 
     [Fact]
-    public async Task Handle_WhenHandlerSucceeds_LogsElapsedMilliseconds()
+    public async Task Handle_Always_DoesNotForwardRequestPayloadToAuditor()
     {
-        // Arrange
-        var behavior = CreateBehavior(AuthenticatedUser("operator").Object);
+        // Arrange — el behavior solo conoce el nombre del caso de uso, nunca el payload.
+        var behavior = CreateBehavior();
 
         // Act
         await behavior.Handle(SampleRequest, Next, CancellationToken.None);
 
         // Assert
-        _logger.Entries.Should().ContainSingle()
-            .Subject.Message.Should().MatchRegex(@"duracion=\d+ms");
+        var entry = _auditLogger.Entries.Should().ContainSingle().Subject;
+        entry.UseCase.Should().NotContain(SampleRequest.Email);
+        entry.UseCase.Should().NotContain(SampleRequest.Name);
 
         static Task<Guid> Next(CancellationToken ct = default) => Task.FromResult(Guid.NewGuid());
     }
 
     [Fact]
-    public async Task Handle_WhenRequestContainsPii_DoesNotLogRequestPayload()
+    public async Task Handle_WhenHandlerThrows_AuditsFailureWithSameException()
     {
         // Arrange
-        var behavior = CreateBehavior(AuthenticatedUser("operator").Object);
-
-        // Act
-        await behavior.Handle(SampleRequest, Next, CancellationToken.None);
-
-        // Assert
-        var message = _logger.Entries.Should().ContainSingle().Subject.Message;
-        message.Should().NotContain(SampleRequest.Email);
-        message.Should().NotContain(SampleRequest.Name);
-
-        static Task<Guid> Next(CancellationToken ct = default) => Task.FromResult(Guid.NewGuid());
-    }
-
-    [Fact]
-    public async Task Handle_WhenUserIsAnonymous_LogsAnonymousPlaceholder()
-    {
-        // Arrange
-        var behavior = CreateBehavior(AnonymousUser().Object);
-
-        // Act
-        await behavior.Handle(SampleRequest, Next, CancellationToken.None);
-
-        // Assert
-        _logger.Entries.Should().ContainSingle()
-            .Subject.Message.Should().Contain("por anonymous (anonymous)");
-
-        static Task<Guid> Next(CancellationToken ct = default) => Task.FromResult(Guid.NewGuid());
-    }
-
-    [Fact]
-    public async Task Handle_WhenUserHasNoRoles_LogsNonePlaceholder()
-    {
-        // Arrange
-        var behavior = CreateBehavior(AuthenticatedUser().Object);
-
-        // Act
-        await behavior.Handle(SampleRequest, Next, CancellationToken.None);
-
-        // Assert
-        _logger.Entries.Should().ContainSingle()
-            .Subject.Message.Should().Contain("roles=[none]");
-
-        static Task<Guid> Next(CancellationToken ct = default) => Task.FromResult(Guid.NewGuid());
-    }
-
-    [Fact]
-    public async Task Handle_WhenHandlerThrowsUnexpectedException_LogsError()
-    {
-        // Arrange
-        var behavior = CreateBehavior(AuthenticatedUser("operator").Object);
+        var behavior = CreateBehavior();
         var expected = new InvalidOperationException("boom");
 
         // Act
@@ -181,18 +104,19 @@ public class LoggingBehaviorTests
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>();
-        var entry = _logger.Entries.Should().ContainSingle().Subject;
-        entry.Level.Should().Be(LogLevel.Error);
+        var entry = _auditLogger.Entries.Should().ContainSingle().Subject;
+        entry.Succeeded.Should().BeFalse();
+        entry.UseCase.Should().Be(nameof(CreateUserCommand));
         entry.Exception.Should().BeSameAs(expected);
 
         Task<Guid> Next(CancellationToken ct = default) => throw expected;
     }
 
     [Fact]
-    public async Task Handle_WhenHandlerThrowsUnexpectedException_RethrowsSameException()
+    public async Task Handle_WhenHandlerThrows_RethrowsSameException()
     {
         // Arrange
-        var behavior = CreateBehavior(AuthenticatedUser("operator").Object);
+        var behavior = CreateBehavior();
         var expected = new InvalidOperationException("boom");
 
         // Act
@@ -205,62 +129,10 @@ public class LoggingBehaviorTests
     }
 
     [Fact]
-    public async Task Handle_WhenHandlerThrowsValidationException_LogsWarning()
-    {
-        // Arrange
-        var behavior = CreateBehavior(AuthenticatedUser("operator").Object);
-        var failures = new List<ValidationFailure> { new("Email", "Email requerido") };
-
-        // Act
-        var act = async () => await behavior.Handle(SampleRequest, Next, CancellationToken.None);
-
-        // Assert
-        await act.Should().ThrowAsync<ValidationException>();
-        _logger.Entries.Should().ContainSingle()
-            .Subject.Level.Should().Be(LogLevel.Warning);
-
-        Task<Guid> Next(CancellationToken ct = default) => throw new ValidationException(failures);
-    }
-
-    [Fact]
-    public async Task Handle_WhenHandlerThrowsArgumentException_LogsWarning()
-    {
-        // Arrange
-        var behavior = CreateBehavior(AuthenticatedUser("operator").Object);
-
-        // Act
-        var act = async () => await behavior.Handle(SampleRequest, Next, CancellationToken.None);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentException>();
-        _logger.Entries.Should().ContainSingle()
-            .Subject.Level.Should().Be(LogLevel.Warning);
-
-        static Task<Guid> Next(CancellationToken ct = default) => throw new ArgumentException("invalido");
-    }
-
-    [Fact]
-    public async Task Handle_WhenHandlerThrows_LogsExceptionTypeName()
-    {
-        // Arrange
-        var behavior = CreateBehavior(AuthenticatedUser("operator").Object);
-
-        // Act
-        var act = async () => await behavior.Handle(SampleRequest, Next, CancellationToken.None);
-
-        // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>();
-        _logger.Entries.Should().ContainSingle()
-            .Subject.Message.Should().Contain("resultado=Failure InvalidOperationException");
-
-        static Task<Guid> Next(CancellationToken ct = default) => throw new InvalidOperationException("boom");
-    }
-
-    [Fact]
     public async Task Handle_Always_PassesCancellationTokenToNext()
     {
         // Arrange
-        var behavior = CreateBehavior(AuthenticatedUser("operator").Object);
+        var behavior = CreateBehavior();
         using var cts = new CancellationTokenSource();
         var received = CancellationToken.None;
 
@@ -275,5 +147,21 @@ public class LoggingBehaviorTests
 
         // Assert
         received.Should().Be(cts.Token);
+    }
+
+    /// <summary>Doble de prueba de <see cref="IAuditLogger"/> que captura cada invocacion auditada.</summary>
+    private sealed class RecordingAuditLogger : IAuditLogger
+    {
+        private readonly List<AuditEntry> _entries = new();
+
+        public IReadOnlyList<AuditEntry> Entries => _entries;
+
+        public void LogSuccess(string useCase, long elapsedMs)
+            => _entries.Add(new AuditEntry(useCase, true, null, elapsedMs));
+
+        public void LogFailure(string useCase, Exception exception, long elapsedMs)
+            => _entries.Add(new AuditEntry(useCase, false, exception, elapsedMs));
+
+        public sealed record AuditEntry(string UseCase, bool Succeeded, Exception? Exception, long ElapsedMs);
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi;
 using shared.Authentication;
+using shared.Logging;
 
 namespace shared.Extensions;
 
@@ -16,6 +17,16 @@ public static class ServiceCollectionExtensions
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registra el adaptador de auditoria de casos de uso.
+    /// Scoped porque depende de <see cref="ICurrentUserService"/> (ligado a la peticion en curso).
+    /// </summary>
+    public static IServiceCollection AddAuditLogging(this IServiceCollection services)
+    {
+        services.AddScoped<IAuditLogger, AuditLogger>();
         return services;
     }
 
