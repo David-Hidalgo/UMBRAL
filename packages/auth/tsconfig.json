@@ -5,7 +5,8 @@
 		"paths": {
 			"@umbral/auth/*": ["./src/*"]
 		},
-		"strictNullChecks": true
+		"strictNullChecks": true,
+		"types": []
 	},
 	"include": ["src/**/*.ts"],
 	"exclude": ["node_modules"]
