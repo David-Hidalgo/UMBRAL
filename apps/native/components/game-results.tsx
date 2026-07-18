@@ -147,7 +147,11 @@ export function GameResults({
 
 				{!loading && error && (
 					<View className="items-center justify-center rounded-xl border border-danger/25 bg-danger/10 px-4 py-8">
-						<Ionicons color={dangerColor} name="alert-circle-outline" size={24} />
+						<Ionicons
+							color={dangerColor}
+							name="alert-circle-outline"
+							size={24}
+						/>
 						<Text className="mt-2 text-center font-mono text-danger text-xs">
 							{error}
 						</Text>
