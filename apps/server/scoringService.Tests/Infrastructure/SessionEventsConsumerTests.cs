@@ -13,6 +13,7 @@ using RabbitMQ.Client;
 using ScoringService.Infrastructure.Messaging;
 using ScoringService.Infrastructure.Messaging.Consumers;
 using ScoringService.Infrastructure.Persistence.Contexts;
+using ScoringService.Tests;
 using Xunit;
 
 namespace ScoringService.Tests.Infrastructure
@@ -66,7 +67,7 @@ namespace ScoringService.Tests.Infrastructure
         private static ServiceProvider CreateServiceProvider(DbContextOptions<ScoringDbContext> options)
         {
             var services = new ServiceCollection();
-            services.AddScoped<ScoringDbContext>(_ => new ScoringDbContext(options));
+            services.AddScoped<ScoringDbContext>(_ => new TestScoringDbContext(options));
             return services.BuildServiceProvider();
         }
 
