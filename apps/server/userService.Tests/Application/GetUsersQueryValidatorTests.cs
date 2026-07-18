@@ -1,6 +1,5 @@
 using FluentAssertions;
-using UserService.Application.Queries;
-using UserService.Application.Validators;
+using UserService.Application.Query.GetUsers;
 using Xunit;
 
 namespace UserService.Tests.Application;

@@ -8,7 +8,7 @@ using FluentValidation.Results;
 using MediatR;
 using Moq;
 using UserService.Application.Common;
-using UserService.Application.Commands;
+using UserService.Application.Command.CreateUser;
 using Xunit;
 
 namespace UserService.Tests.Application;

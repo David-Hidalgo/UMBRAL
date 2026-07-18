@@ -1,7 +1,6 @@
 using System;
 using FluentAssertions;
-using UserService.Application.Commands;
-using UserService.Application.Validators;
+using UserService.Application.Command.UpdateUser;
 using Xunit;
 
 namespace UserService.Tests.Application;

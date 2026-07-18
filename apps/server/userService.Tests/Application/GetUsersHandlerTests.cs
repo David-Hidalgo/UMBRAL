@@ -5,9 +5,8 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using UserService.Application.DTOs;
-using UserService.Application.Handlers;
 using UserService.Application.Abstractions;
-using UserService.Application.Queries;
+using UserService.Application.Query.GetUsers;
 using Xunit;
 
 namespace UserService.Tests.Application;

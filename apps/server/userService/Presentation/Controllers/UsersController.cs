@@ -6,9 +6,11 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using UserService.Application.Commands;
+using UserService.Application.Command.CreateUser;
+using UserService.Application.Command.DeleteUser;
+using UserService.Application.Command.UpdateUser;
 using UserService.Application.DTOs;
-using UserService.Application.Queries;
+using UserService.Application.Query.GetUsers;
 
 namespace UserService.Presentation.Controllers
 {

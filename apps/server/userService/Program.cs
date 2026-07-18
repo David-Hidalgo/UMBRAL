@@ -5,9 +5,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using UserService.Application.Common;
-using UserService.Application.Handlers;
+using UserService.Application.Command.CreateUser;
+using UserService.Application.Command.DeleteUser;
+using UserService.Application.Command.UpdateUser;
+using UserService.Application.Query.GetUsers;
 using UserService.Application.Abstractions;
-using UserService.Application.Validators;
 using UserService.Infrastructure.Authentication;
 using UserService.Infrastructure.Messaging;
 using shared.Authentication;
@@ -70,11 +72,10 @@ builder.Services.AddMediatR(cfg =>
     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 
-// FluentValidation — registro manual para evitar dependencia adicional
-builder.Services.AddTransient<IValidator<UserService.Application.Commands.CreateUserCommand>, CreateUserCommandValidator>();
-builder.Services.AddTransient<IValidator<UserService.Application.Commands.DeleteUserCommand>, DeleteUserCommandValidator>();
-builder.Services.AddTransient<IValidator<UserService.Application.Commands.UpdateUserCommand>, UpdateUserCommandValidator>();
-builder.Services.AddTransient<IValidator<UserService.Application.Queries.GetUsersQuery>, GetUsersQueryValidator>();
+builder.Services.AddTransient<IValidator<CreateUserCommand>, CreateUserCommandValidator>();
+builder.Services.AddTransient<IValidator<DeleteUserCommand>, DeleteUserCommandValidator>();
+builder.Services.AddTransient<IValidator<UpdateUserCommand>, UpdateUserCommandValidator>();
+builder.Services.AddTransient<IValidator<GetUsersQuery>, GetUsersQueryValidator>();
 
 // Infrastructure bindings
 builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"));

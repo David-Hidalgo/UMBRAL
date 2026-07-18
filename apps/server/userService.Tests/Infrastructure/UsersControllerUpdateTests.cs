@@ -9,7 +9,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using UserService.Application.Commands;
+using UserService.Application.Command.UpdateUser;
 using UserService.Application.DTOs;
 using UserService.Presentation.Controllers;
 using Xunit;

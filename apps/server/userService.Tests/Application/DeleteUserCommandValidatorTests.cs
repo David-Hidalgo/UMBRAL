@@ -1,6 +1,5 @@
 using FluentAssertions;
-using UserService.Application.Commands;
-using UserService.Application.Validators;
+using UserService.Application.Command.DeleteUser;
 using Xunit;
 
 namespace UserService.Tests.Application;
