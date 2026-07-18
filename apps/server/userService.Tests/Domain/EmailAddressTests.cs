@@ -8,10 +8,10 @@ namespace UserService.Tests.Domain;
 public class EmailAddressTests
 {
     [Theory]
-    [InlineData("user@example.com",    "user@example.com")]
-    [InlineData("USER@EXAMPLE.COM",    "user@example.com")]
-    [InlineData("  user@example.com  ","user@example.com")]
-    [InlineData("Admin@UMBRAL.IO",     "admin@umbral.io")]
+    [InlineData("user@example.com", "user@example.com")]
+    [InlineData("USER@EXAMPLE.COM", "user@example.com")]
+    [InlineData("  user@example.com  ", "user@example.com")]
+    [InlineData("Admin@UMBRAL.IO", "admin@umbral.io")]
     public void Create_WithValidEmail_ReturnsNormalizedValue(string input, string expected)
     {
         // Act

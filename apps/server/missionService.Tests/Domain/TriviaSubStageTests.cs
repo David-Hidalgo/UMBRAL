@@ -114,7 +114,7 @@ namespace MissionService.Tests.Domain
 
             // Act & Assert
             subStage.Status.ActiveSessionCount.Should().Be(0);
-            
+
             subStage.IncrementSessionCount();
             subStage.Status.ActiveSessionCount.Should().Be(1);
 

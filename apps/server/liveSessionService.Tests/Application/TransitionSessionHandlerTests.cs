@@ -15,6 +15,7 @@ using LiveSessionService.Domain.Enums;
 using LiveSessionService.Domain.Exceptions;
 using LiveSessionService.Domain.Repositories;
 using LiveSessionService.Domain.States;
+using LiveSessionService.Tests.Support;
 
 namespace LiveSessionService.Tests.Application
 {
@@ -338,7 +339,7 @@ namespace LiveSessionService.Tests.Application
         {
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             return session;
         }
 
@@ -412,7 +413,7 @@ namespace LiveSessionService.Tests.Application
                             Guid.NewGuid(),
                             "Etapa 1",
                             "Desc",
-                            5, 
+                            5,
                             new List<SubStageClientDto> { new(subStageId, "Sub 1", 0, 10) })
                     }));
 
@@ -445,7 +446,7 @@ namespace LiveSessionService.Tests.Application
                     "Misión",
                     "Active",
                     60,
-                    new List<StageClientDto>())); 
+                    new List<StageClientDto>()));
 
             var command = new TransitionSessionCommand(session.Id, LiveSessionStatus.Finalizada, "jwt");
 

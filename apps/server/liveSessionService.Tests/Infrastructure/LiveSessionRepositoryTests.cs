@@ -7,6 +7,7 @@ using Xunit;
 using LiveSessionService.Domain.Entities;
 using LiveSessionService.Domain.Enums;
 using LiveSessionService.Infrastructure.Persistence;
+using LiveSessionService.Tests.Support;
 
 namespace LiveSessionService.Tests.Infrastructure
 {
@@ -134,7 +135,7 @@ namespace LiveSessionService.Tests.Infrastructure
             var scheduled = CreateSession("Programada");
             var active = CreateSession("Activa");
             active.StartPreparation();
-            active.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", active.Id));
+            active.RegisterTeamWithPlayer();
             active.Activate();
 
             await _repository.AddAsync(scheduled);

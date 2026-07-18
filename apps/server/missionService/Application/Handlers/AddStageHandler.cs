@@ -80,7 +80,7 @@ namespace MissionService.Application.Handlers
             }
 
             var stage = Stage.Create(Guid.NewGuid(), request.Name, request.Description, request.Order, domainSubStages);
-            
+
             mission.AddStage(stage);
 
             await _repository.SaveChangesAsync(cancellationToken);

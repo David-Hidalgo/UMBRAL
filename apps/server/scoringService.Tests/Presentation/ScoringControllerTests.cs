@@ -19,92 +19,205 @@ namespace ScoringService.Tests.Presentation
 {
     public class ScoringControllerTests
     {
-        private readonly Mock<IMediator> _mediator = new();
+        private readonly Mock<IMediator> _mediatorMock;
         private readonly ScoringController _controller;
-
-        private readonly Guid _sessionId = Guid.NewGuid();
-        private readonly Guid _teamId = Guid.NewGuid();
 
         public ScoringControllerTests()
         {
-            _controller = new ScoringController(_mediator.Object);
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers.Authorization = "Bearer test-token";
-            httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            _mediatorMock = new Mock<IMediator>(MockBehavior.Strict);
+            _controller = new ScoringController(_mediatorMock.Object);
+        }
+
+        private void SetupUserClaim(string claimType, string claimValue)
+        {
+            var claims = new List<Claim> { new Claim(claimType, claimValue) };
+            var identity = new ClaimsIdentity(claims, "TestAuth");
+            var principal = new ClaimsPrincipal(identity);
+            _controller.ControllerContext = new ControllerContext
             {
-                new Claim("preferred_username", "operador1")
-            }, "test"));
-            _controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+                HttpContext = new DefaultHttpContext { User = principal }
+            };
         }
 
         [Fact]
-        public async Task SubmitEvidence_ShouldReturnOkWithResult()
+        public async Task SubmitEvidence_ReturnsOkWithResult()
         {
-            var expected = new SubmitEvidenceResultDto(Guid.NewGuid(), "Correct", 100, 100);
-            _mediator.Setup(m => m.Send(It.IsAny<SubmitEvidenceCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(expected);
-            var request = new SubmitEvidenceRequest(SubmissionType.Trivia, Guid.NewGuid(), "answer");
+            // Arrange
+            var sessionId = Guid.NewGuid();
+            var teamId = Guid.NewGuid();
+            var request = new SubmitEvidenceRequest(SubmissionType.Trivia, Guid.NewGuid(), "Correct Answer");
 
-            var result = await _controller.SubmitEvidence(_sessionId, _teamId, request, CancellationToken.None);
+            var expectedResult = new SubmitEvidenceResultDto(Guid.NewGuid(), "Approved", 10, 100);
 
-            result.Should().BeOfType<OkObjectResult>().Which.Value.Should().Be(expected);
-            _mediator.Verify(m => m.Send(It.Is<SubmitEvidenceCommand>(c => c.SessionId == _sessionId && c.TeamId == _teamId), It.IsAny<CancellationToken>()), Times.Once);
+            _mediatorMock.Setup(m => m.Send(It.Is<SubmitEvidenceCommand>(c =>
+                c.SessionId == sessionId &&
+                c.TeamId == teamId &&
+                c.SubStageId == request.SubStageId &&
+                c.Type == request.Type &&
+                c.Payload == request.Payload), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedResult);
+
+            // Act
+            var result = await _controller.SubmitEvidence(sessionId, teamId, request, CancellationToken.None);
+
+            // Assert
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.Value.Should().Be(expectedResult);
         }
 
         [Fact]
-        public async Task ValidateEvidence_ShouldReturnOkAndPassActor()
+        public async Task ValidateEvidence_ReturnsOkWithResult()
         {
+            // Arrange
+            var sessionId = Guid.NewGuid();
             var submissionId = Guid.NewGuid();
-            var expected = new SubmitEvidenceResultDto(submissionId, "Correct", 50, 50);
-            _mediator.Setup(m => m.Send(It.IsAny<ValidateEvidenceCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(expected);
+            var request = new ValidateEvidenceRequest(true);
+            var expectedResult = new SubmitEvidenceResultDto(submissionId, "Approved", 15, 115);
 
-            var result = await _controller.ValidateEvidence(_sessionId, submissionId, new ValidateEvidenceRequest(true), CancellationToken.None);
+            SetupUserClaim("preferred_username", "admin-user");
 
-            result.Should().BeOfType<OkObjectResult>().Which.Value.Should().Be(expected);
-            _mediator.Verify(m => m.Send(It.Is<ValidateEvidenceCommand>(c => c.Actor == "operador1" && c.IsCorrect), It.IsAny<CancellationToken>()), Times.Once);
+            _mediatorMock.Setup(m => m.Send(It.Is<ValidateEvidenceCommand>(c =>
+                c.SessionId == sessionId &&
+                c.SubmissionId == submissionId &&
+                c.IsCorrect == request.IsCorrect &&
+                c.Actor == "admin-user"), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedResult);
+
+            // Act
+            var result = await _controller.ValidateEvidence(sessionId, submissionId, request, CancellationToken.None);
+
+            // Assert
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.Value.Should().Be(expectedResult);
         }
 
         [Fact]
-        public async Task ApplyPenalty_ShouldReturnNoContent()
+        public async Task ApplyPenalty_ReturnsNoContent()
         {
-            _mediator.Setup(m => m.Send(It.IsAny<ApplyPenaltyCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(Unit.Value);
+            // Arrange
+            var sessionId = Guid.NewGuid();
+            var teamId = Guid.NewGuid();
+            var request = new ApplyPenaltyRequest(10, "HintUsed");
 
-            var result = await _controller.ApplyPenalty(_sessionId, _teamId, new ApplyPenaltyRequest(20, "Retraso"), CancellationToken.None);
+            SetupUserClaim("name", "operator-user");
 
+            _mediatorMock.Setup(m => m.Send(It.Is<ApplyPenaltyCommand>(c =>
+                c.SessionId == sessionId &&
+                c.TeamId == teamId &&
+                c.Points == request.Points &&
+                c.Reason == request.Reason &&
+                c.Actor == "operator-user"), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Unit.Value);
+
+            // Act
+            var result = await _controller.ApplyPenalty(sessionId, teamId, request, CancellationToken.None);
+
+            // Assert
             result.Should().BeOfType<NoContentResult>();
-            _mediator.Verify(m => m.Send(It.Is<ApplyPenaltyCommand>(c => c.Points == 20 && c.Reason == "Retraso" && c.Actor == "operador1"), It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
-        public async Task GetRanking_ShouldReturnOk()
+        public async Task GetRanking_ReturnsOkWithRanking()
         {
-            var ranking = new List<RankingEntryDto> { new(1, _teamId, "Alfa", 90, DateTime.UtcNow) };
-            _mediator.Setup(m => m.Send(It.IsAny<GetSessionRankingQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync(ranking);
+            // Arrange
+            var sessionId = Guid.NewGuid();
+            var expectedRanking = new List<RankingEntryDto>
+            {
+                new RankingEntryDto(1, Guid.NewGuid(), "Team A", 100, DateTime.UtcNow)
+            };
 
-            var result = await _controller.GetRanking(_sessionId, CancellationToken.None);
+            _mediatorMock.Setup(m => m.Send(It.Is<GetSessionRankingQuery>(q => q.SessionId == sessionId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedRanking);
 
-            result.Should().BeOfType<OkObjectResult>().Which.Value.Should().BeEquivalentTo(ranking);
+            // Act
+            var result = await _controller.GetRanking(sessionId, CancellationToken.None);
+
+            // Assert
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.Value.Should().Be(expectedRanking);
         }
 
         [Fact]
-        public async Task GetTeamScore_ShouldReturnOk()
+        public async Task GetCurrentChallenge_ReturnsOkWithChallenge()
         {
-            var score = new TeamScoreDto(_sessionId, _teamId, "Alfa", 40);
-            _mediator.Setup(m => m.Send(It.IsAny<GetTeamScoreQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync(score);
+            // Arrange
+            var sessionId = Guid.NewGuid();
+            var teamId = Guid.NewGuid();
+            var question = new PlayerQuestionDto(Guid.NewGuid(), "Q?", new List<PlayerAnswerDto>());
+            var subStage = new PlayerSubStageDto(Guid.NewGuid(), "Trivia", 10, SubmissionType.Trivia, question, "Objective", false, null, null, null);
+            var expectedChallenge = new PlayerChallengeDto(sessionId, "Active", new List<PlayerSubStageDto> { subStage });
 
-            var result = await _controller.GetTeamScore(_sessionId, _teamId, CancellationToken.None);
+            _mediatorMock.Setup(m => m.Send(It.Is<GetCurrentChallengeQuery>(q =>
+                q.SessionId == sessionId && q.TeamId == teamId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedChallenge);
 
-            result.Should().BeOfType<OkObjectResult>().Which.Value.Should().Be(score);
+            // Act
+            var result = await _controller.GetCurrentChallenge(sessionId, teamId, CancellationToken.None);
+
+            // Assert
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.Value.Should().Be(expectedChallenge);
         }
 
         [Fact]
-        public async Task GetEvents_ShouldReturnOk()
+        public async Task GetTeamScore_ReturnsOkWithScore()
         {
-            var events = new List<SessionEventDto> { new(Guid.NewGuid(), _sessionId, "SessionCreated", "desc", "op", DateTime.UtcNow) };
-            _mediator.Setup(m => m.Send(It.IsAny<GetSessionEventsQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync(events);
+            // Arrange
+            var sessionId = Guid.NewGuid();
+            var teamId = Guid.NewGuid();
+            var expectedScore = new TeamScoreDto(sessionId, teamId, "Alfa", 150);
 
-            var result = await _controller.GetEvents(_sessionId, CancellationToken.None);
+            _mediatorMock.Setup(m => m.Send(It.Is<GetTeamScoreQuery>(q =>
+                q.SessionId == sessionId && q.TeamId == teamId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedScore);
 
-            result.Should().BeOfType<OkObjectResult>().Which.Value.Should().BeEquivalentTo(events);
+            // Act
+            var result = await _controller.GetTeamScore(sessionId, teamId, CancellationToken.None);
+
+            // Assert
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.Value.Should().Be(expectedScore);
+        }
+
+        [Fact]
+        public async Task GetStageProgress_ReturnsOkWithProgress()
+        {
+            // Arrange
+            var sessionId = Guid.NewGuid();
+            var expectedProgress = new StageProgressDto(1, new List<TeamStageProgressDto>(), false);
+
+            _mediatorMock.Setup(m => m.Send(It.Is<GetStageProgressQuery>(q =>
+                q.SessionId == sessionId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedProgress);
+
+            // Act
+            var result = await _controller.GetStageProgress(sessionId, CancellationToken.None);
+
+            // Assert
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.Value.Should().Be(expectedProgress);
+        }
+
+        [Fact]
+        public async Task GetEvents_ReturnsOkWithEvents()
+        {
+            // Arrange
+            var sessionId = Guid.NewGuid();
+            var expectedEvents = new List<SessionEventDto>
+            {
+                new SessionEventDto(Guid.NewGuid(), sessionId, "ClueRequested", "Detail", "actor", DateTime.UtcNow)
+            };
+
+            _mediatorMock.Setup(m => m.Send(It.Is<GetSessionEventsQuery>(q =>
+                q.SessionId == sessionId), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedEvents);
+
+            // Act
+            var result = await _controller.GetEvents(sessionId, CancellationToken.None);
+
+            // Assert
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.Value.Should().Be(expectedEvents);
         }
     }
 }

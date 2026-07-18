@@ -8,7 +8,17 @@
 		},
 		"name": "umbral",
 		"slug": "umbral",
-		"plugins": ["expo-font", "expo-router"],
+		"plugins": [
+			"expo-font",
+			"expo-router",
+			[
+				"expo-camera",
+				{
+					"cameraPermission": "UMBRAL necesita acceso a la cámara para escanear evidencias QR.",
+					"recordAudioAndroid": false
+				}
+			]
+		],
 		"experiments": {
 			"typedRoutes": true,
 			"reactCompiler": true

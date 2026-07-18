@@ -33,7 +33,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         // pero en algunas configuraciones el documento de descubrimiento puede anunciar el nombre de host interno.
         if (!string.IsNullOrWhiteSpace(keycloakOptions.BaseUrl) && !string.IsNullOrWhiteSpace(keycloakOptions.Realm))
         {
-            var publicIssuer   = $"{keycloakOptions.BaseUrl.TrimEnd('/')}/realms/{keycloakOptions.Realm}";
+            var publicIssuer = $"{keycloakOptions.BaseUrl.TrimEnd('/')}/realms/{keycloakOptions.Realm}";
             var internalIssuer = $"{keycloakOptions.EffectiveInternalBaseUrl.TrimEnd('/')}/realms/{keycloakOptions.Realm}";
             options.TokenValidationParameters.ValidIssuers = [publicIssuer, internalIssuer];
         }
@@ -43,7 +43,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         // nombre del contenedor interno (keycloak:8080) de forma transparente a nivel de HTTP para que
         // el flujo normal de dos pasos (descubrir → obtener JWKS → poblar SigningKeys) funcione.
         var internalBase = keycloakOptions.EffectiveInternalBaseUrl;
-        var publicBase   = keycloakOptions.BaseUrl;
+        var publicBase = keycloakOptions.BaseUrl;
 
         if (!string.IsNullOrWhiteSpace(internalBase) &&
             !string.Equals(internalBase, publicBase, StringComparison.OrdinalIgnoreCase))
@@ -157,7 +157,7 @@ app.Run();
 /// </summary>
 public class KeycloakInternalRedirectHandler(string publicBaseUrl, string internalBaseUrl) : HttpClientHandler
 {
-    private readonly Uri _publicBase   = new(publicBaseUrl.TrimEnd('/'));
+    private readonly Uri _publicBase = new(publicBaseUrl.TrimEnd('/'));
     private readonly Uri _internalBase = new(internalBaseUrl.TrimEnd('/'));
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -167,8 +167,8 @@ public class KeycloakInternalRedirectHandler(string publicBaseUrl, string intern
             var builder = new UriBuilder(request.RequestUri)
             {
                 Scheme = _internalBase.Scheme,
-                Host   = _internalBase.Host,
-                Port   = _internalBase.Port
+                Host = _internalBase.Host,
+                Port = _internalBase.Port
             };
             request.RequestUri = builder.Uri;
         }

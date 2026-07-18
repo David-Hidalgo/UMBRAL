@@ -85,7 +85,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddTransient<IClaimsTransformation, KeycloakRoleClaimsTransformation>();
 
 // DB Context Setup
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration.GetValue<string>("ConnectionStrings:DefaultConnection");
 
 builder.Services.AddDbContext<LiveSessionDbContext>(options =>

@@ -5,6 +5,7 @@ using LiveSessionService.Domain.Entities;
 using LiveSessionService.Domain.Enums;
 using LiveSessionService.Domain.Exceptions;
 using LiveSessionService.Domain.States;
+using LiveSessionService.Tests.Support;
 
 namespace LiveSessionService.Tests.Domain
 {
@@ -53,13 +54,12 @@ namespace LiveSessionService.Tests.Domain
         }
 
         [Fact]
-        public void Activate_FromPreparation_WithAtLeastOneTeam_ShouldTransitionToActive()
+        public void Activate_FromPreparation_WithTeamsWithPlayers_ShouldTransitionToActive()
         {
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            var team = Team.Create(Guid.NewGuid(), "Equipo Alfa", session.Id);
-            session.RegisterTeam(team);
+            session.RegisterTeamWithPlayer("Equipo Alfa");
 
             // Act
             session.Activate();
@@ -70,12 +70,43 @@ namespace LiveSessionService.Tests.Domain
         }
 
         [Fact]
+        public void Activate_FromPreparation_WithTeamWithoutPlayers_ShouldThrowBusinessException()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+            session.StartPreparation();
+            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo Vacío", session.Id));
+
+            // Act & Assert
+            Action act = () => session.Activate();
+            act.Should().Throw<BusinessException>()
+               .WithMessage("*Equipo Vacío*");
+        }
+
+        [Fact]
+        public void Activate_FromPreparation_WithMixedTeams_ShouldThrowAndNameOnlyEmptyTeams()
+        {
+            // Arrange
+            var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
+            session.StartPreparation();
+            session.RegisterTeamWithPlayer("Equipo Con Jugador");
+            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo Sin Jugador", session.Id));
+
+            // Act & Assert
+            Action act = () => session.Activate();
+            act.Should().Throw<BusinessException>()
+               .WithMessage("*Equipo Sin Jugador*")
+               .Which.Message.Should().NotContain("Equipo Con Jugador");
+            session.Status.Should().Be(LiveSessionStatus.Preparacion);
+        }
+
+        [Fact]
         public void Pause_FromActive_ShouldTransitionToPaused()
         {
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
 
             // Act
@@ -92,7 +123,7 @@ namespace LiveSessionService.Tests.Domain
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
             session.Pause();
 
@@ -110,7 +141,7 @@ namespace LiveSessionService.Tests.Domain
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
 
             // Act
@@ -156,7 +187,7 @@ namespace LiveSessionService.Tests.Domain
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
 
             // Act
@@ -173,7 +204,7 @@ namespace LiveSessionService.Tests.Domain
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
             session.Pause();
 
@@ -191,7 +222,7 @@ namespace LiveSessionService.Tests.Domain
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
             session.Finish();
 
@@ -207,7 +238,7 @@ namespace LiveSessionService.Tests.Domain
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
             session.Pause();
 
@@ -248,7 +279,7 @@ namespace LiveSessionService.Tests.Domain
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
 
             // Act & Assert
@@ -287,7 +318,7 @@ namespace LiveSessionService.Tests.Domain
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
 
             // Act & Assert
@@ -302,7 +333,7 @@ namespace LiveSessionService.Tests.Domain
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
             session.Pause();
 
@@ -318,7 +349,7 @@ namespace LiveSessionService.Tests.Domain
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
             session.Finish();
 

@@ -46,9 +46,9 @@ public class FakeAuthHandler(
         foreach (var role in token.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             claims.Add(new Claim(ClaimTypes.Role, role));
 
-        var identity  = new ClaimsIdentity(claims, "Test", ClaimTypes.Name, ClaimTypes.Role);
+        var identity = new ClaimsIdentity(claims, "Test", ClaimTypes.Name, ClaimTypes.Role);
         var principal = new ClaimsPrincipal(identity);
-        var ticket    = new AuthenticationTicket(principal, "Test");
+        var ticket = new AuthenticationTicket(principal, "Test");
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }

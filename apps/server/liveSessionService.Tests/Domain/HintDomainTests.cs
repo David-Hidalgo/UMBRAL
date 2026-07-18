@@ -5,6 +5,7 @@ using Xunit;
 using LiveSessionService.Domain.Entities;
 using LiveSessionService.Domain.Enums;
 using LiveSessionService.Domain.Exceptions;
+using LiveSessionService.Tests.Support;
 
 namespace LiveSessionService.Tests.Domain
 {
@@ -165,10 +166,8 @@ namespace LiveSessionService.Tests.Domain
         {
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            var teamA = Team.Create(Guid.NewGuid(), "Alfa", session.Id);
-            var teamB = Team.Create(Guid.NewGuid(), "Beta", session.Id);
-            session.RegisterTeam(teamA);
-            session.RegisterTeam(teamB);
+            var teamA = session.RegisterTeamWithPlayer("Alfa");
+            var teamB = session.RegisterTeamWithPlayer("Beta");
             session.Activate();
 
             var subStageId = Guid.NewGuid();

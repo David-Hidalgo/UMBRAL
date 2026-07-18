@@ -1,3 +1,4 @@
+using System.Linq;
 using LiveSessionService.Domain.Entities;
 using LiveSessionService.Domain.Enums;
 using LiveSessionService.Domain.Exceptions;
@@ -14,6 +15,18 @@ namespace LiveSessionService.Domain.States
             {
                 throw new BusinessException("Una sesión no puede iniciar si no posee al menos un equipo registrado.");
             }
+
+            var equiposSinJugadores = session.Teams
+                .Where(team => team.Players.Count == 0)
+                .Select(team => team.Name)
+                .ToList();
+
+            if (equiposSinJugadores.Count > 0)
+            {
+                throw new BusinessException(
+                    $"Una sesión no puede iniciar si hay equipos sin jugadores: {string.Join(", ", equiposSinJugadores)}.");
+            }
+
             session.TransitionTo(new ActiveState());
         }
 

@@ -9,6 +9,7 @@ using LiveSessionService.Application.Queries;
 using LiveSessionService.Domain.Entities;
 using LiveSessionService.Domain.Exceptions;
 using LiveSessionService.Domain.Repositories;
+using LiveSessionService.Tests.Support;
 
 namespace LiveSessionService.Tests.Application
 {
@@ -103,10 +104,8 @@ namespace LiveSessionService.Tests.Application
         {
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            var teamA = Team.Create(Guid.NewGuid(), "Alfa", session.Id);
-            var teamB = Team.Create(Guid.NewGuid(), "Beta", session.Id);
-            session.RegisterTeam(teamA);
-            session.RegisterTeam(teamB);
+            var teamA = session.RegisterTeamWithPlayer("Alfa");
+            var teamB = session.RegisterTeamWithPlayer("Beta");
             return (session, teamA, teamB);
         }
     }
