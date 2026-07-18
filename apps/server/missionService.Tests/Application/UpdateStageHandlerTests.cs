@@ -293,5 +293,144 @@ namespace MissionService.Tests.Application
 
             _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
+
+        [Fact]
+        public async Task Handle_Should_Remove_SubStage_When_Not_Present_In_Incoming_List()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var stageId = Guid.NewGuid();
+            var subStageId1 = Guid.NewGuid();
+            var subStageId2 = Guid.NewGuid();
+
+            var subStage1 = TreasureHuntSubStage.Create(subStageId1, "SubStage 1", 1, 10, "Objective", "CODE-1", null);
+            var subStage2 = TreasureHuntSubStage.Create(subStageId2, "SubStage 2", 2, 20, "Objective", "CODE-2", null);
+
+            var stage = Stage.Create(stageId, "Stage Name", "Stage Desc", 1, new List<SubStage> { subStage1, subStage2 });
+            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+
+            // We only include subStage1 in the command, so subStage2 should be removed.
+            var command = new UpdateStageCommand(
+                missionId,
+                stageId,
+                "Stage Name",
+                "Stage Desc",
+                new List<CreateSubStageCommand>
+                {
+                    new CreateSubStageCommand("SubStage 1", 1, "TreasureHunt", 10, null, "Objective", "CODE-1", null, subStageId1)
+                }
+            );
+
+            _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mission);
+
+            _repositoryMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            stage.SubStages.Should().HaveCount(1);
+            stage.SubStages.Should().NotContain(s => s.Id == subStageId2);
+            stage.SubStages.Should().Contain(s => s.Id == subStageId1);
+            _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_Should_Update_TreasureHuntSubStage_InPlace_Successfully()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var stageId = Guid.NewGuid();
+            var subStageId = Guid.NewGuid();
+
+            var subStage = TreasureHuntSubStage.Create(subStageId, "Old Title", 1, 10, "Old Objective", "OLD-CODE", null, 10.0, 20.0, 100);
+            var stage = Stage.Create(stageId, "Stage Name", "Stage Desc", 1, new List<SubStage> { subStage });
+            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+
+            var command = new UpdateStageCommand(
+                missionId,
+                stageId,
+                "Stage Name",
+                "Stage Desc",
+                new List<CreateSubStageCommand>
+                {
+                    new CreateSubStageCommand(
+                        "New Title",
+                        1,
+                        "TreasureHunt",
+                        15,
+                        null,
+                        "New Objective",
+                        "NEW-CODE",
+                        null,
+                        subStageId,
+                        11.0,
+                        21.0,
+                        150
+                    )
+                }
+            );
+
+            _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mission);
+
+            _repositoryMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            stage.SubStages.Should().HaveCount(1);
+            var updated = stage.SubStages.Single() as TreasureHuntSubStage;
+            updated.Should().NotBeNull();
+            updated!.Id.Should().Be(subStageId);
+            updated.Title.Should().Be("New Title");
+            updated.Points.Should().Be(15);
+            updated.Objective.Should().Be("New Objective");
+            updated.SecretCode.Should().Be("NEW-CODE");
+            updated.Latitude.Should().Be(11.0);
+            updated.Longitude.Should().Be(21.0);
+            updated.SearchRadiusMeters.Should().Be(150);
+
+            _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_Should_Throw_ArgumentException_When_Updating_TriviaSubStage_Without_Question()
+        {
+            // Arrange
+            var missionId = Guid.NewGuid();
+            var stageId = Guid.NewGuid();
+            var subStageId = Guid.NewGuid();
+
+            var answer = Answer.Create(Guid.NewGuid(), "Answer", true);
+            var question = Question.Create(Guid.NewGuid(), "Question?", new List<Answer> { answer });
+            var subStage = TriviaSubStage.Create(subStageId, "Old Title", 1, 10, question, null);
+            var stage = Stage.Create(stageId, "Stage Name", "Stage Desc", 1, new List<SubStage> { subStage });
+            var mission = Mission.Create(missionId, "Mission", "Desc", DifficultyLevel.Beginner, 60, new List<Stage> { stage });
+
+            var command = new UpdateStageCommand(
+                missionId,
+                stageId,
+                "Stage Name",
+                "Stage Desc",
+                new List<CreateSubStageCommand>
+                {
+                    new CreateSubStageCommand("New Title", 1, "Trivia", 15, null, null, null, null, subStageId)
+                }
+            );
+
+            _repositoryMock.Setup(r => r.GetByIdAsync(missionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mission);
+
+            // Act
+            Func<Task> act = async () => await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>().WithMessage("*must have a question*");
+        }
     }
 }

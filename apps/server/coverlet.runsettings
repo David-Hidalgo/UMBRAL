@@ -10,7 +10,7 @@
           <!-- Excluir por atributos estándar de exclusión o autogenerados -->
           <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute,System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
           <!-- Excluir archivos específicos como configuraciones de inicio y migraciones -->
-          <ExcludeByFile>**/Migrations/*.cs,**/Program.cs,**/DependencyInjection.cs,**/*DbContextModelSnapshot.cs</ExcludeByFile>
+          <ExcludeByFile>**/Migrations/*.cs,**/Program.cs,**/DependencyInjection.cs,**/*DbContextModelSnapshot.cs,**/*Configuration.cs,**/*DbContext.cs</ExcludeByFile>
         </Configuration>
       </DataCollector>
     </DataCollectors>
