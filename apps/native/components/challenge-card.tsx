@@ -3,13 +3,15 @@ import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 
 import type { PlayerSubStage, SubmitEvidenceResult } from "@/lib/api/scoring";
+import { QrEvidenceScanner } from "./qr-evidence-scanner";
 import { TreasureMap } from "./treasure-map";
 
 interface ChallengeCardProps {
 	subStage: PlayerSubStage;
 	submitting: boolean;
 	result?: SubmitEvidenceResult;
-	onSubmit: (payload: string) => void;
+	/** Envía la evidencia; resuelve true si el servidor aceptó la solicitud. */
+	onSubmit: (payload: string) => Promise<boolean>;
 	/** true cuando el temporizador de la sesión llegó a 0: se oculta el botón de enviar (RF-06). */
 	isTimeUp: boolean;
 }
@@ -23,6 +25,7 @@ export function ChallengeCard({
 }: ChallengeCardProps) {
 	const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null);
 	const [code, setCode] = useState("");
+	const [scannerVisible, setScannerVisible] = useState(false);
 
 	const isTrivia = subStage.question !== null;
 	// Trivia: un solo intento (cualquier resultado la bloquea, no se puede corregir).
@@ -34,11 +37,28 @@ export function ChallengeCard({
 		!disabled &&
 		(isTrivia ? selectedAnswerId !== null : code.trim().length > 0);
 
-	const handleSubmit = () => {
-		if (isTrivia && selectedAnswerId) {
-			onSubmit(selectedAnswerId);
-		} else if (!isTrivia) {
-			onSubmit(code.trim());
+	// Fuente única de envío: el texto puede venir del input manual o del QR.
+	const handleSubmit = async (textOverride?: string): Promise<boolean> => {
+		if (isTrivia) {
+			if (!selectedAnswerId) {
+				return false;
+			}
+			return await onSubmit(selectedAnswerId);
+		}
+		const text = (textOverride ?? code).trim();
+		if (text.length === 0) {
+			return false;
+		}
+		return await onSubmit(text);
+	};
+
+	// QR: mismo envío que el manual; solo cambia la fuente del texto.
+	const handleQrRead = async (text: string) => {
+		// Se refleja en el input para que el jugador vea qué se envió.
+		setCode(text);
+		const ok = await handleSubmit(text);
+		if (ok) {
+			setScannerVisible(false);
 		}
 	};
 
@@ -109,6 +129,27 @@ export function ChallengeCard({
 						placeholderTextColor="#71717a"
 						value={code}
 					/>
+					{!disabled && (
+						<Pressable
+							accessibilityHint="Abre la cámara para leer un código QR y enviarlo como evidencia"
+							accessibilityLabel="Escanear QR"
+							accessibilityRole="button"
+							className="flex-row items-center justify-center gap-2 rounded-lg border border-border/20 bg-muted/10 py-3"
+							disabled={disabled}
+							onPress={() => setScannerVisible(true)}
+						>
+							<Ionicons color="#71717a" name="qr-code-outline" size={16} />
+							<Text className="font-bold font-mono text-muted text-xs uppercase tracking-widest">
+								Escanear QR
+							</Text>
+						</Pressable>
+					)}
+					<QrEvidenceScanner
+						onClose={() => setScannerVisible(false)}
+						onRead={handleQrRead}
+						submitting={submitting}
+						visible={scannerVisible}
+					/>
 				</View>
 			)}
 
@@ -141,7 +182,7 @@ export function ChallengeCard({
 							: "border-border/10 bg-muted/10"
 					}`}
 					disabled={!canSubmit}
-					onPress={handleSubmit}
+					onPress={() => void handleSubmit()}
 				>
 					<Text
 						className={`font-bold font-mono text-xs uppercase tracking-widest ${
