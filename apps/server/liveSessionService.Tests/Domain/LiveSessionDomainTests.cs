@@ -3,6 +3,7 @@ using FluentAssertions;
 using Xunit;
 using LiveSessionService.Domain.Entities;
 using LiveSessionService.Domain.Exceptions;
+using LiveSessionService.Tests.Support;
 
 namespace LiveSessionService.Tests.Domain
 {
@@ -79,9 +80,8 @@ namespace LiveSessionService.Tests.Domain
         {
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
-            var team = Team.Create(Guid.NewGuid(), "Alfa", session.Id);
-            session.RegisterTeam(team);
             session.StartPreparation();
+            var team = session.RegisterTeamWithPlayer("Alfa");
             session.Activate();
 
             var player = Player.Create(Guid.NewGuid(), "user-123", "Juan", team.Id);
@@ -97,7 +97,7 @@ namespace LiveSessionService.Tests.Domain
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
 
             // Act
@@ -113,7 +113,7 @@ namespace LiveSessionService.Tests.Domain
             // Arrange
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Equipo", session.Id));
+            session.RegisterTeamWithPlayer();
             session.Activate();
 
             // Act & Assert

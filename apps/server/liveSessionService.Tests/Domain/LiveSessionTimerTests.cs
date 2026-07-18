@@ -2,6 +2,7 @@ using System;
 using FluentAssertions;
 using Xunit;
 using LiveSessionService.Domain.Entities;
+using LiveSessionService.Tests.Support;
 
 namespace LiveSessionService.Tests.Domain
 {
@@ -12,7 +13,7 @@ namespace LiveSessionService.Tests.Domain
         private static LiveSession ActiveSession(int maxTimeMinutes, DateTime now)
         {
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null, maxTimeMinutes);
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Alfa", session.Id));
+            session.RegisterTeamWithPlayer("Alfa");
             session.StartPreparation();
             session.Activate(now);
             return session;
@@ -48,7 +49,7 @@ namespace LiveSessionService.Tests.Domain
         public void Activate_WithoutNow_ShouldNotSetDeadline()
         {
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null, 30);
-            session.RegisterTeam(Team.Create(Guid.NewGuid(), "Alfa", session.Id));
+            session.RegisterTeamWithPlayer("Alfa");
             session.StartPreparation();
 
             session.Activate(); // sin reloj (compatibilidad con tests que no ejercitan el temporizador)
