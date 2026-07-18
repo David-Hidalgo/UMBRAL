@@ -2,11 +2,34 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi;
 using shared.Authentication;
+using shared.Logging;
 
 namespace shared.Extensions;
 
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registra el acceso a la identidad del invocador de la peticion en curso.
+    /// AddHttpContextAccessor es idempotente, asi que es seguro llamarlo
+    /// aunque el servicio ya lo registre por su cuenta.
+    /// </summary>
+    public static IServiceCollection AddCurrentUser(this IServiceCollection services)
+    {
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registra el adaptador de auditoria de casos de uso.
+    /// Scoped porque depende de <see cref="ICurrentUserService"/> (ligado a la peticion en curso).
+    /// </summary>
+    public static IServiceCollection AddAuditLogging(this IServiceCollection services)
+    {
+        services.AddScoped<IAuditLogger, AuditLogger>();
+        return services;
+    }
+
     public static IServiceCollection AddSwaggerGenWithAuthSupport(
         this IServiceCollection services,
         IConfiguration configuration)

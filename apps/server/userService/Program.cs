@@ -12,6 +12,7 @@ using UserService.Infrastructure.Authentication;
 using UserService.Infrastructure.Messaging;
 using shared.Authentication;
 using shared.Extensions;
+using shared.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,9 +58,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 builder.Services.AddTransient<IClaimsTransformation, KeycloakRoleClaimsTransformation>();
 
+builder.Services.AddCurrentUser();
+builder.Services.AddAuditLogging();
+
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(CreateUserHandler).Assembly);
+    // El orden importa: LoggingBehavior debe envolver a ValidationBehavior
+    // para auditar tambien las invocaciones que fallan por validacion.
+    cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 
@@ -99,6 +106,14 @@ app.UseExceptionHandler(exceptionApp =>
             await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = notFoundEx.Message }));
             return;
         }
+
+        // Solo el path 500 loguea a Error: los fallos ya mapeados a 4xx
+        // fueron registrados por el LoggingBehavior con usuario y caso de uso.
+        app.Logger.LogError(
+            feature?.Error,
+            "Error no controlado en {Method} {Path}",
+            context.Request.Method,
+            context.Request.Path);
 
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/json";

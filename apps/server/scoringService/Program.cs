@@ -25,6 +25,7 @@ using ScoringService.Infrastructure.Persistence.Contexts;
 using ScoringService.Infrastructure.Persistence.Repositories;
 using shared.Authentication;
 using shared.Extensions;
+using shared.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -94,9 +95,15 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ScoringDbContext>(options => options.UseNpgsql(connectionString));
 
 // --- MediatR + validaciones ---
+builder.Services.AddCurrentUser();
+builder.Services.AddAuditLogging();
+
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(SubmitEvidenceCommandHandler).Assembly);
+    // El orden importa: LoggingBehavior debe envolver a ValidationBehavior
+    // para auditar tambien las invocaciones que fallan por validacion.
+    cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 builder.Services.AddTransient<IValidator<SubmitEvidenceCommand>, SubmitEvidenceCommandValidator>();
@@ -150,6 +157,17 @@ app.UseExceptionHandler(exceptionApp =>
 
         var (status, title, detail) = MapException(exception);
         context.Response.StatusCode = status;
+
+        // Solo el path 500 loguea a Error: los fallos ya mapeados a 4xx
+        // fueron registrados por el LoggingBehavior con usuario y caso de uso.
+        if (status >= StatusCodes.Status500InternalServerError)
+        {
+            app.Logger.LogError(
+                exception,
+                "Error no controlado en {Method} {Path}",
+                context.Request.Method,
+                context.Request.Path);
+        }
 
         object payload = exception is ValidationException validationEx
             ? new
