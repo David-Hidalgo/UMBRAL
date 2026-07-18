@@ -13,6 +13,7 @@ using LiveSessionService.Application.IntegrationEvents;
 using LiveSessionService.Domain.Entities;
 using LiveSessionService.Domain.Exceptions;
 using LiveSessionService.Domain.Repositories;
+using LiveSessionService.Tests.Support;
 
 namespace LiveSessionService.Tests.Application
 {
@@ -252,8 +253,7 @@ namespace LiveSessionService.Tests.Application
         {
             var session = LiveSession.Create(Guid.NewGuid(), Guid.NewGuid(), "Misión", "Sesión", null);
             session.StartPreparation();
-            var team = Team.Create(Guid.NewGuid(), "Equipo", session.Id);
-            session.RegisterTeam(team);
+            session.RegisterTeamWithPlayer();
             session.Activate();
             return session;
         }
