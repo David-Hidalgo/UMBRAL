@@ -38,7 +38,7 @@ namespace MissionService.Infrastructure.Messaging
                 autoDelete: false,
                 arguments: null).GetAwaiter().GetResult();
         }
- 
+
         internal RabbitMqEventBus(IConnection connection, IChannel channel, IOptions<RabbitMqOptions> options)
         {
             _connection = connection;

@@ -114,11 +114,11 @@ namespace ScoringService.Tests.Infrastructure
             receivedEvent.TotalPoints.Should().Be(@event.TotalPoints);
         }
     }
- 
+
     public class RabbitMqEventBusUnitTests
     {
         private const string ScoringExchangeName = "umbral.scoring";
- 
+
         private static RabbitMqEventBus BuildSut(
             Mock<IConnection> connectionMock,
             Mock<IChannel> channelMock)
@@ -126,7 +126,7 @@ namespace ScoringService.Tests.Infrastructure
             var options = Options.Create(new RabbitMqOptions { ScoringExchangeName = ScoringExchangeName });
             return new RabbitMqEventBus(connectionMock.Object, channelMock.Object, options);
         }
- 
+
         [Fact]
         public async Task PublishAsync_WithAnyEvent_CallsBasicPublishOnChannel()
         {
@@ -135,7 +135,7 @@ namespace ScoringService.Tests.Infrastructure
             var channelMock = new Mock<IChannel>(MockBehavior.Strict);
             var sut = BuildSut(connectionMock, channelMock);
             var @event = new { Test = "Value" };
- 
+
             channelMock
                 .Setup(c => c.BasicPublishAsync(
                     ScoringExchangeName,
@@ -145,10 +145,10 @@ namespace ScoringService.Tests.Infrastructure
                     It.IsAny<ReadOnlyMemory<byte>>(),
                     It.IsAny<CancellationToken>()))
                 .Returns(ValueTask.CompletedTask);
- 
+
             // Act
             await sut.PublishAsync(@event, CancellationToken.None);
- 
+
             // Assert
             channelMock.Verify(
                 c => c.BasicPublishAsync(
@@ -160,7 +160,7 @@ namespace ScoringService.Tests.Infrastructure
                     It.IsAny<CancellationToken>()),
                 Times.Once);
         }
- 
+
         [Fact]
         public async Task PublishAsync_AfterDisposed_ThrowsObjectDisposedException()
         {
@@ -171,14 +171,14 @@ namespace ScoringService.Tests.Infrastructure
             channelMock.Setup(c => c.Dispose());
             connectionMock.Setup(c => c.Dispose());
             sut.Dispose();
- 
+
             // Act
             Func<Task> act = async () => await sut.PublishAsync(new { Test = "Value" });
- 
+
             // Assert
             await act.Should().ThrowAsync<ObjectDisposedException>();
         }
- 
+
         [Fact]
         public void Dispose_CalledMultipleTimes_IsIdempotent()
         {
@@ -188,16 +188,16 @@ namespace ScoringService.Tests.Infrastructure
             var sut = BuildSut(connectionMock, channelMock);
             channelMock.Setup(c => c.Dispose());
             connectionMock.Setup(c => c.Dispose());
- 
+
             // Act
             sut.Dispose();
             sut.Dispose();
- 
+
             // Assert
             channelMock.Verify(c => c.Dispose(), Times.Once);
             connectionMock.Verify(c => c.Dispose(), Times.Once);
         }
- 
+
         [Fact]
         public void Constructor_WithNoBroker_ThrowsException()
         {
@@ -210,10 +210,10 @@ namespace ScoringService.Tests.Infrastructure
                 Password = "guest",
                 ScoringExchangeName = "test-exchange"
             });
- 
+
             // Act
             Action act = () => new RabbitMqEventBus(options);
- 
+
             // Assert
             act.Should().Throw<Exception>();
         }
