@@ -5,7 +5,7 @@
       <DataCollector friendlyName="XPlat Code Coverage">
         <Configuration>
           <Format>cobertura</Format>
-          <Exclude>[TestUtils]*,[liveSessionService]liveSessionService.Migrations.*,[missionService]missionService.Migrations.*,[*]System.Runtime.CompilerServices,[*]*Program*,[*]Microsoft.AspNetCore.OpenApi.Generated.*,[*]*DbContextModelSnapshot*,[*]*KeycloakInternalRedirectHandler*,[*]*EventBus*</Exclude>
+          <Exclude>[TestUtils]*,[*]*.Migrations.*,[*]*Migrations*,[*]System.Runtime.CompilerServices,[*]*Program*,[*]Microsoft.AspNetCore.OpenApi.Generated.*,[*]*DbContextModelSnapshot*,[*]*KeycloakInternalRedirectHandler*,[*]*EventBus*,[*]*Hub*,[*]*.DTOs.*,[*]*Request,[*]*Response</Exclude>
         </Configuration>
       </DataCollector>
     </DataCollectors>

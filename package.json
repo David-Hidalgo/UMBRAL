@@ -19,11 +19,6 @@
 		"check-types": "turbo run check-types",
 		"dev:native": "turbo run dev -F native",
 		"dev:web": "turbo run dev -F web",
-		"db:push": "turbo run db:push -F @umbral/db",
-		"db:studio": "turbo run db:studio -F @umbral/db",
-		"db:generate": "turbo run db:generate -F @umbral/db",
-		"db:migrate": "turbo run db:migrate -F @umbral/db",
-		"db:local": "turbo run db:local -F @umbral/db",
 		"check": "ultracite check",
 		"fix": "ultracite fix"
 	},
