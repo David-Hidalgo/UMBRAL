@@ -11,6 +11,15 @@ export interface TeamScore {
 	totalPoints: number;
 }
 
+// Fila del ranking final de la sesión (RF-12), ordenado según RB-08.
+export interface RankingEntry {
+	rank: number;
+	teamId: string;
+	teamCode: string;
+	totalPoints: number;
+	lastScoredAt: string | null;
+}
+
 export interface SubmitEvidenceResult {
 	submissionId: string;
 	status: "Pending" | "Correct" | "Incorrect";
@@ -161,6 +170,28 @@ export async function getTeamScore(
 	}
 
 	return res.json() as Promise<TeamScore>;
+}
+
+export async function getRanking(
+	sessionId: string,
+	token: string,
+): Promise<RankingEntry[]> {
+	const res = await fetch(
+		`${env.EXPO_PUBLIC_SERVER_URL}/api/scoring/sessions/${sessionId}/ranking`,
+		{
+			method: "GET",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${token}`,
+			},
+		},
+	);
+
+	if (!res.ok) {
+		await handleResponse(res);
+	}
+
+	return res.json() as Promise<RankingEntry[]>;
 }
 
 export async function getCurrentChallenge(

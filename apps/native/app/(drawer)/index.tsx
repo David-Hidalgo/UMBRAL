@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { Container } from "@/components/container";
 import { GamePlayPanel } from "@/components/game-play-panel";
+import { GameResults } from "@/components/game-results";
 import { PlayerHeader } from "@/components/player-header";
 import { SessionTimer } from "@/components/session-timer";
 import { useAuth } from "@/contexts/auth-context";
@@ -275,14 +276,16 @@ export default function Home() {
 			"StateChanged",
 			(event: { sessionId: string; status: string }) => {
 				if (!active) return;
-				if (event.status === "Finalizada" || event.status === "Cancelada") {
+				if (event.status === "Cancelada") {
 					Alert.alert(
-						"Operación Finalizada",
-						`La partida ha sido ${event.status === "Finalizada" ? "completada" : "cancelada"} por el operador táctico.`,
+						"Operación Cancelada",
+						"La partida ha sido cancelada por el operador táctico.",
 					);
 					setSelectedSessionId(null);
 					setSessionDetail(null);
 				} else {
+					// "Finalizada" incluida: el refresco del detalle hace que el
+					// renderizado derive a la pantalla de resultados (RF-12).
 					fetchSessionDetails(selectedSessionId);
 				}
 			},
@@ -688,6 +691,24 @@ export default function Home() {
 					</Text>
 				</Pressable>
 			</Container>
+		);
+	}
+
+	// Fin de juego (RF-12): informe final con puntaje y clasificación. Cubre
+	// tanto el evento en vivo (StateChanged → refetch) como entrar a una sesión
+	// ya finalizada. Va antes de la selección de escuadrón a propósito.
+	if (sessionDetail.status === "Finalizada") {
+		return (
+			<GameResults
+				getAccessToken={getAccessToken}
+				myTeamId={myTeam?.id}
+				onExit={() => {
+					setSelectedSessionId(null);
+					setSessionDetail(null);
+				}}
+				sessionId={sessionDetail.id}
+				sessionName={sessionDetail.name}
+			/>
 		);
 	}
 
