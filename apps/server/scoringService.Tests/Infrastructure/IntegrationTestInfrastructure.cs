@@ -13,11 +13,16 @@ namespace ScoringService.Tests.Infrastructure
     {
         private static readonly Lazy<bool> _isDockerAvailable = new(() =>
         {
+            return CheckCommand("docker") || CheckCommand("podman");
+        });
+
+        private static bool CheckCommand(string command)
+        {
             try
             {
                 var startInfo = new ProcessStartInfo
                 {
-                    FileName = "docker",
+                    FileName = command,
                     Arguments = "info",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -33,7 +38,7 @@ namespace ScoringService.Tests.Infrastructure
             {
                 return false;
             }
-        });
+        }
 
         public static bool IsDockerAvailable => _isDockerAvailable.Value;
     }

@@ -235,11 +235,16 @@ namespace MissionService.Tests.Application
     {
         private static readonly Lazy<bool> _isDockerAvailable = new(() =>
         {
+            return CheckCommand("docker") || CheckCommand("podman");
+        });
+
+        private static bool CheckCommand(string command)
+        {
             try
             {
                 var startInfo = new ProcessStartInfo
                 {
-                    FileName = "docker",
+                    FileName = command,
                     Arguments = "info",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -255,7 +260,7 @@ namespace MissionService.Tests.Application
             {
                 return false;
             }
-        });
+        }
 
         public static bool IsDockerAvailable => _isDockerAvailable.Value;
     }
