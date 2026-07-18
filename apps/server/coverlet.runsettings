@@ -5,7 +5,12 @@
       <DataCollector friendlyName="XPlat Code Coverage">
         <Configuration>
           <Format>cobertura</Format>
-          <Exclude>[TestUtils]*,[liveSessionService]liveSessionService.Migrations.*,[missionService]missionService.Migrations.*,[*]System.Runtime.CompilerServices,[*]*Program*,[*]Microsoft.AspNetCore.OpenApi.Generated.*,[*]*DbContextModelSnapshot*,[*]*KeycloakInternalRedirectHandler*,[*]*EventBus*</Exclude>
+          <!-- Excluir namespaces y ensamblados de pruebas y migraciones -->
+          <Exclude>[*.Tests]*,[TestUtils]*,[*]*Migrations*,[*]*.Migrations*</Exclude>
+          <!-- Excluir por atributos estándar de exclusión o autogenerados -->
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute,System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+          <!-- Excluir archivos específicos como configuraciones de inicio y migraciones -->
+          <ExcludeByFile>**/Migrations/*.cs,**/Program.cs,**/DependencyInjection.cs,**/*DbContextModelSnapshot.cs,**/*Configuration.cs,**/*DbContext.cs</ExcludeByFile>
         </Configuration>
       </DataCollector>
     </DataCollectors>

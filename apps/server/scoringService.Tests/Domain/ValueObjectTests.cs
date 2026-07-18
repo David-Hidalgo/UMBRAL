@@ -2,6 +2,7 @@ using System;
 using FluentAssertions;
 using ScoringService.Domain.Exceptions;
 using ScoringService.Domain.ValueObjects;
+using ScoringService.Domain.Entities;
 using Xunit;
 
 namespace ScoringService.Tests.Domain
@@ -88,6 +89,60 @@ namespace ScoringService.Tests.Domain
         {
             Action act = () => new TeamCode(value);
             act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void ToString_ShouldReturnStringRepresentation()
+        {
+            var code = new TeamCode("Beta");
+            code.ToString().Should().Be("Beta");
+        }
+    }
+
+    public class MonitoredTeamTests
+    {
+        [Fact]
+        public void Create_WithValidParameters_ShouldCreateInstance()
+        {
+            var teamId = Guid.NewGuid();
+            var code = new TeamCode("Gamma");
+
+            var team = MonitoredTeam.Create(teamId, code);
+
+            team.TeamId.Should().Be(teamId);
+            team.Code.Should().Be(code);
+        }
+
+        [Fact]
+        public void Create_WithEmptyTeamId_ShouldThrow()
+        {
+            var code = new TeamCode("Gamma");
+            Action act = () => MonitoredTeam.Create(Guid.Empty, code);
+            act.Should().Throw<ArgumentException>().WithMessage("*identificador del equipo*");
+        }
+
+        [Fact]
+        public void Create_WithNullCode_ShouldThrow()
+        {
+            Action act = () => MonitoredTeam.Create(Guid.NewGuid(), null!);
+            act.Should().Throw<ArgumentNullException>();
+        }
+    }
+
+    public static class ValueObjectAdditionalTests
+    {
+        [Fact]
+        public static void ScoreValue_ToString_ShouldReturnPoints()
+        {
+            var val = ScoreValue.Award(42);
+            val.ToString().Should().Be("42");
+        }
+
+        [Fact]
+        public static void PenaltyReason_ToString_ShouldReturnReason()
+        {
+            var reason = new PenaltyReason("Infracción");
+            reason.ToString().Should().Be("Infracción");
         }
     }
 }

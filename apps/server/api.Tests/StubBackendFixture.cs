@@ -64,7 +64,7 @@ public sealed class StubBackendFixture : IAsyncLifetime
                 services.AddAuthentication(options =>
                 {
                     options.DefaultAuthenticateScheme = "Test";
-                    options.DefaultChallengeScheme    = "Test";
+                    options.DefaultChallengeScheme = "Test";
                 })
                 .AddScheme<AuthenticationSchemeOptions, FakeAuthHandler>("Test", _ => { });
             });

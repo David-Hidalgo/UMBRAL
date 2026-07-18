@@ -18,8 +18,8 @@ public class KeycloakRoleClaimsTransformationTests
     {
         var options = Options.Create(new KeycloakOptions
         {
-            BaseUrl  = "http://keycloak:8080",
-            Realm    = "umbral",
+            BaseUrl = "http://keycloak:8080",
+            Realm = "umbral",
             Audience = audience
         });
         return new KeycloakRoleClaimsTransformation(options);
@@ -58,7 +58,7 @@ public class KeycloakRoleClaimsTransformationTests
     public async Task TransformAsync_WithUnauthenticatedPrincipal_ReturnsPrincipalUnchanged()
     {
         // Arrange
-        var sut       = Build();
+        var sut = Build();
         var principal = UnauthenticatedPrincipal();
 
         // Act
@@ -89,7 +89,7 @@ public class KeycloakRoleClaimsTransformationTests
     public async Task TransformAsync_WithNoRealmAccessClaim_AddsNoRoles()
     {
         // Arrange
-        var sut       = Build();
+        var sut = Build();
         var principal = AuthenticatedPrincipal();
 
         // Act
@@ -247,7 +247,7 @@ public class KeycloakRoleClaimsTransformationTests
             ["client-b"] = new { roles = new[] { "player" } }
         };
         var claim = new Claim("resource_access", JsonSerializer.Serialize(data));
-        var sut   = Build(audience: "");
+        var sut = Build(audience: "");
         var principal = AuthenticatedPrincipal(claim);
 
         // Act

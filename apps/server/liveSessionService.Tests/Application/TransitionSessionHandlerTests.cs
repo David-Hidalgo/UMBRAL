@@ -413,7 +413,7 @@ namespace LiveSessionService.Tests.Application
                             Guid.NewGuid(),
                             "Etapa 1",
                             "Desc",
-                            5, 
+                            5,
                             new List<SubStageClientDto> { new(subStageId, "Sub 1", 0, 10) })
                     }));
 
@@ -446,7 +446,7 @@ namespace LiveSessionService.Tests.Application
                     "Misión",
                     "Active",
                     60,
-                    new List<StageClientDto>())); 
+                    new List<StageClientDto>()));
 
             var command = new TransitionSessionCommand(session.Id, LiveSessionStatus.Finalizada, "jwt");
 

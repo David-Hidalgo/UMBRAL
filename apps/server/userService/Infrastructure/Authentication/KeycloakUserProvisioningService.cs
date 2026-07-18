@@ -214,8 +214,8 @@ namespace UserService.Infrastructure.Authentication
             var keycloakUsers = await GetUsersFromUriAsync(allUsersUri, accessToken, cancellationToken);
 
             // Filter out service account users (e.g. service-account-scoring-service) from the user list
-            var normalUsers = keycloakUsers.Where(u => 
-                string.IsNullOrEmpty(u.ServiceAccountClientId) && 
+            var normalUsers = keycloakUsers.Where(u =>
+                string.IsNullOrEmpty(u.ServiceAccountClientId) &&
                 !u.Username.StartsWith("service-account-", StringComparison.OrdinalIgnoreCase));
 
             // 2. Resolve roles for each user with bounded concurrency via /users/{id}/role-mappings/realm.

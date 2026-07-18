@@ -37,10 +37,10 @@ namespace MissionService.Tests.Domain
         {
             var status = new Status(0);
             var updated = status.Increment();
-            
+
             updated.ActiveSessionCount.Should().Be(1);
             updated.IsInUse.Should().BeTrue();
-            
+
             // Original status should remain unchanged (immutable VO)
             status.ActiveSessionCount.Should().Be(0);
         }
@@ -52,7 +52,7 @@ namespace MissionService.Tests.Domain
             var updated = status.Decrement();
 
             updated.ActiveSessionCount.Should().Be(1);
-            
+
             // Original status should remain unchanged (immutable VO)
             status.ActiveSessionCount.Should().Be(2);
         }

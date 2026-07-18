@@ -43,6 +43,13 @@ namespace ScoringService.Infrastructure.Messaging
                 arguments: null).GetAwaiter().GetResult();
         }
 
+        internal RabbitMqEventBus(IConnection connection, IChannel channel, IOptions<RabbitMqOptions> options)
+        {
+            _connection = connection;
+            _channel = channel;
+            _options = options.Value;
+        }
+
         public async Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);

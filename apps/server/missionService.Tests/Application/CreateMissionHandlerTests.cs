@@ -46,8 +46,8 @@ namespace MissionService.Tests.Application
             // Assert
             result.Should().NotBeEmpty();
             _repositoryMock.Verify(r => r.ExistsByNameAsync(command.Name, It.IsAny<CancellationToken>()), Times.Once);
-            _repositoryMock.Verify(r => r.AddAsync(It.Is<Mission>(m => 
-                m.Name == command.Name && 
+            _repositoryMock.Verify(r => r.AddAsync(It.Is<Mission>(m =>
+                m.Name == command.Name &&
                 m.Description == command.Description &&
                 m.DifficultyLevel == DifficultyLevel.Beginner &&
                 m.MaxTimeMinutes == 60

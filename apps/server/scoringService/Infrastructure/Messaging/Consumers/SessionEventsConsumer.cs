@@ -185,88 +185,88 @@ namespace ScoringService.Infrastructure.Messaging.Consumers
             switch (routingKey)
             {
                 case nameof(SessionCreatedIntegrationEvent):
-                {
-                    var e = Deserialize<SessionCreatedIntegrationEvent>(message);
-                    if (e is null) return;
-                    var existing = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
-                    if (existing is null)
                     {
-                        db.SessionMonitors.Add(SessionMonitor.Create(e.SessionId, e.MissionId, e.Name));
-                        RecordAudit(db, e.SessionId, "SessionCreated", $"Sesión '{e.Name}' creada.", now);
+                        var e = Deserialize<SessionCreatedIntegrationEvent>(message);
+                        if (e is null) return;
+                        var existing = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
+                        if (existing is null)
+                        {
+                            db.SessionMonitors.Add(SessionMonitor.Create(e.SessionId, e.MissionId, e.Name));
+                            RecordAudit(db, e.SessionId, "SessionCreated", $"Sesión '{e.Name}' creada.", now);
+                        }
+                        break;
                     }
-                    break;
-                }
                 case nameof(TeamRegisteredIntegrationEvent):
-                {
-                    var e = Deserialize<TeamRegisteredIntegrationEvent>(message);
-                    if (e is null) return;
-                    var monitor = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
-                    if (monitor is null)
                     {
-                        _logger.LogWarning("TeamRegistered para sesión desconocida {SessionId}; se omite.", e.SessionId);
-                        return;
+                        var e = Deserialize<TeamRegisteredIntegrationEvent>(message);
+                        if (e is null) return;
+                        var monitor = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
+                        if (monitor is null)
+                        {
+                            _logger.LogWarning("TeamRegistered para sesión desconocida {SessionId}; se omite.", e.SessionId);
+                            return;
+                        }
+                        monitor.RegisterTeam(e.TeamId, new TeamCode(e.TeamName));
+                        RecordAudit(db, e.SessionId, "TeamRegistered", $"Equipo '{e.TeamName}' registrado.", now);
+                        break;
                     }
-                    monitor.RegisterTeam(e.TeamId, new TeamCode(e.TeamName));
-                    RecordAudit(db, e.SessionId, "TeamRegistered", $"Equipo '{e.TeamName}' registrado.", now);
-                    break;
-                }
                 case nameof(PlayerJoinedTeamIntegrationEvent):
-                {
-                    var e = Deserialize<PlayerJoinedTeamIntegrationEvent>(message);
-                    if (e is null) return;
-                    RecordAudit(db, e.SessionId, "PlayerJoinedTeam", $"'{e.DisplayName}' se unió al equipo {e.TeamId}.", now);
-                    break;
-                }
+                    {
+                        var e = Deserialize<PlayerJoinedTeamIntegrationEvent>(message);
+                        if (e is null) return;
+                        RecordAudit(db, e.SessionId, "PlayerJoinedTeam", $"'{e.DisplayName}' se unió al equipo {e.TeamId}.", now);
+                        break;
+                    }
                 case nameof(SessionActivatedIntegrationEvent):
-                {
-                    var e = Deserialize<SessionActivatedIntegrationEvent>(message);
-                    if (e is null) return;
-                    var monitor = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
-                    if (monitor is null) return;
-                    monitor.Activate(e.SubStageIds ?? new List<Guid>());
-                    RecordAudit(db, e.SessionId, "SessionActivated", "La sesión pasó a estado Activa.", now);
-                    break;
-                }
+                    {
+                        var e = Deserialize<SessionActivatedIntegrationEvent>(message);
+                        if (e is null) return;
+                        var monitor = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
+                        if (monitor is null) return;
+                        monitor.Activate(e.SubStageIds ?? new List<Guid>());
+                        RecordAudit(db, e.SessionId, "SessionActivated", "La sesión pasó a estado Activa.", now);
+                        break;
+                    }
                 case nameof(SessionPausedIntegrationEvent):
-                {
-                    var e = Deserialize<SessionPausedIntegrationEvent>(message);
-                    if (e is null) return;
-                    var monitor = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
-                    if (monitor is null) return;
-                    monitor.Pause();
-                    RecordAudit(db, e.SessionId, "SessionPaused", "La sesión pasó a estado Pausada.", now);
-                    break;
-                }
+                    {
+                        var e = Deserialize<SessionPausedIntegrationEvent>(message);
+                        if (e is null) return;
+                        var monitor = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
+                        if (monitor is null) return;
+                        monitor.Pause();
+                        RecordAudit(db, e.SessionId, "SessionPaused", "La sesión pasó a estado Pausada.", now);
+                        break;
+                    }
                 case nameof(SessionFinishedIntegrationEvent):
-                {
-                    var e = Deserialize<SessionFinishedIntegrationEvent>(message);
-                    if (e is null) return;
-                    var monitor = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
-                    if (monitor is null) return;
-                    monitor.Finish();
-                    RecordAudit(db, e.SessionId, "SessionFinished", "La sesión finalizó.", now);
-                    break;
-                }
+                    {
+                        var e = Deserialize<SessionFinishedIntegrationEvent>(message);
+                        if (e is null) return;
+                        var monitor = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
+                        if (monitor is null) return;
+                        monitor.Finish();
+                        RecordAudit(db, e.SessionId, "SessionFinished", "La sesión finalizó.", now);
+                        break;
+                    }
                 case nameof(SessionCancelledIntegrationEvent):
-                {
-                    var e = Deserialize<SessionCancelledIntegrationEvent>(message);
-                    if (e is null) return;
-                    var monitor = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
-                    if (monitor is null) return;
-                    monitor.Cancel();
-                    RecordAudit(db, e.SessionId, "SessionCancelled", "La sesión fue cancelada.", now);
-                    break;
-                }
+                    {
+                        var e = Deserialize<SessionCancelledIntegrationEvent>(message);
+                        if (e is null) return;
+                        var monitor = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
+                        if (monitor is null) return;
+                        monitor.Cancel();
+                        RecordAudit(db, e.SessionId, "SessionCancelled", "La sesión fue cancelada.", now);
+                        break;
+                    }
                 case nameof(StageTransitionedIntegrationEvent):
-                {
-                    var e = Deserialize<StageTransitionedIntegrationEvent>(message);
-                    if (e is null) return;
-                    var monitor = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
-                    if (monitor is null) return;
-                    monitor.TransitionStage(e.NewSubStageIds ?? new List<Guid>());
-                    RecordAudit(db, e.SessionId, "StageTransitioned", "La sesión avanzó de etapa.", now);
-                    break;
-                }
+                    {
+                        var e = Deserialize<StageTransitionedIntegrationEvent>(message);
+                        if (e is null) return;
+                        var monitor = await db.SessionMonitors.FirstOrDefaultAsync(m => m.SessionId == e.SessionId, cancellationToken);
+                        if (monitor is null) return;
+                        monitor.TransitionStage(e.NewSubStageIds ?? new List<Guid>());
+                        RecordAudit(db, e.SessionId, "StageTransitioned", "La sesión avanzó de etapa.", now);
+                        break;
+                    }
             }
         }
 

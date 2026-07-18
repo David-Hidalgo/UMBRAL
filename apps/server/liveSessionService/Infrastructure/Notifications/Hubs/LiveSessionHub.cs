@@ -31,7 +31,7 @@ namespace LiveSessionService.Infrastructure.Notifications.Hubs
         // El móvil de un equipo se une a su propio grupo para recibir SOLO sus pistas liberadas.
         public async Task JoinTeamGroup(Guid teamId)
         {
-            var keycloakUserId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            var keycloakUserId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
                                  ?? Context.User?.FindFirst("sub")?.Value;
 
             if (string.IsNullOrEmpty(keycloakUserId))

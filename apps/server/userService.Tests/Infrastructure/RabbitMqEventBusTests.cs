@@ -165,4 +165,61 @@ public class RabbitMqEventBusTests
         channelMock.Verify(c => c.Dispose(), Times.Once);
         connectionMock.Verify(c => c.Dispose(), Times.Once);
     }
+
+    [Fact]
+    public async Task PublishAsync_AfterDisposed_ThrowsObjectDisposedException()
+    {
+        // Arrange
+        var connectionMock = new Mock<IConnection>(MockBehavior.Strict);
+        var channelMock = new Mock<IChannel>(MockBehavior.Strict);
+        var sut = BuildSut(connectionMock, channelMock);
+        channelMock.Setup(c => c.Dispose());
+        connectionMock.Setup(c => c.Dispose());
+        sut.Dispose();
+
+        // Act
+        Func<Task> act = async () => await sut.PublishAsync(new UserDeactivated("kc-123"));
+
+        // Assert
+        await act.Should().ThrowAsync<ObjectDisposedException>();
+    }
+
+    [Fact]
+    public void Dispose_CalledMultipleTimes_IsIdempotent()
+    {
+        // Arrange
+        var connectionMock = new Mock<IConnection>(MockBehavior.Strict);
+        var channelMock = new Mock<IChannel>(MockBehavior.Strict);
+        var sut = BuildSut(connectionMock, channelMock);
+        channelMock.Setup(c => c.Dispose());
+        connectionMock.Setup(c => c.Dispose());
+
+        // Act
+        sut.Dispose();
+        sut.Dispose();
+
+        // Assert
+        channelMock.Verify(c => c.Dispose(), Times.Once);
+        connectionMock.Verify(c => c.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public void Constructor_WithNoBroker_ThrowsException()
+    {
+        // Arrange
+        var options = Options.Create(new RabbitMqOptions
+        {
+            Host = "invalid-host-name-non-existent",
+            Port = 5672,
+            Username = "guest",
+            Password = "guest",
+            ExchangeName = "test-exchange"
+        });
+
+        // Act
+        Action act = () => new RabbitMqEventBus(options);
+
+        // Assert
+        act.Should().Throw<Exception>(); // Al no haber host real, fallará y lanzará una excepción
+    }
 }

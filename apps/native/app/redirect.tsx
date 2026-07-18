@@ -1,11 +1,17 @@
-import { useLocalSearchParams, useRouter, useRootNavigationState } from "expo-router";
+import {
+	useLocalSearchParams,
+	useRootNavigationState,
+	useRouter,
+} from "expo-router";
 import { Spinner } from "heroui-native";
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function RedirectPage() {
-	const { code: rawCode } = useLocalSearchParams<{ code?: string | string[] }>();
+	const { code: rawCode } = useLocalSearchParams<{
+		code?: string | string[];
+	}>();
 	const code = Array.isArray(rawCode) ? rawCode[0] : rawCode;
 	const { exchangeCodeForTokens } = useAuth();
 	const router = useRouter();
@@ -27,7 +33,9 @@ export default function RedirectPage() {
 				.catch((err: unknown) => {
 					if (isMounted) {
 						console.error("Failed to complete login redirect", err);
-						setError(err instanceof Error ? err.message : "Failed to authenticate");
+						setError(
+							err instanceof Error ? err.message : "Failed to authenticate",
+						);
 					}
 				});
 		} else {

@@ -21,7 +21,7 @@ public class DeleteUserHandlerTests
     public DeleteUserHandlerTests()
     {
         _identityMock = new Mock<IIdentityProviderService>(MockBehavior.Strict);
-        _eventBusMock   = new Mock<IEventBus>(MockBehavior.Strict);
+        _eventBusMock = new Mock<IEventBus>(MockBehavior.Strict);
         _sut = new DeleteUserHandler(_identityMock.Object, _eventBusMock.Object);
     }
 
