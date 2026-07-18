@@ -38,19 +38,10 @@ namespace MissionService.Infrastructure.Messaging.Consumers
         {
             try
             {
-                var factory = new ConnectionFactory
-                {
-                    HostName = _options.Host,
-                    Port = _options.Port,
-                    UserName = _options.Username,
-                    Password = _options.Password
-                };
-
-                _connection = await factory.CreateConnectionAsync(stoppingToken);
-                _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
+                await ConnectWithRetryAsync(stoppingToken);
 
                 // Declarar exchange (debe coincidir con liveSessionService)
-                await _channel.ExchangeDeclareAsync(
+                await _channel!.ExchangeDeclareAsync(
                     exchange: _options.ExchangeName,
                     type: ExchangeType.Direct,
                     durable: true,
@@ -209,6 +200,36 @@ namespace MissionService.Infrastructure.Messaging.Consumers
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        private async Task ConnectWithRetryAsync(CancellationToken stoppingToken)
+        {
+            var factory = new ConnectionFactory
+            {
+                HostName = _options.Host,
+                Port = _options.Port,
+                UserName = _options.Username,
+                Password = _options.Password
+            };
+
+            const int maxAttempts = 10;
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try
+                {
+                    _connection = await factory.CreateConnectionAsync(stoppingToken);
+                    _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
+                    return;
+                }
+                catch (Exception ex) when (attempt < maxAttempts)
+                {
+                    _logger.LogWarning(ex, "No se pudo conectar a RabbitMQ en missionService (intento {Attempt}/{Max}); reintentando...", attempt, maxAttempts);
+                    await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
+                }
+            }
+
+            _connection = await factory.CreateConnectionAsync(stoppingToken);
+            _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
         }
 
         public override void Dispose()
